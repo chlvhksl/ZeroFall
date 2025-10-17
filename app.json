@@ -1,4 +1,31 @@
 {
-  "name": "SupabaseApp",
-  "displayName": "SupabaseApp"
+  "expo": {
+    "name": "ZeroFall",
+    "slug": "zerofall",
+    "version": "1.0.0",
+    "main": "App.tsx",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.zerofall"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.zerofall"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": []
+  }
 }
