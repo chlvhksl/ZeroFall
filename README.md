@@ -1,21 +1,63 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# ZeroFall - React Native + Supabase App
+
+This is a [**React Native**](https://reactnative.dev) project with [**Supabase**](https://supabase.com) integration, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+
+## Prerequisites
+
+- Node.js (>=20)
+- Expo CLI
+- Supabase account
+
+## Supabase Setup
+
+1. Create a Supabase project at [https://supabase.com](https://supabase.com)
+2. Get your project URL and API key from Project Settings > API
+3. Create a `.env` file in the root directory:
+
+```bash
+EXPO_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+```
 
 # Getting Started
 
 > **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
 
-## Step 1: Start Metro
-
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
-
-To start the Metro dev server, run the following command from the root of your React Native project:
+## Step 1: Install Dependencies
 
 ```sh
-# Using npm
-npm start
+npm install --legacy-peer-deps
+```
 
-# OR using Yarn
-yarn start
+## Step 2: Start the App
+
+### Using Expo Go (Recommended)
+
+1. Install Expo Go app on your phone
+2. Run the development server:
+
+```sh
+npx expo start
+```
+
+3. Scan the QR code with Expo Go app
+
+### Using Web Browser
+
+```sh
+npx expo start --web
+```
+
+### Using iOS Simulator
+
+```sh
+npx expo run:ios
+```
+
+### Using Android Emulator
+
+```sh
+npx expo run:android
 ```
 
 ## Step 2: Build and run your app
