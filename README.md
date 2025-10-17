@@ -25,8 +25,13 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 
 ## Step 1: Install Dependencies
 
-```sh
+```bash
 npm install --legacy-peer-deps
+```
+
+**Note**: If you get an error with `--legacy-peer-deps`, try:
+```bash
+npm install
 ```
 
 ## Step 2: Start the App
