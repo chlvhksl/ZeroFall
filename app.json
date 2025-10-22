@@ -3,7 +3,7 @@
     "name": "ZeroFall",
     "slug": "zerofall",
     "version": "1.0.0",
-    "main": "App.tsx",
+    "scheme": "zerofall",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
@@ -26,6 +26,8 @@
     "web": {
       "bundler": "metro"
     },
-    "plugins": []
+    "plugins": [
+      "expo-router"
+    ]
   }
 }
