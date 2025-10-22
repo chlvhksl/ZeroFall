@@ -1,5 +1,7 @@
 # ZeroFall - React Native + Supabase App
 
+프로젝트명 : ZeroFall(가제 : Safety Manager, 고소작업 사고 방지 대책)
+
 This is a [**React Native**](https://reactnative.dev) project with [**Supabase**](https://supabase.com) integration, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
 ## Prerequisites
@@ -59,25 +61,9 @@ npx expo start --web
 npx expo run:ios
 ```
 
-### Using Android Emulator
-
-```sh
-npx expo run:android
-```
-
 ## Step 2: Build and run your app
 
 With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
-```
 
 ### iOS
 
