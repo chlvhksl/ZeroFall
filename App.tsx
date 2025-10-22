@@ -32,9 +32,17 @@ function AppContent() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Supabase 연결 확인
+    console.log('Supabase URL:', process.env.EXPO_PUBLIC_SUPABASE_URL);
+    console.log('Supabase 연결 중...');
+    
     // 현재 세션 확인
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      setLoading(false);
+      console.log('Supabase 연결 성공!');
+    }).catch((error) => {
+      console.error('Supabase 연결 오류:', error);
       setLoading(false);
     });
 
