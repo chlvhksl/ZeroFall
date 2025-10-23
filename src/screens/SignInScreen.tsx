@@ -52,8 +52,14 @@ export default function SignInScreen() {
 
     setLoading(false);
 
+    // ⭐️ [수정된 부분]: 로그인 실패 시 통일된 메시지 출력
     if (error) {
-      Alert.alert('로그인 실패', error.message);
+      // Supabase 에러가 발생하면, 구체적인 에러 메시지 대신 일반적인 실패 메시지를 사용자에게 보여줍니다.
+      // 이렇게 해야 계정이 존재하는지 유추하는 것을 막아 보안에 유리합니다.
+      Alert.alert(
+          '로그인 실패', 
+          '아이디 또는 비밀번호가 잘못 입력되었습니다.' // 사용자 요청 메시지
+      );
     } else {
       Alert.alert('로그인 성공', '로그인 되었습니다!');
       
@@ -64,6 +70,8 @@ export default function SignInScreen() {
           console.log('푸시 토큰 발급 완료:', pushToken);
           
           // 데이터베이스에 푸시 토큰 저장
+          // Supabase Auth의 user_metadata에 저장하는 것이 일반적이지만, 
+          // 여기서는 기존 코드 흐름을 따라 zerofall_admin 테이블에 저장합니다.
           const { error: updateError } = await supabase
             .from('zerofall_admin')
             .update({ push_token: pushToken })
@@ -85,7 +93,7 @@ export default function SignInScreen() {
         console.log('푸시 알림 권한 요청 실패:', err);
       }
       
-      // 로그인 성공 후 메인 화면으로 이동 로직 추가 (필요시)
+      // 로그인 성공 후 메인 화면으로 이동 로직
       // router.replace('/'); 
     }
   };
