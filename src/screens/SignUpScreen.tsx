@@ -28,11 +28,12 @@ export default function SignUpScreen() {
   const [affiliation, setAffiliation] = useState('');
   
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [password, setPassword, ] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [agreeTerms, setAgreeTerms] = useState(false);
+  // ❌ [제거] 약관 동의 상태 제거
+  // const [agreeTerms, setAgreeTerms] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // 이메일 유효성 검사 함수 (간단한 형식 체크)
@@ -45,7 +46,7 @@ export default function SignUpScreen() {
   // 1. 회원가입 기능
   const handleSignUp = async () => {
     // 1. 클라이언트 측 유효성 검사
-    // ⭐️ [수정] 성, 이름, 소속 필수 입력 검사 추가
+    // ⭐️ [수정] 성, 이름, 소속 필수 입력 검사 포함
     if (!lastName || !firstName || !affiliation || !email || !password || !confirmPassword) {
       Alert.alert('입력 오류', '모든 필드를 입력해야 합니다.');
       return;
@@ -62,17 +63,17 @@ export default function SignUpScreen() {
       Alert.alert('비밀번호 불일치', '비밀번호와 비밀번호 확인이 일치하지 않습니다.');
       return;
     }
-    if (!agreeTerms) {
-      Alert.alert('약관 동의', '이용약관 및 개인정보 처리방침에 동의해야 합니다.');
-      return;
-    }
+    // ❌ [제거] 약관 동의 검사 로직 제거
+    // if (!agreeTerms) {
+    //   Alert.alert('약관 동의', '이용약관 및 개인정보 처리방침에 동의해야 합니다.');
+    //   return;
+    // }
 
     // 2. Supabase 회원가입 요청
     setLoading(true);
     
     // Supabase auth.signUp은 기본적으로 email과 password만 처리합니다.
-    // 추가 정보를 저장하려면 회원가입 후, 'profiles' 또는 'users' 테이블에 별도로 insert/update가 필요합니다.
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       // ⭐️ [선택 사항] 사용자 메타데이터에 이름 저장 (Supabase에서 'raw_user_meta_data'로 저장됨)
@@ -91,7 +92,7 @@ export default function SignUpScreen() {
     if (error) {
       Alert.alert('회원가입 실패', error.message);
     } else {
-      // ⭐️ [추가] Supabase는 이메일 인증을 기본으로 하므로 안내 문구 수정
+      // ⭐️ Supabase는 이메일 인증을 기본으로 하므로 안내 문구 수정
       Alert.alert(
         '회원가입 성공',
         '인증 이메일이 발송되었습니다. 이메일을 확인하여 계정을 활성화해 주세요.'
@@ -109,7 +110,7 @@ export default function SignUpScreen() {
     isValidEmail(email) && 
     password.length >= 6 && 
     password === confirmPassword && 
-    agreeTerms &&
+    // ❌ [제거] 약관 동의 조건 제거
     !loading;
 
   return (
@@ -240,7 +241,7 @@ export default function SignUpScreen() {
               styles.passwordContainer, 
               { 
                 borderColor: confirmPassword.length > 0 && password === confirmPassword ? '#78C4B4' : (confirmPassword.length > 0 && password !== confirmPassword ? '#FF4A4A' : '#D0D0D0'),
-                marginBottom: 10,
+                marginBottom: 20, // ⭐️ [수정] 아래 오류 메시지가 없으면 일반 입력 필드와 동일하게 20 간격 유지
               }
             ]}
           >
@@ -269,7 +270,8 @@ export default function SignUpScreen() {
             <Text style={styles.errorMessage}>비밀번호가 일치하지 않습니다.</Text>
           )}
 
-          {/* 약관 동의 체크박스 - ⭐️ 일반 폰트 적용 */}
+          {/* ❌ [제거] 약관 동의 체크박스 부분 제거 */}
+          {/*
           <TouchableOpacity 
             style={styles.checkboxContainer}
             onPress={() => setAgreeTerms(!agreeTerms)}
@@ -283,6 +285,7 @@ export default function SignUpScreen() {
               이용약관 및 개인정보 처리방침에 동의합니다. (필수)
             </Text>
           </TouchableOpacity>
+          */}
 
 
           {/* 회원가입 버튼 - ⭐️ 굵은 폰트 적용 */}
@@ -329,7 +332,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 24,
     alignItems: 'center',
-    paddingTop: 40, 
+    paddingTop: 20, // ⭐️ [수정] 제목/부제목을 위로 올리기 위해 40 -> 20으로 줄임
   },
   title: {
     fontSize: 28, 
@@ -342,7 +345,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#666',
-    marginBottom: 40, 
+    marginBottom: 30, // ⭐️ [수정] 부제목과 첫 입력 필드 사이 간격을 40 -> 30으로 줄임
     alignSelf: 'center', 
     fontFamily: FONT_REGULAR,
   },
@@ -364,7 +367,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     fontSize: 16,
     color: '#000',
-    marginBottom: 20, // ⭐️ [수정] 항목 간 간격 조정 (10 -> 20)
+    marginBottom: 20, // ⭐️ [수정] 항목 간 간격 조정
     width: '100%',
   },
   passwordContainer: {
@@ -373,7 +376,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 8,
     borderWidth: 1,
-    marginBottom: 10,
+    // ⭐️ [수정] 아래 오류 메시지가 없으면 일반 입력 필드와 동일하게 20 간격 유지
+    marginBottom: 20, 
     width: '100%',
   },
   passwordInput: {
@@ -396,7 +400,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 
-  // --- 약관 동의 체크박스 ---
+  // --- 약관 동의 체크박스 스타일은 사용되지 않지만, 다른 곳에서 사용될까봐 주석 처리 ---
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -419,7 +423,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     width: '100%',
-    marginTop: 30, 
+    marginTop: 20, // ⭐️ [수정] 버튼을 위로 올리기 위해 40 -> 20으로 줄임
     marginBottom: 30,
     shadowOpacity: 0,
     elevation: 0, 
