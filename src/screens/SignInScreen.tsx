@@ -16,6 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
+import { registerForPushNotificationsAsync, sendLocalNotification } from '../../lib/notifications';
 
 // ⭐️ 사용할 폰트 이름 정의 (app/_layout.tsx에서 로드된 이름과 일치해야 함)
 const FONT_REGULAR = 'NanumSquare-Regular';
@@ -44,7 +45,7 @@ export default function SignInScreen() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: authAdminData, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -55,6 +56,35 @@ export default function SignInScreen() {
       Alert.alert('로그인 실패', error.message);
     } else {
       Alert.alert('로그인 성공', '로그인 되었습니다!');
+      
+      // 푸시 알림 권한 요청
+      try {
+        const pushToken = await registerForPushNotificationsAsync();
+        if (pushToken) {
+          console.log('푸시 토큰 발급 완료:', pushToken);
+          
+          // 데이터베이스에 푸시 토큰 저장
+          const { error: updateError } = await supabase
+            .from('zerofall_admin')
+            .update({ push_token: pushToken })
+            .eq('admin_mail', email);
+          
+          if (updateError) {
+            console.log('푸시 토큰 저장 실패:', updateError.message);
+          } else {
+            console.log('푸시 토큰 저장 성공');
+          }
+          
+          // 로그인 성공 알림 발송
+          await sendLocalNotification(
+            '🎉 로그인 성공!',
+            `${email}님, ZeroFall에 오신 것을 환영합니다!`
+          );
+        }
+      } catch (err) {
+        console.log('푸시 알림 권한 요청 실패:', err);
+      }
+      
       // 로그인 성공 후 메인 화면으로 이동 로직 추가 (필요시)
       // router.replace('/'); 
     }
