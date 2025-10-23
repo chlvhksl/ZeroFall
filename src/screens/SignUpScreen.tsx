@@ -45,8 +45,6 @@ export default function SignUpScreen() {
 
   // 1. 회원가입 기능
   const handleSignUp = async () => {
-    // 1. 클라이언트 측 유효성 검사
-    // ⭐️ [수정] 성, 이름, 소속 필수 입력 검사 포함
     if (!lastName || !firstName || !affiliation || !email || !password || !confirmPassword) {
       Alert.alert('입력 오류', '모든 필드를 입력해야 합니다.');
       return;
@@ -63,17 +61,12 @@ export default function SignUpScreen() {
       Alert.alert('비밀번호 불일치', '비밀번호와 비밀번호 확인이 일치하지 않습니다.');
       return;
     }
-    // ❌ [제거] 약관 동의 검사 로직 제거
-    // if (!agreeTerms) {
-    //   Alert.alert('약관 동의', '이용약관 및 개인정보 처리방침에 동의해야 합니다.');
-    //   return;
-    // }
 
     // 2. Supabase 회원가입 요청
     setLoading(true);
     
     // Supabase auth.signUp은 기본적으로 email과 password만 처리합니다.
-    const { error } = await supabase.auth.signUp({
+    const { data: authAdminData, error } = await supabase.auth.signUp({
       email,
       password,
       // ⭐️ [선택 사항] 사용자 메타데이터에 이름 저장 (Supabase에서 'raw_user_meta_data'로 저장됨)
@@ -92,7 +85,21 @@ export default function SignUpScreen() {
     if (error) {
       Alert.alert('회원가입 실패', error.message);
     } else {
-      // ⭐️ Supabase는 이메일 인증을 기본으로 하므로 안내 문구 수정
+      if(authAdminData?.user) {
+        const { error: adminError } = await supabase.from('zerofall_admin').insert({
+          admin_name: lastName+firstName,
+          admin_aff: affiliation,
+          admin_mail: email,
+          admin_pwd: password,
+        });
+        if(adminError) {
+          Alert.alert('회원가입 실패', adminError.message);
+        } else {
+          Alert.alert('회원가입 성공', '회원가입이 완료되었습니다.');
+          router.replace('/signin');
+        }
+      }
+
       Alert.alert(
         '회원가입 성공',
         '인증 이메일이 발송되었습니다. 이메일을 확인하여 계정을 활성화해 주세요.'
