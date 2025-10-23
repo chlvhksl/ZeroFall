@@ -22,6 +22,11 @@ const FONT_BOLD = 'NanumSquare-Bold';
 
 export default function SignUpScreen() {
   const router = useRouter();
+  // ⭐️ [추가] 성, 이름, 소속 상태 추가
+  const [lastName, setLastName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [affiliation, setAffiliation] = useState('');
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -40,7 +45,8 @@ export default function SignUpScreen() {
   // 1. 회원가입 기능
   const handleSignUp = async () => {
     // 1. 클라이언트 측 유효성 검사
-    if (!email || !password || !confirmPassword) {
+    // ⭐️ [수정] 성, 이름, 소속 필수 입력 검사 추가
+    if (!lastName || !firstName || !affiliation || !email || !password || !confirmPassword) {
       Alert.alert('입력 오류', '모든 필드를 입력해야 합니다.');
       return;
     }
@@ -63,9 +69,20 @@ export default function SignUpScreen() {
 
     // 2. Supabase 회원가입 요청
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    
+    // Supabase auth.signUp은 기본적으로 email과 password만 처리합니다.
+    // 추가 정보를 저장하려면 회원가입 후, 'profiles' 또는 'users' 테이블에 별도로 insert/update가 필요합니다.
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      // ⭐️ [선택 사항] 사용자 메타데이터에 이름 저장 (Supabase에서 'raw_user_meta_data'로 저장됨)
+      options: {
+        data: {
+          last_name: lastName,
+          first_name: firstName,
+          affiliation: affiliation,
+        }
+      }
     });
 
     setLoading(false);
@@ -74,6 +91,7 @@ export default function SignUpScreen() {
     if (error) {
       Alert.alert('회원가입 실패', error.message);
     } else {
+      // ⭐️ [추가] Supabase는 이메일 인증을 기본으로 하므로 안내 문구 수정
       Alert.alert(
         '회원가입 성공',
         '인증 이메일이 발송되었습니다. 이메일을 확인하여 계정을 활성화해 주세요.'
@@ -82,6 +100,17 @@ export default function SignUpScreen() {
       router.replace('/signin');
     }
   };
+
+  // ⭐️ 유효성 검사 상태를 통합하여 버튼 활성화 여부를 결정하는 computed 값
+  const isFormValid = 
+    lastName.length > 0 &&
+    firstName.length > 0 &&
+    affiliation.length > 0 &&
+    isValidEmail(email) && 
+    password.length >= 6 && 
+    password === confirmPassword && 
+    agreeTerms &&
+    !loading;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -92,13 +121,61 @@ export default function SignUpScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
         >
-          {/* 뒤로가기 버튼 */}
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-
-          {/* 제목 - ⭐️ 굵은 폰트 적용 */}
+          {/* 제목 - ⭐️ 굵은 폰트 적용, 중앙 정렬 */}
           <Text style={styles.title}>ZeroFall 회원가입</Text>
+          <Text style={styles.subtitle}>계정을 만들고 서비스를 이용해보세요.</Text>
+
+
+          {/* ⭐️ [추가] 성 입력 필드 */}
+          <Text style={styles.inputLabel}>성</Text>
+          <TextInput
+            style={[
+              styles.input,
+              { 
+                borderColor: lastName.length > 0 ? '#78C4B4' : '#D0D0D0', 
+                fontFamily: FONT_REGULAR 
+              }
+            ]}
+            placeholder="성"
+            placeholderTextColor="#999"
+            value={lastName}
+            onChangeText={setLastName}
+            autoCapitalize="words"
+          />
+
+          {/* ⭐️ [추가] 이름 입력 필드 */}
+          <Text style={styles.inputLabel}>이름</Text>
+          <TextInput
+            style={[
+              styles.input,
+              { 
+                borderColor: firstName.length > 0 ? '#78C4B4' : '#D0D0D0', 
+                fontFamily: FONT_REGULAR 
+              }
+            ]}
+            placeholder="이름"
+            placeholderTextColor="#999"
+            value={firstName}
+            onChangeText={setFirstName}
+            autoCapitalize="words"
+          />
+
+          {/* ⭐️ [추가] 소속 입력 필드 */}
+          <Text style={styles.inputLabel}>소속</Text>
+          <TextInput
+            style={[
+              styles.input,
+              { 
+                borderColor: affiliation.length > 0 ? '#78C4B4' : '#D0D0D0', 
+                fontFamily: FONT_REGULAR 
+              }
+            ]}
+            placeholder="소속 (회사명, 학교명 등)"
+            placeholderTextColor="#999"
+            value={affiliation}
+            onChangeText={setAffiliation}
+            autoCapitalize="sentences"
+          />
 
           {/* 이메일 입력 필드 - ⭐️ 일반 폰트 적용 */}
           <Text style={styles.inputLabel}>이메일 주소</Text>
@@ -212,10 +289,10 @@ export default function SignUpScreen() {
           <TouchableOpacity
             style={[
               styles.signUpButton, 
-              (loading || !agreeTerms || !isValidEmail(email) || password.length < 6 || password !== confirmPassword) && styles.signUpButtonDisabled
+              !isFormValid && styles.signUpButtonDisabled // ⭐️ [수정] 통합된 isFormValid 사용
             ]}
             onPress={handleSignUp}
-            disabled={loading || !agreeTerms || !isValidEmail(email) || password.length < 6 || password !== confirmPassword}
+            disabled={!isFormValid} // ⭐️ [수정] 통합된 isFormValid 사용
           >
             <Text style={styles.signUpButtonText}>
               {loading ? '처리 중...' : '회원가입'}
@@ -252,21 +329,22 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 24,
     alignItems: 'center',
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    marginBottom: 10,
+    paddingTop: 40, 
   },
   title: {
-    fontSize: 32,
+    fontSize: 28, 
     fontWeight: 'bold', 
     color: '#000',
-    marginBottom: 40, // 로그인보다 간격 넓게 설정
-    alignSelf: 'flex-start',
-    fontFamily: FONT_BOLD, // ⭐️ 제목 폰트
+    marginBottom: 8, 
+    alignSelf: 'center', 
+    fontFamily: FONT_BOLD, 
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 40, 
+    alignSelf: 'center', 
+    fontFamily: FONT_REGULAR,
   },
   
   // --- 입력 필드 스타일 ---
@@ -281,14 +359,13 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: '#fff',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14, 
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 16,
     color: '#000',
-    marginBottom: 10,
+    marginBottom: 20, // ⭐️ [수정] 항목 간 간격 조정 (10 -> 20)
     width: '100%',
-    // 폰트 적용은 인라인 스타일로 처리
   },
   passwordContainer: {
     flexDirection: 'row',
@@ -302,7 +379,7 @@ const styles = StyleSheet.create({
   passwordInput: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14, 
     fontSize: 16,
     color: '#000',
   },
@@ -332,7 +409,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     fontSize: 14,
     color: '#555',
-    fontFamily: FONT_REGULAR, // ⭐️ 일반 폰트
+    fontFamily: FONT_REGULAR, 
   },
   
   // --- 회원가입 버튼 스타일 ---
@@ -342,7 +419,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     width: '100%',
-    marginTop: 10, // 체크박스와 버튼 사이 간격 조정
+    marginTop: 30, 
     marginBottom: 30,
     shadowOpacity: 0,
     elevation: 0, 
@@ -354,7 +431,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '700', 
-    fontFamily: FONT_BOLD, // ⭐️ 굵은 폰트
+    fontFamily: FONT_BOLD, 
   },
   
   // --- 하단 로그인 링크 스타일 ---
@@ -370,13 +447,13 @@ const styles = StyleSheet.create({
   footerText: {
     color: '#666',
     fontSize: 14,
-    fontFamily: FONT_REGULAR, // ⭐️ 일반 폰트
+    fontFamily: FONT_REGULAR, 
   },
   signInText: {
     color: '#78C4B4',
     fontSize: 14,
     fontWeight: '700', 
     marginLeft: 5,
-    fontFamily: FONT_BOLD, // ⭐️ 굵은 폰트
+    fontFamily: FONT_BOLD, 
   },
 });
