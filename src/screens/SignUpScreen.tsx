@@ -70,10 +70,9 @@ export default function SignUpScreen() {
     }
   };
 
-  // ⭐️ 핵심 로직: 로그인 화면으로 돌아갈 때 push를 사용
+  
   const goToSignIn = () => {
-    // '/signin' 경로로 이동하고, 뒤로가기를 통해 회원가입 페이지로 돌아올 수 있게 합니다.
-    router.replace('/');
+    router.replace('/signin');
   };
     
   const isFormValid = 

@@ -62,7 +62,7 @@ export default function SignInScreen() {
       );
     } else {
       Alert.alert('로그인 성공', '로그인 되었습니다!');
-      
+      router.replace('/main');
       // 푸시 알림 권한 요청
       try {
         const pushToken = await registerForPushNotificationsAsync();
