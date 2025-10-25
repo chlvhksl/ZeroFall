@@ -19,6 +19,7 @@ import { supabase } from '../../lib/supabase'; // Supabase 임포트
 // 사용할 폰트 이름 정의
 const FONT_REGULAR = 'NanumSquare-Regular';
 const FONT_BOLD = 'NanumSquare-Bold';
+const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 // ⭐️ 이 파일이 Expo Router에서 '/signup' 경로로 인식됩니다.
 export default function SignUpScreen() {
@@ -231,7 +232,7 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: '#EDF6EF',
   },
   keyboardView: {
     flex: 1,
@@ -256,7 +257,7 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 8, 
     alignSelf: 'flex-start', 
-    fontFamily: FONT_BOLD, 
+    fontFamily: FONT_EXTRABOLD, 
   },
   subtitle: {
     fontSize: 16,

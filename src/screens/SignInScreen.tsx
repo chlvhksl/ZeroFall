@@ -21,6 +21,7 @@ import { registerForPushNotificationsAsync, sendLocalNotification } from '../../
 // ⭐️ 사용할 폰트 이름 정의 (app/_layout.tsx에서 로드된 이름과 일치해야 함)
 const FONT_REGULAR = 'NanumSquare-Regular';
 const FONT_BOLD = 'NanumSquare-Bold';
+const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 
 // 프로젝트의 assets 경로에서 로고 이미지 파일들을 불러옵니다.
@@ -103,7 +104,7 @@ export default function SignInScreen() {
     Alert.alert('지원 예정 기능', `${platform} 로그인 기능은 추후 지원됩니다.`);
   };
   
-  // 3. 아이디/비밀번호 찾기 처리 (기능 추후 지원 Alert)
+  // 4. 아이디/비밀번호 찾기 처리 (기능 추후 지원 Alert)
   const handleFindCredential = (type: 'ID' | 'Password') => {
     Alert.alert('지원 예정 기능', `${type === 'ID' ? '아이디' : '비밀번호'} 찾기 기능은 추후 지원됩니다.`);
   };
@@ -133,16 +134,6 @@ export default function SignInScreen() {
           {/* 소셜 로그인 버튼 그룹 */}
           <View style={styles.socialButtons}>
             
-            {/* Apple 버튼 (로고는 Ionicons 사용) */}
-            <TouchableOpacity 
-              style={[styles.socialButtonBase, styles.appleButton]}
-              onPress={() => handleSocialSignIn('Apple')}
-            >
-              <Ionicons name="logo-apple" size={20} color="#000" />
-              {/* ⭐️ 굵은 폰트 적용 */}
-              <Text style={[styles.socialButtonTextBase, styles.appleButtonText]}>Apple로 로그인</Text>
-            </TouchableOpacity>
-
             {/* Google 버튼 */}
             <TouchableOpacity 
               style={[styles.socialButtonBase, styles.googleButton]}
@@ -270,7 +261,7 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: '#EDF6EF',
   },
   keyboardView: {
     flex: 1,
@@ -290,7 +281,7 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 30,
     alignSelf: 'flex-start',
-    fontFamily: FONT_BOLD, 
+    fontFamily: FONT_EXTRABOLD, 
   },
 
   // --- 구분선 스타일 ---

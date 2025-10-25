@@ -13,7 +13,8 @@ export default function Layout() {
   // ⭐️ [최종 수정] 경로를 '../assets/fonts/'로 변경합니다. (app 폴더에서 한 단계 위로 이동)
   const [fontsLoaded] = useFonts({
     'NanumSquare-Regular': require('../assets/fonts/NanumSquareR.otf'), 
-    'NanumSquare-Bold': require('../assets/fonts/NanumSquareB.otf'),     
+    'NanumSquare-Bold': require('../assets/fonts/NanumSquareB.otf'),
+    'NanumSquare-ExtraBold': require('../assets/fonts/NanumSquareEB.otf'),
   });
 
   const [isReady, setIsReady] = React.useState(false);
