@@ -104,16 +104,11 @@ export default function SignInScreen() {
     Alert.alert('지원 예정 기능', `${platform} 로그인 기능은 추후 지원됩니다.`);
   };
   
-  // 4. 아이디/비밀번호 찾기 처리
-  const handleFindCredential = (type: 'ID' | 'Password') => {
-    if (type === 'Password') {
-      // 비밀번호 찾기 화면으로 이동
-      console.log('비밀번호 찾기 버튼 클릭됨');
-      router.push('/forgot-password');
-    } else {
-      // 아이디 찾기 기능은 추후 지원
-      Alert.alert('지원 예정 기능', '아이디 찾기 기능은 추후 지원됩니다.');
-    }
+  // 4. 비밀번호 찾기 처리
+  const handleFindCredential = (type: 'Password') => {
+    // 비밀번호 찾기 화면으로 이동
+    console.log('비밀번호 찾기 버튼 클릭됨');
+    router.push('/forgot-password');
   };
   
 
@@ -241,22 +236,13 @@ export default function SignInScreen() {
               </Link>
             </View>
             
-            {/* 아이디/비밀번호 찾기 버튼 - ⭐️ 일반 폰트 적용 */}
-            <View style={styles.findButtonsContainer}>
-              <TouchableOpacity 
-                style={styles.findButton}
-                onPress={() => handleFindCredential('ID')}
-              >
-                <Text style={styles.findButtonText}>아이디 찾기</Text>
-              </TouchableOpacity>
-              <View style={styles.findDivider} /> 
-              <TouchableOpacity 
-                style={styles.findButton}
-                onPress={() => handleFindCredential('Password')}
-              >
-                <Text style={styles.findButtonText}>비밀번호 찾기</Text>
-              </TouchableOpacity>
-            </View>
+            {/* 비밀번호 찾기 버튼 */}
+            <TouchableOpacity 
+              style={styles.forgotPasswordButton}
+              onPress={() => handleFindCredential('Password')}
+            >
+              <Text style={styles.forgotPasswordText}>비밀번호를 잊으셨나요?</Text>
+            </TouchableOpacity>
           </View>
 
         </ScrollView>
@@ -454,29 +440,16 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontFamily: FONT_BOLD, 
   },
-  
-  // 아이디/비밀번호 찾기 버튼 컨테이너
-  findButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+  forgotPasswordButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
     width: '100%',
   },
-  findButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  findButtonText: {
-    color: '#666',
+  forgotPasswordText: {
+    color: '#999',
     fontSize: 14,
-    fontWeight: '400', 
-    fontFamily: FONT_REGULAR, 
+    fontWeight: '400',
+    fontFamily: FONT_REGULAR,
+    textDecorationLine: 'underline',
   },
-  // 버튼 사이 구분선
-  findDivider: {
-    width: 1,
-    height: '60%',
-    backgroundColor: '#E0E0E0',
-    marginHorizontal: 15,
-    alignSelf: 'center',
-  }
 });
