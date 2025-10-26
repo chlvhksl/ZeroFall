@@ -104,9 +104,16 @@ export default function SignInScreen() {
     Alert.alert('지원 예정 기능', `${platform} 로그인 기능은 추후 지원됩니다.`);
   };
   
-  // 4. 아이디/비밀번호 찾기 처리 (기능 추후 지원 Alert)
+  // 4. 아이디/비밀번호 찾기 처리
   const handleFindCredential = (type: 'ID' | 'Password') => {
-    Alert.alert('지원 예정 기능', `${type === 'ID' ? '아이디' : '비밀번호'} 찾기 기능은 추후 지원됩니다.`);
+    if (type === 'Password') {
+      // 비밀번호 찾기 화면으로 이동
+      console.log('비밀번호 찾기 버튼 클릭됨');
+      router.push('/forgot-password');
+    } else {
+      // 아이디 찾기 기능은 추후 지원
+      Alert.alert('지원 예정 기능', '아이디 찾기 기능은 추후 지원됩니다.');
+    }
   };
   
 
