@@ -1,20 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  Alert,
   ActivityIndicator,
+  Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import {
+  registerForPushNotificationsAsync,
+  sendLocalNotification,
+  testNotificationInSimulator,
+} from '../../lib/notifications';
 import { supabase } from '../../lib/supabase';
 
 // 이미지 import
-import LogoutImage from '../../assets/logout.png';
 import DashboardImage from '../../assets/dashboard.png';
+import LogoutImage from '../../assets/logout.png';
 import PersonImage from '../../assets/person.png';
 
 // 폰트 설정
@@ -40,15 +45,18 @@ export default function MainScreen() {
   const fetchAdminInfo = async () => {
     try {
       // 현재 로그인된 사용자 정보 가져오기
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (user && user.user_metadata) {
         // Auth의 user_metadata에서 회원가입 시 저장한 정보 가져오기
         const { affiliation, last_name, first_name } = user.user_metadata;
-        
+
         // 이름 조합: "성이름" 형태로
-        const fullName = `${last_name || ''}${first_name || ''}`.trim() || '관리자';
-        
+        const fullName =
+          `${last_name || ''}${first_name || ''}`.trim() || '관리자';
+
         setAdminInfo({
           affiliation: affiliation || '소속',
           name: fullName,
@@ -64,32 +72,28 @@ export default function MainScreen() {
 
   // 로그아웃 처리
   const handleLogout = () => {
-    Alert.alert(
-      '로그아웃',
-      '로그아웃을 하시겠습니까?',
-      [
-        {
-          text: '취소',
-          style: 'cancel',
-        },
-        {
-          text: '네',
-          onPress: async () => {
-            try {
-              const { error } = await supabase.auth.signOut();
-              if (error) {
-                Alert.alert('오류', '로그아웃 중 오류가 발생했습니다.');
-              } else {
-                router.replace('/signin');
-              }
-            } catch (error) {
-              console.error('로그아웃 에러:', error);
+    Alert.alert('로그아웃', '로그아웃을 하시겠습니까?', [
+      {
+        text: '취소',
+        style: 'cancel',
+      },
+      {
+        text: '네',
+        onPress: async () => {
+          try {
+            const { error } = await supabase.auth.signOut();
+            if (error) {
               Alert.alert('오류', '로그아웃 중 오류가 발생했습니다.');
+            } else {
+              router.replace('/signin');
             }
-          },
+          } catch (error) {
+            console.error('로그아웃 에러:', error);
+            Alert.alert('오류', '로그아웃 중 오류가 발생했습니다.');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   if (loading) {
@@ -129,18 +133,27 @@ export default function MainScreen() {
       </View>
 
       {/* 하단 탭 네비게이션 */}
-      <View style={[styles.bottomTabContainer, { paddingBottom: insets.bottom + 10 }]}>
+      <View
+        style={[
+          styles.bottomTabContainer,
+          { paddingBottom: insets.bottom + 10 },
+        ]}
+      >
         {/* 대시보드 탭 */}
         <TouchableOpacity
           style={styles.tabButton}
           onPress={() => setActiveTab('dashboard')}
         >
-          {activeTab === 'dashboard' && <View style={styles.activeTabBackground} />}
+          {activeTab === 'dashboard' && (
+            <View style={styles.activeTabBackground} />
+          )}
           <Image source={DashboardImage} style={styles.tabIcon} />
-          <Text style={[
-            styles.tabText,
-            activeTab === 'dashboard' && styles.activeTabText
-          ]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'dashboard' && styles.activeTabText,
+            ]}
+          >
             대시보드
           </Text>
         </TouchableOpacity>
@@ -153,12 +166,16 @@ export default function MainScreen() {
           style={styles.tabButton}
           onPress={() => setActiveTab('worker')}
         >
-          {activeTab === 'worker' && <View style={styles.activeTabBackground} />}
+          {activeTab === 'worker' && (
+            <View style={styles.activeTabBackground} />
+          )}
           <Image source={PersonImage} style={styles.tabIcon} />
-          <Text style={[
-            styles.tabText,
-            activeTab === 'worker' && styles.activeTabText
-          ]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'worker' && styles.activeTabText,
+            ]}
+          >
             작업자 현황
           </Text>
         </TouchableOpacity>
@@ -169,9 +186,59 @@ export default function MainScreen() {
 
 // 대시보드 컨텐츠 컴포넌트
 function DashboardContent() {
+  const handleNotificationTest = async () => {
+    try {
+      // 푸시 알림 권한 요청 및 토큰 발급
+      const token = await registerForPushNotificationsAsync();
+      console.log('푸시 토큰:', token);
+
+      // 시뮬레이터에서는 로컬 알림 테스트
+      await testNotificationInSimulator();
+
+      Alert.alert('알림 테스트', '알림 테스트가 완료되었습니다!');
+    } catch (error) {
+      console.error('알림 테스트 에러:', error);
+      Alert.alert('오류', '알림 테스트 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleLocalNotification = async () => {
+    try {
+      await sendLocalNotification(
+        '로컬 알림 테스트',
+        '이것은 로컬 알림입니다!',
+      );
+      Alert.alert('성공', '로컬 알림이 발송되었습니다!');
+    } catch (error) {
+      console.error('로컬 알림 에러:', error);
+      Alert.alert('오류', '로컬 알림 발송 중 오류가 발생했습니다.');
+    }
+  };
+
   return (
     <View style={styles.contentContainer}>
       <Text style={styles.contentText}>대시보드 화면</Text>
+
+      {/* 알림 테스트 버튼들 */}
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={styles.testButton}
+          onPress={handleNotificationTest}
+        >
+          <Text style={styles.buttonText}>📱 푸시 알림 테스트</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.testButton}
+          onPress={handleLocalNotification}
+        >
+          <Text style={styles.buttonText}>🔔 로컬 알림 테스트</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.contentSubText}>
+        시뮬레이터에서는 로컬 알림만 작동합니다
+      </Text>
     </View>
   );
 }
@@ -196,7 +263,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#EDF6EF',
   },
-  
+
   // 헤더 스타일
   header: {
     paddingHorizontal: 20,
@@ -213,7 +280,7 @@ const styles = StyleSheet.create({
     height: 40,
     resizeMode: 'contain',
   },
-  
+
   // 타이틀 영역
   titleContainer: {
     flexDirection: 'row',
@@ -238,7 +305,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     marginHorizontal: 20,
   },
-  
+
   // 메인 컨텐츠 영역
   content: {
     flex: 1,
@@ -264,8 +331,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     fontFamily: FONT_REGULAR,
+    textAlign: 'center',
+    marginTop: 20,
   },
-  
+  buttonContainer: {
+    marginTop: 30,
+    gap: 15,
+  },
+  testButton: {
+    backgroundColor: '#78C4B4',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#000',
+    alignItems: 'center',
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+    fontFamily: FONT_BOLD,
+  },
+
   // 하단 탭 네비게이션
   bottomTabContainer: {
     flexDirection: 'row',
