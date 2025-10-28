@@ -50,6 +50,9 @@ export async function registerForPushNotificationsAsync() {
   if (!Device.isDevice) {
     console.log('⚠️ 시뮬레이터에서는 실제 푸시 알림이 작동하지 않습니다.');
     console.log('📱 실제 기기에서 테스트하거나 로컬 알림을 사용하세요.');
+    console.log(
+      '💡 시뮬레이터에서도 서버 테스트를 원한다면 실제 기기를 사용하세요.',
+    );
     token = `simulator-token-${Date.now()}`;
     return token;
   }
@@ -159,4 +162,95 @@ export function setupNotificationListeners() {
     notificationListener.remove();
     responseListener.remove();
   };
+}
+
+// 서버에 푸시 토큰 등록
+export async function registerTokenToServer(token: string) {
+  try {
+    // Vercel 배포 URL로 변경 (실제 배포 후 URL 교체)
+    const serverUrl =
+      process.env.NODE_ENV === 'production'
+        ? process.env.EXPO_PUBLIC_PUSH_SERVER_URL
+        : 'http://localhost:3001';
+
+    const response = await fetch(`${serverUrl}/api/register-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token: token,
+        userId: 'user-' + Date.now(), // 임시 사용자 ID
+        platform: Platform.OS,
+      }),
+    });
+
+    const result = await response.json();
+    console.log('토큰 등록 응답:', result);
+    return result;
+  } catch (error) {
+    console.error('토큰 등록 실패:', error);
+    return null;
+  }
+}
+
+// 모든 사용자에게 푸시 요청
+export async function requestBroadcastPush(title: string, body: string) {
+  try {
+    // Vercel 배포 URL로 변경 (실제 배포 후 URL 교체)
+    const serverUrl =
+      process.env.NODE_ENV === 'production'
+        ? 'https://your-app-name.vercel.app'
+        : 'http://localhost:3001';
+
+    const response = await fetch(`${serverUrl}/api/broadcast-push`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: title,
+        body: body,
+        data: {
+          type: 'broadcast',
+          timestamp: Date.now(),
+        },
+      }),
+    });
+
+    const result = await response.json();
+    console.log('전체 푸시 응답:', result);
+    return result;
+  } catch (error) {
+    console.error('전체 푸시 요청 실패:', error);
+    return null;
+  }
+}
+
+// 서버에서 테스트 푸시 요청
+export async function requestTestPush(token: string) {
+  try {
+    // Vercel 배포 URL로 변경 (실제 배포 후 URL 교체)
+    const serverUrl =
+      process.env.NODE_ENV === 'production'
+        ? 'https://your-app-name.vercel.app'
+        : 'http://localhost:3001';
+
+    const response = await fetch(`${serverUrl}/api/test-push`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token: token,
+      }),
+    });
+
+    const result = await response.json();
+    console.log('테스트 푸시 응답:', result);
+    return result;
+  } catch (error) {
+    console.error('테스트 푸시 요청 실패:', error);
+    return null;
+  }
 }

@@ -12,34 +12,13 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// 토큰 저장소 (실제로는 데이터베이스 사용 권장)
-const TOKENS_FILE = path.join(__dirname, 'tokens.json');
+// 토큰 저장소 (Vercel에서는 메모리 저장, 실제로는 데이터베이스 사용 권장)
 let userTokens = [];
 
-// 토큰 파일 로드
-function loadTokens() {
-  try {
-    if (fs.existsSync(TOKENS_FILE)) {
-      const data = fs.readFileSync(TOKENS_FILE, 'utf8');
-      userTokens = JSON.parse(data);
-    }
-  } catch (error) {
-    console.error('토큰 파일 로드 실패:', error);
-    userTokens = [];
-  }
-}
+// Vercel에서는 파일 시스템이 읽기 전용이므로 메모리 저장 사용
+// 실제 프로덕션에서는 Supabase, MongoDB, PostgreSQL 등 사용 권장
 
-// 토큰 파일 저장
-function saveTokens() {
-  try {
-    fs.writeFileSync(TOKENS_FILE, JSON.stringify(userTokens, null, 2));
-  } catch (error) {
-    console.error('토큰 파일 저장 실패:', error);
-  }
-}
-
-// 앱 시작 시 토큰 로드
-loadTokens();
+console.log('🚀 푸시 서버 시작 - 메모리 저장소 사용');
 
 // 푸시 알림 발송 함수
 async function sendPushNotification(token, title, body, data = {}) {
@@ -111,7 +90,7 @@ app.post('/api/register-token', (req, res) => {
     };
 
     userTokens.push(tokenData);
-    saveTokens();
+    // Vercel에서는 파일 저장 불가, 메모리에만 저장
 
     console.log(`✅ 토큰 등록: ${token.substring(0, 20)}...`);
     console.log(`📊 총 등록된 토큰: ${userTokens.length}개`);

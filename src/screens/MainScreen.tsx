@@ -12,6 +12,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   registerForPushNotificationsAsync,
+  registerTokenToServer,
+  requestBroadcastPush,
+  requestTestPush,
   sendLocalNotification,
   testNotificationInSimulator,
 } from '../../lib/notifications';
@@ -215,6 +218,81 @@ function DashboardContent() {
     }
   };
 
+  const handleServerTest = async () => {
+    try {
+      // 푸시 토큰 가져오기
+      const token = await registerForPushNotificationsAsync();
+
+      if (!token) {
+        Alert.alert('오류', '푸시 토큰을 가져올 수 없습니다.');
+        return;
+      }
+
+      // 서버에 토큰 등록
+      const result = await registerTokenToServer(token);
+
+      if (result?.success) {
+        Alert.alert(
+          '성공',
+          `서버에 토큰이 등록되었습니다!\n총 등록된 토큰: ${result.totalTokens}개`,
+        );
+      } else {
+        Alert.alert('오류', '서버 통신에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('서버 테스트 에러:', error);
+      Alert.alert('오류', '서버 테스트 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleBroadcastPush = async () => {
+    try {
+      const result = await requestBroadcastPush(
+        '📢 전체 공지',
+        '모든 사용자에게 전송되는 테스트 푸시 알림입니다!',
+      );
+
+      if (result?.success) {
+        Alert.alert(
+          '성공',
+          `전체 푸시 발송 완료!\n총 ${result.totalTokens}명에게 발송\n성공: ${result.successCount}개\n실패: ${result.failCount}개`,
+        );
+      } else {
+        Alert.alert(
+          '오류',
+          result?.message || '전체 푸시 발송에 실패했습니다.',
+        );
+      }
+    } catch (error) {
+      console.error('전체 푸시 에러:', error);
+      Alert.alert('오류', '전체 푸시 테스트 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleServerPush = async () => {
+    try {
+      // 푸시 토큰 가져오기
+      const token = await registerForPushNotificationsAsync();
+
+      if (!token) {
+        Alert.alert('오류', '푸시 토큰을 가져올 수 없습니다.');
+        return;
+      }
+
+      // 서버에서 테스트 푸시 요청
+      const result = await requestTestPush(token);
+
+      if (result?.success) {
+        Alert.alert('성공', '서버에서 푸시 알림을 발송했습니다!');
+      } else {
+        Alert.alert('오류', '서버 푸시 발송에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('서버 푸시 에러:', error);
+      Alert.alert('오류', '서버 푸시 테스트 중 오류가 발생했습니다.');
+    }
+  };
+
   return (
     <View style={styles.contentContainer}>
       <Text style={styles.contentText}>대시보드 화면</Text>
@@ -234,10 +312,27 @@ function DashboardContent() {
         >
           <Text style={styles.buttonText}>🔔 로컬 알림 테스트</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.testButton} onPress={handleServerTest}>
+          <Text style={styles.buttonText}>🌐 토큰 등록</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.testButton} onPress={handleServerPush}>
+          <Text style={styles.buttonText}>📡 개별 푸시</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.testButton}
+          onPress={handleBroadcastPush}
+        >
+          <Text style={styles.buttonText}>📢 전체 푸시</Text>
+        </TouchableOpacity>
       </View>
 
       <Text style={styles.contentSubText}>
-        시뮬레이터에서는 로컬 알림만 작동합니다
+        시뮬레이터에서는 로컬 알림만 작동합니다{'\n'}
+        서버 테스트는 실제 기기에서 가능합니다{'\n'}
+        여러 기기에서 토큰 등록 후 전체 푸시 테스트 가능
       </Text>
     </View>
   );
