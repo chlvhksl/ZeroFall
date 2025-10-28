@@ -91,3 +91,4 @@ android/
 # Misc
 *.log
 *.lock
+.vercel
