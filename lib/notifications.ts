@@ -60,10 +60,9 @@ export async function registerForPushNotificationsAsync() {
   // 실제 기기에서만 푸시 토큰 발급 시도
   if (Platform.OS === 'ios') {
     try {
-      // Expo 프로젝트 ID가 필요합니다 (EAS Build 사용 시)
       token = (
         await Notifications.getExpoPushTokenAsync({
-          projectId: 'your-expo-project-id', // 실제 프로젝트 ID로 교체 필요
+          projectId: 'd0386660-2228-4773-a478-d72799d1f08d',
         })
       ).data;
       console.log('✅ iOS 푸시 토큰 발급 성공:', token);

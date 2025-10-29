@@ -10,12 +10,16 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.zerofall",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -42,6 +46,13 @@
     "notification": {
       "icon": "./assets/notification-icon.png",
       "color": "#ffffff"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d0386660-2228-4773-a478-d72799d1f08d"
+      }
+    },
+    "owner": "kershaw"
   }
 }
