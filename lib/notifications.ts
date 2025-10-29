@@ -60,11 +60,7 @@ export async function registerForPushNotificationsAsync() {
   // 실제 기기에서만 푸시 토큰 발급 시도
   if (Platform.OS === 'ios') {
     try {
-      token = (
-        await Notifications.getExpoPushTokenAsync({
-          projectId: 'd0386660-2228-4773-a478-d72799d1f08d',
-        })
-      ).data;
+      token = (await Notifications.getExpoPushTokenAsync()).data;
       console.log('✅ iOS 푸시 토큰 발급 성공:', token);
     } catch (tokenError) {
       console.log('❌ iOS 푸시 토큰 발급 실패:', tokenError);
@@ -167,10 +163,10 @@ export function setupNotificationListeners() {
 export async function registerTokenToServer(token: string) {
   try {
     // Vercel 배포 URL로 변경 (실제 배포 후 URL 교체)
-    const serverUrl =
-      process.env.NODE_ENV === 'production'
-        ? process.env.EXPO_PUBLIC_PUSH_SERVER_URL
-        : 'http://localhost:3001';
+    const serverUrl = process.env.EXPO_PUBLIC_PUSH_SERVER_URL;
+    // process.env.NODE_ENV === 'production'
+    //   ? process.env.EXPO_PUBLIC_PUSH_SERVER_URL
+    //   : 'http://localhost:3001';
 
     const response = await fetch(`${serverUrl}/api/register-token`, {
       method: 'POST',
@@ -197,10 +193,10 @@ export async function registerTokenToServer(token: string) {
 export async function requestBroadcastPush(title: string, body: string) {
   try {
     // Vercel 배포 URL로 변경 (실제 배포 후 URL 교체)
-    const serverUrl =
-      process.env.NODE_ENV === 'production'
-        ? 'https://your-app-name.vercel.app'
-        : 'http://localhost:3001';
+    const serverUrl = process.env.EXPO_PUBLIC_PUSH_SERVER_URL;
+    // process.env.NODE_ENV === 'production'
+    //   ? process.env.EXPO_PUBLIC_PUSH_SERVER_URL
+    //   : 'http://localhost:3001';
 
     const response = await fetch(`${serverUrl}/api/broadcast-push`, {
       method: 'POST',
@@ -230,10 +226,10 @@ export async function requestBroadcastPush(title: string, body: string) {
 export async function requestTestPush(token: string) {
   try {
     // Vercel 배포 URL로 변경 (실제 배포 후 URL 교체)
-    const serverUrl =
-      process.env.NODE_ENV === 'production'
-        ? 'https://your-app-name.vercel.app'
-        : 'http://localhost:3001';
+    const serverUrl = process.env.EXPO_PUBLIC_PUSH_SERVER_URL;
+    // process.env.NODE_ENV === 'production'
+    //   ? 'https://your-app-name.vercel.app'
+    //   : 'http://localhost:3001';
 
     const response = await fetch(`${serverUrl}/api/test-push`, {
       method: 'POST',
