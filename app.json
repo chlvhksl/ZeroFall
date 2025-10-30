@@ -9,8 +9,9 @@
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#ffffff",
-      "image": "./assets/logout.png"
+      "image": "./assets/splash.png"
     },
+    "icon": "./assets/person.png",
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
@@ -34,7 +35,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/splash.png",
+          "icon": "./assets/notification-icon.png",
           "color": "#ffffff",
           "defaultChannel": "default"
         }
