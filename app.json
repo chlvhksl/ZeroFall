@@ -8,18 +8,16 @@
     "userInterfaceStyle": "light",
     "splash": {
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#ffffff",
+      "image": "./assets/splash.png"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "icon": "./assets/person.png",
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.zerofall",
       "infoPlist": {
-        "UIBackgroundModes": [
-          "remote-notification"
-        ]
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
