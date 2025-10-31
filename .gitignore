@@ -133,3 +133,6 @@ android/
 *.log
 *.lock
 .vercel
+
+# Arduino 폴더 (Node.js 서버 파일들 - React Native 번들에서 제외)
+arduino/

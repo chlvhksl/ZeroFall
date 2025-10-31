@@ -19,6 +19,9 @@ import {
   testNotificationInSimulator,
 } from '../../lib/notifications';
 import { supabase } from '../../lib/supabase';
+import HookMonitorScreen from './HookMonitorScreen';
+import TestScreen from './TestScreen';
+import NotificationHistoryScreen from './NotificationHistoryScreen';
 
 // 이미지 import
 import DashboardImage from '../../assets/dashboard.png';
@@ -31,7 +34,7 @@ const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 // 탭 타입 정의
-type TabType = 'dashboard' | 'worker';
+type TabType = 'dashboard' | 'worker' | 'test' | 'notification';
 
 export default function MainScreen() {
   const router = useRouter();
@@ -129,7 +132,11 @@ export default function MainScreen() {
       {/* 메인 컨텐츠 영역 */}
       <View style={styles.content}>
         {activeTab === 'dashboard' ? (
-          <DashboardContent />
+          <HookMonitorScreen />
+        ) : activeTab === 'test' ? (
+          <TestScreen />
+        ) : activeTab === 'notification' ? (
+          <NotificationHistoryScreen />
         ) : (
           <WorkerStatusContent />
         )}
@@ -158,6 +165,48 @@ export default function MainScreen() {
             ]}
           >
             대시보드
+          </Text>
+        </TouchableOpacity>
+
+        {/* 구분선 */}
+        <View style={styles.tabDivider} />
+
+        {/* 테스트 탭 */}
+        <TouchableOpacity
+          style={styles.tabButton}
+          onPress={() => setActiveTab('test')}
+        >
+          {activeTab === 'test' && <View style={styles.activeTabBackground} />}
+          <Text style={styles.tabIconText}>🧪</Text>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'test' && styles.activeTabText,
+            ]}
+          >
+            테스트
+          </Text>
+        </TouchableOpacity>
+
+        {/* 구분선 */}
+        <View style={styles.tabDivider} />
+
+        {/* 알림 내역 탭 */}
+        <TouchableOpacity
+          style={styles.tabButton}
+          onPress={() => setActiveTab('notification')}
+        >
+          {activeTab === 'notification' && (
+            <View style={styles.activeTabBackground} />
+          )}
+          <Text style={styles.tabIconText}>🔔</Text>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'notification' && styles.activeTabText,
+            ]}
+          >
+            알림 내역
           </Text>
         </TouchableOpacity>
 
@@ -479,6 +528,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     resizeMode: 'contain',
+    marginBottom: 5,
+    zIndex: 1,
+  },
+  tabIconText: {
+    fontSize: 24,
     marginBottom: 5,
     zIndex: 1,
   },

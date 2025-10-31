@@ -13,6 +13,9 @@
     },
     "icon": "./assets/person.png",
     "assetBundlePatterns": ["**/*"],
+    "packagerOpts": {
+      "config": "metro.config.js"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.zerofall",

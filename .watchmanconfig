@@ -1,1 +1,10 @@
-{}
+{
+  "ignore_dirs": [
+    "arduino",
+    "node_modules",
+    ".expo",
+    ".git",
+    "ios",
+    "android"
+  ]
+}

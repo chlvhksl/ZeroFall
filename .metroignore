@@ -1,0 +1,5 @@
+# Metro가 무시할 파일/폴더 목록
+arduino/
+arduino/**/*
+*.md
+.git/
