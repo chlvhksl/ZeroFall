@@ -19,7 +19,7 @@ import {
   testNotificationInSimulator,
 } from '../../lib/notifications';
 import { supabase } from '../../lib/supabase';
-import HookMonitorScreen from './HookMonitorScreen';
+import HookMonitorLocal from './HookMonitorLocal';
 import TestScreen from './TestScreen';
 import NotificationHistoryScreen from './NotificationHistoryScreen';
 
@@ -132,7 +132,7 @@ export default function MainScreen() {
       {/* 메인 컨텐츠 영역 */}
       <View style={styles.content}>
         {activeTab === 'dashboard' ? (
-          <HookMonitorScreen />
+          <HookMonitorLocal />
         ) : activeTab === 'test' ? (
           <TestScreen />
         ) : activeTab === 'notification' ? (

@@ -1,4 +1,16 @@
 {
+  // Arduino 스케치는 IDE/보드 툴체인으로 빌드합니다.
+  // 에디터의 C/C++ 분석기는 .ino를 C++로 컴파일하려다 오류를 냅니다.
+  "C_Cpp.intelliSenseEngine": "Disabled",
+  "C_Cpp.errorSquiggles": "Disabled",
+  "clangd.enabled": false,
+  // .ino 편집 시 굳이 C++로 취급하지 않게 완화
+  "files.associations": {
+    "*.ino": "plaintext"
+  }
+}
+
+{
   "editor.codeActionsOnSave": {
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",

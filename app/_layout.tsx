@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
+import { LocalDeviceProvider } from '../src/context/LocalDeviceContext';
 import { useFonts } from 'expo-font'; 
 import * as SplashScreen from 'expo-splash-screen';
 import { Alert } from 'react-native'; 
@@ -39,10 +40,12 @@ export default function Layout() {
   }
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-      }}
-    />
+    <LocalDeviceProvider>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+      />
+    </LocalDeviceProvider>
   );
 }
