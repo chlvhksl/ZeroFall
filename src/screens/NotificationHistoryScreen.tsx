@@ -16,93 +16,22 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { supabase } from '../../lib/supabase';
+import { useLocalDevice } from '../context/LocalDeviceContext';
 
 // 폰트 설정
 const FONT_REGULAR = 'NanumSquare-Regular';
 const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
-interface HookStatus {
-  id: string;
-  device_id: string;
-  left_sensor: boolean;
-  right_sensor: boolean;
-  status: '미체결' | '단일체결' | '이중체결';
-  timestamp: string;
-}
-
 export default function NotificationHistoryScreen() {
   const insets = useSafeAreaInsets();
-  const [realtimeConnected, setRealtimeConnected] = useState(false);
-  const [recentStatuses, setRecentStatuses] = useState<HookStatus[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { alerts, status: localConnStatus, clearAlerts } = useLocalDevice();
 
   useEffect(() => {
-    // 최근 데이터 로드
-    loadRecentStatuses();
-
-    // Realtime 구독
-    const channel = supabase
-      .channel('notification_history')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'hook_status',
-        },
-        (payload) => {
-          console.log('🔔 새 데이터 수신:', payload);
-          const newStatus = payload.new as HookStatus;
-          // 최신 데이터를 리스트 맨 앞에 추가
-          setRecentStatuses((prev) => [newStatus, ...prev.slice(0, 9)]);
-        }
-      )
-      .subscribe((status) => {
-        setRealtimeConnected(status === 'SUBSCRIBED');
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // Supabase 연동 제거: 로컬 장치 알림만 사용
   }, []);
 
-  const loadRecentStatuses = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('hook_status')
-        .select('*')
-        .eq('device_id', 'DEVICE_001')
-        .order('timestamp', { ascending: false })
-        .limit(10);
-
-      if (error) {
-        throw error;
-      }
-
-      if (data) {
-        setRecentStatuses(data);
-      }
-      setLoading(false);
-    } catch (error) {
-      console.error('최근 상태 로드 실패:', error);
-      setLoading(false);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case '이중체결':
-        return '#22c55e';
-      case '단일체결':
-        return '#f59e0b';
-      case '미체결':
-        return '#ef4444';
-      default:
-        return '#999';
-    }
-  };
+  const getStatusColor = () => '#ef4444';
 
   return (
     <ScrollView
@@ -116,47 +45,33 @@ export default function NotificationHistoryScreen() {
           <View
             style={[
               styles.dot,
-              { backgroundColor: realtimeConnected ? '#22c55e' : '#ef4444' },
+              { backgroundColor: localConnStatus === 'connected' ? '#22c55e' : '#ef4444' },
             ]}
           />
           <Text style={styles.connectionText}>
-            {realtimeConnected ? 'Realtime 연결됨' : 'Realtime 연결 끊김'}
+            {localConnStatus === 'connected' ? '로컬 연결됨' : '로컬 연결 끊김'}
           </Text>
         </View>
       </View>
 
-      {/* 상태 기록 목록 */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#78C4B4" />
-          <Text style={styles.loadingText}>데이터 로딩 중...</Text>
-        </View>
-      ) : recentStatuses.length > 0 ? (
-        recentStatuses.map((status, index) => (
-          <View key={status.id || index} style={styles.statusItem}>
-            {/* 장비 이름 */}
-            <Text style={styles.deviceName}>{status.device_id}</Text>
+      {/* 로컬 장치 알림(미체결만) */}
+      {alerts.length > 0 ? (
+        alerts.map((a, idx) => (
+          <View key={idx} style={styles.statusItem}>
+            <Text style={styles.deviceName}>{a.deviceId}</Text>
             <View style={styles.statusItemHeader}>
-              <View
-                style={[
-                  styles.statusDot,
-                  { backgroundColor: getStatusColor(status.status) },
-                ]}
-              />
-              <Text style={styles.statusItemText}>{status.status}</Text>
-              <Text style={styles.statusItemTime}>
-                {new Date(status.timestamp).toLocaleTimeString('ko-KR')}
-              </Text>
+              <View style={[styles.statusDot, { backgroundColor: getStatusColor() }]} />
+              <Text style={styles.statusItemText}>미체결</Text>
+              <Text style={styles.statusItemTime}>{new Date(a.notifiedAt).toLocaleTimeString('ko-KR')}</Text>
             </View>
             <Text style={styles.statusItemDetail}>
-              좌측: {status.left_sensor ? '✓' : '✗'} | 우측:{' '}
-              {status.right_sensor ? '✓' : '✗'}
+              좌측: {a.left ? '✓' : '✗'} | 우측: {a.right ? '✓' : '✗'}
             </Text>
           </View>
         ))
       ) : (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>기록이 없습니다</Text>
+          <Text style={styles.emptyText}>미체결 알림이 없습니다</Text>
         </View>
       )}
     </ScrollView>

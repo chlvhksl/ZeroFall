@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
+import { useLocalDevice } from '../context/LocalDeviceContext';
 import {
   registerForPushNotificationsAsync,
   registerTokenToServer,
@@ -48,6 +49,7 @@ export default function TestScreen() {
   const [loading, setLoading] = useState(false);
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [latestStatus, setLatestStatus] = useState<HookStatus | null>(null);
+  const { last: localLast, status: localConnStatus, lastReceivedAt } = useLocalDevice();
 
   useEffect(() => {
     // 최신 데이터 로드
@@ -261,6 +263,35 @@ export default function TestScreen() {
     }
   };
 
+  const renderLocalStatus = () => {
+    if (!localLast) return null;
+    const derived = localLast.left_sensor && localLast.right_sensor
+      ? '이중체결'
+      : localLast.left_sensor || localLast.right_sensor
+      ? '단일체결'
+      : '미체결';
+    return (
+      <View style={styles.currentStatusCard}>
+        <Text style={styles.cardTitle}>📡 로컬 장치 상태 ({localConnStatus === 'connected' ? '연결됨' : '연결끊김'})</Text>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(derived) }]}>
+          <Text style={styles.statusIcon}>{getStatusIcon(derived)}</Text>
+          <Text style={styles.statusText}>{derived}</Text>
+        </View>
+        <View style={styles.sensorRow}>
+          <View style={styles.sensorItem}>
+            <Text style={styles.sensorLabel}>좌측</Text>
+            <Text style={styles.sensorValue}>{localLast.left_sensor ? '✓' : '✗'}</Text>
+          </View>
+          <View style={styles.sensorItem}>
+            <Text style={styles.sensorLabel}>우측</Text>
+            <Text style={styles.sensorValue}>{localLast.right_sensor ? '✓' : '✗'}</Text>
+          </View>
+        </View>
+        <Text style={styles.timestamp}>{lastReceivedAt ? new Date(lastReceivedAt).toLocaleString('ko-KR') : '-'}</Text>
+      </View>
+    );
+  };
+
   return (
     <ScrollView
       style={[styles.container, { paddingTop: insets.top }]}
@@ -328,80 +359,12 @@ export default function TestScreen() {
         </View>
       </View>
 
-      {/* 현재 상태 */}
-      {latestStatus && (
-        <View style={styles.currentStatusCard}>
-          <Text style={styles.cardTitle}>📊 현재 상태</Text>
-          <View
-            style={[
-              styles.statusBadge,
-              { backgroundColor: getStatusColor(latestStatus.status) },
-            ]}
-          >
-            <Text style={styles.statusIcon}>
-              {getStatusIcon(latestStatus.status)}
-            </Text>
-            <Text style={styles.statusText}>{latestStatus.status}</Text>
-          </View>
-          <View style={styles.sensorRow}>
-            <View style={styles.sensorItem}>
-              <Text style={styles.sensorLabel}>좌측</Text>
-              <Text style={styles.sensorValue}>
-                {latestStatus.left_sensor ? '✓' : '✗'}
-              </Text>
-            </View>
-            <View style={styles.sensorItem}>
-              <Text style={styles.sensorLabel}>우측</Text>
-              <Text style={styles.sensorValue}>
-                {latestStatus.right_sensor ? '✓' : '✗'}
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.timestamp}>
-            {new Date(latestStatus.timestamp).toLocaleString('ko-KR')}
-          </Text>
-        </View>
-      )}
+      {/* 로컬 장치 상태 (LocalDeviceContext 연동) */}
+      {renderLocalStatus()}
 
-      {/* 테스트 버튼 */}
-      <View style={styles.buttonSection}>
-        <Text style={styles.sectionTitle}>상태 변경 테스트</Text>
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={[styles.testButton, styles.unlockedButton]}
-            onPress={handleUnlocked}
-            disabled={loading}
-          >
-            <Text style={styles.buttonIcon}>🚨</Text>
-            <Text style={styles.buttonText}>미체결</Text>
-          </TouchableOpacity>
+      {/* Supabase 현재 상태 카드는 숨김 */}
 
-          <TouchableOpacity
-            style={[styles.testButton, styles.singleButton]}
-            onPress={handleSingleLocked}
-            disabled={loading}
-          >
-            <Text style={styles.buttonIcon}>⚠️</Text>
-            <Text style={styles.buttonText}>단일체결</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.testButton, styles.doubleButton]}
-            onPress={handleDoubleLocked}
-            disabled={loading}
-          >
-            <Text style={styles.buttonIcon}>🔒</Text>
-            <Text style={styles.buttonText}>이중체결</Text>
-          </TouchableOpacity>
-        </View>
-        {loading && (
-          <ActivityIndicator
-            size="small"
-            color="#78C4B4"
-            style={styles.loader}
-          />
-        )}
-      </View>
+      
 
     </ScrollView>
   );
