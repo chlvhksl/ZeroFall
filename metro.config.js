@@ -1,22 +1,22 @@
 const { getDefaultConfig } = require('expo/metro-config');
+const path = require('path');
 
-/**
- * Metro configuration - 최소 설정
- * http_proxy_server 문제 해결: 루트에 stub 파일 존재
- */
-const config = getDefaultConfig(__dirname);
-
-// arduino 폴더만 블록
 const projectRoot = __dirname;
-const arduinoBlockRegex = new RegExp(
-  require('path').join(projectRoot, 'arduino').replace(/\\/g, '/') + '/.*'
-);
+const workspaceRoot = path.resolve(__dirname, '../..');
 
-config.resolver.blockList = [
-  ...(config.resolver.blockList || []),
-  arduinoBlockRegex,
-  /.*[\/\\]arduino[\/\\].*/,
-  /arduino\/.*/,
+const config = getDefaultConfig(projectRoot);
+
+// 1. Watch all files in the monorepo
+config.watchFolders = [projectRoot, workspaceRoot];
+// 2. Let Metro know where to resolve packages and in what order
+config.resolver.nodeModulesPaths = [
+  path.resolve(projectRoot, 'node_modules'),
+  path.resolve(workspaceRoot, 'node_modules'),
 ];
+
+// 3. Force Metro to resolve certain dependencies from the project root
+config.resolver.extraNodeModules = {
+  'expo-router': path.resolve(__dirname, 'node_modules/expo-router'),
+};
 
 module.exports = config;

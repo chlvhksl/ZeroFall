@@ -9,6 +9,7 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "start": "expo start",
+    "start:clean": "watchman watch-del-all || true && rm -rf .expo $TMPDIR/metro-* $TMPDIR/haste-map-* $TMPDIR/react-* && expo start --clear --port 8081",
     "test": "jest",
     "build": "expo export --platform web",
     "vercel-build": "expo export --platform web"
