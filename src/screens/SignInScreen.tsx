@@ -10,7 +10,6 @@ import {
   Platform,
   ScrollView,
   Alert,
-  Image,
 } from 'react-native';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
@@ -24,11 +23,6 @@ const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 
-// 프로젝트의 assets 경로에서 로고 이미지 파일들을 불러옵니다.
-// 경로와 파일명은 사용자님의 프로젝트 구조와 일치해야 합니다.
-import GoogleLogoImage from '../../assets/google_logo.png'; 
-import KakaoTalkLogoImage from '../../assets/kakaotalk_logo.png';
-import NaverLogoImage from '../../assets/naver_logo.png';
 
 
 export default function SignInScreen() {
@@ -46,7 +40,7 @@ export default function SignInScreen() {
     }
 
     setLoading(true);
-    const { data: authAdminData, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -99,13 +93,8 @@ export default function SignInScreen() {
     }
   };
 
-  // 2. 소셜 로그인 처리 (기능 추후 지원 Alert)
-  const handleSocialSignIn = (platform: string) => {
-    Alert.alert('지원 예정 기능', `${platform} 로그인 기능은 추후 지원됩니다.`);
-  };
-  
-  // 4. 비밀번호 찾기 처리
-  const handleFindCredential = (type: 'Password') => {
+  // 비밀번호 찾기 처리
+  const handleFindCredential = () => {
     // 비밀번호 찾기 화면으로 이동
     console.log('비밀번호 찾기 버튼 클릭됨');
     router.push('/forgot-password');
@@ -121,130 +110,79 @@ export default function SignInScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
         >
-          {/* ⭐️ [제거됨] 뒤로가기 버튼 제거 */}
+          {/* 로그인 폼 컨테이너 - 중앙 정렬 */}
+          <View style={styles.formContainer}>
+            {/* 제목 - ⭐️ 굵은 폰트 적용 */}
+            <Text style={styles.title}>ZeroFall에 로그인</Text>
 
-          {/* 제목 - ⭐️ 굵은 폰트 적용 (marginTop으로 레이아웃 조정) */}
-          <Text style={styles.title}>ZeroFall에 로그인</Text>
-          
-          {/* 간편 로그인 섹션 구분선 - ⭐️ 일반 폰트 적용 */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>간편로그인</Text>
-            <View style={styles.dividerLine} />
-          </View>
-          
-          {/* 소셜 로그인 버튼 그룹 */}
-          <View style={styles.socialButtons}>
-            
-            {/* Google 버튼 */}
-            <TouchableOpacity 
-              style={[styles.socialButtonBase, styles.googleButton]}
-              onPress={() => handleSocialSignIn('Google')}
-            >
-              {/* @ts-ignore */}
-              <Image source={GoogleLogoImage} style={styles.socialLogoIcon} />
-              {/* ⭐️ 굵은 폰트 적용 */}
-              <Text style={[styles.socialButtonTextBase, styles.googleButtonText]}>Google로 로그인</Text>
-            </TouchableOpacity>
-            
-            {/* 카카오톡 버튼 */}
-            <TouchableOpacity 
-              style={[styles.socialButtonBase, styles.kakaoButton]}
-              onPress={() => handleSocialSignIn('카카오톡')}
-            >
-              {/* @ts-ignore */}
-              <Image source={KakaoTalkLogoImage} style={styles.socialLogoIcon} />
-              {/* ⭐️ 굵은 폰트 적용 */}
-              <Text style={[styles.socialButtonTextBase, styles.kakaoButtonText]}>카카오톡으로 로그인</Text>
-            </TouchableOpacity>
-
-            {/* 네이버 버튼 */}
-            <TouchableOpacity 
-              style={[styles.socialButtonBase, styles.naverButton]}
-              onPress={() => handleSocialSignIn('네이버')}
-            >
-              {/* @ts-ignore */}
-              <Image source={NaverLogoImage} style={styles.socialLogoIcon} />
-              {/* ⭐️ 굵은 폰트 적용 */}
-              <Text style={[styles.socialButtonTextBase, styles.naverButtonText]}>네이버로 로그인</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* 아이디 로그인 구분선 - ⭐️ 일반 폰트 적용 */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>또는 아이디로 로그인</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* 아이디 입력 필드 - ⭐️ 일반 폰트 적용 */}
-          <TextInput
-            style={[styles.input, { borderColor: email ? '#5FCCC4' : '#D0D0D0', fontFamily: FONT_REGULAR }]}
-            placeholder="아이디"
-            placeholderTextColor="#999"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-
-          {/* 비밀번호 입력 필드 - ⭐️ 일반 폰트 적용 */}
-          <View style={[styles.passwordContainer, { borderColor: password ? '#5FCCC4' : '#D0D0D0' }]}>
+            {/* 아이디 입력 필드 - ⭐️ 일반 폰트 적용 */}
             <TextInput
-              style={[styles.passwordInput, { fontFamily: FONT_REGULAR }]}
-              placeholder="비밀번호"
+              style={[styles.input, { borderColor: email ? '#5FCCC4' : '#D0D0D0', fontFamily: FONT_REGULAR }]}
+              placeholder="아이디"
               placeholderTextColor="#999"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
               autoCapitalize="none"
             />
-            {/* 비밀번호 보기/숨기기 토글 기능 유지 */}
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowPassword(!showPassword)}
-            >
-              <Ionicons
-                name={showPassword ? 'eye' : 'eye-off'}
-                size={22}
-                color="#5FCCC4"
+
+            {/* 비밀번호 입력 필드 - ⭐️ 일반 폰트 적용 */}
+            <View style={[styles.passwordContainer, { borderColor: password ? '#5FCCC4' : '#D0D0D0' }]}>
+              <TextInput
+                style={[styles.passwordInput, { fontFamily: FONT_REGULAR }]}
+                placeholder="비밀번호"
+                placeholderTextColor="#999"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
               />
-            </TouchableOpacity>
-          </View>
-
-          {/* 로그인 버튼 - ⭐️ 굵은 폰트 적용 */}
-          <TouchableOpacity
-            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-            onPress={handleSignIn}
-            disabled={loading}
-          >
-            <Text style={styles.loginButtonText}>
-              {loading ? '처리 중...' : '로그인'}
-            </Text>
-          </TouchableOpacity>
-
-          {/* 하단 회원가입 및 찾기 링크 */}
-          <View style={styles.footer}>
-            <View style={styles.signUpLinkContainer}>
-              {/* ⭐️ 일반 폰트 적용 */}
-              <Text style={styles.footerText}>계정이 없으신가요?</Text>
-              <Link href="/signup" asChild>
-                <TouchableOpacity>
-                  {/* ⭐️ 굵은 폰트 적용 */}
-                  <Text style={styles.signUpText}>회원가입하기</Text>
-                </TouchableOpacity>
-              </Link>
+              {/* 비밀번호 보기/숨기기 토글 기능 유지 */}
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye' : 'eye-off'}
+                  size={22}
+                  color="#5FCCC4"
+                />
+              </TouchableOpacity>
             </View>
-            
-            {/* 비밀번호 찾기 버튼 */}
-            <TouchableOpacity 
-              style={styles.forgotPasswordButton}
-              onPress={() => handleFindCredential('Password')}
-            >
-              <Text style={styles.forgotPasswordText}>비밀번호를 잊으셨나요?</Text>
-            </TouchableOpacity>
-          </View>
 
+            {/* 로그인 버튼 - ⭐️ 굵은 폰트 적용 */}
+            <TouchableOpacity
+              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+              onPress={handleSignIn}
+              disabled={loading}
+            >
+              <Text style={styles.loginButtonText}>
+                {loading ? '처리 중...' : '로그인'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* 하단 회원가입 및 찾기 링크 */}
+            <View style={styles.footer}>
+              <View style={styles.signUpLinkContainer}>
+                {/* ⭐️ 일반 폰트 적용 */}
+                <Text style={styles.footerText}>계정이 없으신가요?</Text>
+                <Link href="/signup" asChild>
+                  <TouchableOpacity>
+                    {/* ⭐️ 굵은 폰트 적용 */}
+                    <Text style={styles.signUpText}>회원가입하기</Text>
+                  </TouchableOpacity>
+                </Link>
+              </View>
+              
+              {/* 비밀번호 찾기 버튼 */}
+              <TouchableOpacity 
+                style={styles.forgotPasswordButton}
+                onPress={handleFindCredential}
+              >
+                <Text style={styles.forgotPasswordText}>비밀번호를 잊으셨나요?</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -261,107 +199,22 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 24,
+    justifyContent: 'center',
     alignItems: 'center',
-    // ⭐️ [수정] 뒤로가기 버튼 제거로 인한 상단 패딩 조정
-    paddingTop: 30, 
+    padding: 24,
   },
-  // ⭐️ [제거됨] backButton 스타일 제거
-  
+  formContainer: {
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
   title: {
     fontSize: 32,
     fontWeight: 'bold', 
     color: '#000',
-    marginBottom: 30,
-    alignSelf: 'flex-start',
-    fontFamily: FONT_EXTRABOLD, 
-  },
-
-  // --- 구분선 스타일 ---
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    marginVertical: 15,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E0E0E0',
-  },
-  dividerText: {
-    marginHorizontal: 10,
-    fontSize: 14,
-    color: '#757575',
-    fontFamily: FONT_REGULAR, 
-  },
-  
-  // --- 소셜 로그인 버튼 스타일 ---
-  socialButtons: {
-    width: '100%',
-    marginBottom: 20,
-    gap: 10,
-  },
-  
-  socialLogoIcon: {
-    width: 20,
-    height: 20,
-    resizeMode: 'contain',
-  },
-
-  socialButtonBase: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    width: '100%',
-  },
-  socialButtonTextBase: {
-    fontSize: 16,
-    fontWeight: '500', 
-    flex: 1,
+    marginBottom: 40,
     textAlign: 'center',
-    marginLeft: -20, 
-    fontFamily: FONT_BOLD, 
-  },
-
-  // Apple 버튼
-  appleButton: {
-    backgroundColor: '#fff',
-    borderColor: '#E0E0E0',
-  },
-  appleButtonText: {
-    color: '#000',
-  },
-  
-  // Google 버튼
-  googleButton: {
-    backgroundColor: '#fff',
-    borderColor: '#E0E0E0',
-  },
-  googleButtonText: {
-    color: '#000',
-  },
-
-  // 카카오톡 버튼
-  kakaoButton: {
-    backgroundColor: '#FEE500',
-    borderColor: '#FEE500',
-  },
-  kakaoButtonText: {
-    color: '#000',
-  },
-  
-  // 네이버 버튼
-  naverButton: {
-    backgroundColor: '#03C75A',
-    borderColor: '#03C75A',
-  },
-  naverButtonText: {
-    color: '#fff',
+    fontFamily: FONT_EXTRABOLD, 
   },
 
   // --- 아이디/비밀번호 입력 스타일 ---
@@ -373,7 +226,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     fontSize: 16,
     color: '#000',
-    marginBottom: 10,
+    marginBottom: 12,
     width: '100%',
   },
   passwordContainer: {
