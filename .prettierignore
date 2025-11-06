@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+dist/
+build/
+.expo/
+
+# iOS
+ios/Pods/
+ios/build/
+
+# Android
+android/app/build/
+android/.gradle/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# Package files
+package-lock.json
+yarn.lock
+
+# Generated files
+*.generated.*
+
