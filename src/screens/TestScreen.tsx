@@ -10,11 +10,11 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
   Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
@@ -26,12 +26,13 @@ const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 interface HookStatus {
-  id: string;
+  id?: number;
   device_id: string;
   left_sensor: boolean;
   right_sensor: boolean;
   status: '미체결' | '단일체결' | '이중체결';
-  timestamp: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export default function TestScreen() {
@@ -40,52 +41,136 @@ export default function TestScreen() {
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [latestStatus, setLatestStatus] = useState<HookStatus | null>(null);
   const { last: localLast, status: localConnStatus, lastReceivedAt } = useLocalDevice();
+  const TEST_DEVICE_ID = 'r4-01';
+
+  // 공유 채널/리스너(탭 전환 후에도 연결 유지)
+  // 모듈 스코프 싱글톤들
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).__TEST_SHARED__ = (globalThis as any).__TEST_SHARED__ || {
+    channel: null as any,
+    last: null as HookStatus | null,
+    listeners: [] as Array<(row: HookStatus) => void>,
+    lastEventAt: 0 as number,
+    pollId: null as ReturnType<typeof setInterval> | null,
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const TEST_SHARED = (globalThis as any).__TEST_SHARED__ as {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    channel: any;
+    last: HookStatus | null;
+    listeners: Array<(row: HookStatus) => void>;
+    lastEventAt: number;
+    pollId: ReturnType<typeof setInterval> | null;
+  };
+
+  const POLL_MS = 1000; // 1s
+  const SILENCE_THRESHOLD_MS = 2000; // 2s 무이벤트 시 폴링 시작
 
   useEffect(() => {
-    // 최신 데이터 로드
+    // 최신 스냅샷 즉시 반영 + 서버에서 한 번 더 최신값 로드
+    if (TEST_SHARED.last) setLatestStatus(TEST_SHARED.last);
     loadLatestStatus();
 
-    // Realtime 구독
+    // 이미 채널이 있으면 리스너만 등록하고 연결 상태 ON
+    if (TEST_SHARED.channel) {
+      setRealtimeConnected(true);
+      // 채널이 이미 있더라도 최신값 1회 로드(복귀 직후에도 카드 표시)
+      loadLatestStatus();
+      const listener = (row: HookStatus) => {
+        TEST_SHARED.lastEventAt = Date.now();
+        if (TEST_SHARED.pollId) { clearInterval(TEST_SHARED.pollId); TEST_SHARED.pollId = null; }
+        setLatestStatus(row);
+      };
+      TEST_SHARED.listeners.push(listener);
+      // 언마운트 시 리스너만 제거(채널은 유지)
+      return () => {
+        TEST_SHARED.listeners = TEST_SHARED.listeners.filter((l) => l !== listener);
+      };
+    }
+
+    // 최초 생성 시 채널 생성 및 구독
     const channel = supabase
-      .channel('test_hook_status')
+      .channel('test_gori_status')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'hook_status',
-        },
+        { event: '*', schema: 'public', table: 'gori_status', filter: `device_id=eq.${TEST_DEVICE_ID}` },
         (payload) => {
-          console.log('🔔 새 데이터 수신:', payload);
           const newStatus = payload.new as HookStatus;
+          TEST_SHARED.last = newStatus;
+          TEST_SHARED.lastEventAt = Date.now();
+          if (TEST_SHARED.pollId) { clearInterval(TEST_SHARED.pollId); TEST_SHARED.pollId = null; }
           setLatestStatus(newStatus);
+          TEST_SHARED.listeners.forEach((fn) => { try { fn(newStatus); } catch {} });
         }
       )
       .subscribe((status) => {
         setRealtimeConnected(status === 'SUBSCRIBED');
+        if (status === 'SUBSCRIBED') TEST_SHARED.lastEventAt = Date.now();
       });
+    TEST_SHARED.channel = channel;
+    // 최초 구독 직후 최신값 1회 로드
+    loadLatestStatus();
 
+    // 언마운트 시 채널 제거하지 않음(연결 유지)
+    return () => {};
+  }, []);
+
+  // 하이브리드: 무이벤트 시에만 1초 폴링 시작, 이벤트 오면 즉시 중단
+  useEffect(() => {
+    const watchdog = setInterval(() => {
+      const silentFor = Date.now() - (TEST_SHARED.lastEventAt || 0);
+      if (silentFor > SILENCE_THRESHOLD_MS && !TEST_SHARED.pollId) {
+        TEST_SHARED.pollId = setInterval(() => { loadLatestStatus(); }, POLL_MS);
+      }
+    }, 500);
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(watchdog);
+      if (TEST_SHARED.pollId) { clearInterval(TEST_SHARED.pollId); TEST_SHARED.pollId = null; }
     };
   }, []);
 
   const loadLatestStatus = async () => {
     try {
-      const { data, error } = await supabase
-        .from('hook_status')
+      // updated_at 우선, 없으면 created_at 기준
+      let { data, error } = await supabase
+        .from('gori_status')
         .select('*')
-        .eq('device_id', 'DEVICE_001')
-        .order('timestamp', { ascending: false })
+        .eq('device_id', TEST_DEVICE_ID)
+        .order('updated_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
+
+      if (!data) {
+        const fallback = await supabase
+          .from('gori_status')
+          .select('*')
+          .eq('device_id', TEST_DEVICE_ID)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        data = fallback.data as any;
+        error = fallback.error as any;
+      }
 
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
 
       if (data) {
-        setLatestStatus(data);
+        const changed =
+          !TEST_SHARED.last ||
+          TEST_SHARED.last.left_sensor !== data.left_sensor ||
+          TEST_SHARED.last.right_sensor !== data.right_sensor ||
+          TEST_SHARED.last.status !== data.status ||
+          TEST_SHARED.last.updated_at !== data.updated_at ||
+          TEST_SHARED.last.created_at !== data.created_at;
+        if (changed) {
+          TEST_SHARED.last = data;
+          TEST_SHARED.lastEventAt = Date.now();
+          if (TEST_SHARED.pollId) { clearInterval(TEST_SHARED.pollId); TEST_SHARED.pollId = null; }
+          setLatestStatus(data);
+          TEST_SHARED.listeners.forEach((fn) => { try { fn(data); } catch {} });
+        }
       }
     } catch (error) {
       console.error('최신 상태 로드 실패:', error);
@@ -100,14 +185,15 @@ export default function TestScreen() {
   ) => {
     setLoading(true);
     try {
+      const payload = {
+        device_id: TEST_DEVICE_ID,
+        left_sensor: leftSensor,
+        right_sensor: rightSensor,
+        status,
+      };
       const { data, error } = await supabase
-        .from('hook_status')
-        .insert({
-          device_id: 'DEVICE_001',
-          left_sensor: leftSensor,
-          right_sensor: rightSensor,
-          status: status,
-        })
+        .from('gori_status')
+        .upsert(payload, { onConflict: 'device_id' })
         .select()
         .single();
 
@@ -194,7 +280,7 @@ export default function TestScreen() {
 
   return (
     <ScrollView
-      style={[styles.container, { paddingTop: insets.top }]}
+      style={[styles.container, { paddingTop: 8 }]}
       contentContainerStyle={styles.contentContainer}
     >
       {/* 헤더 */}
@@ -208,7 +294,7 @@ export default function TestScreen() {
             ]}
           />
           <Text style={styles.connectionText}>
-            {realtimeConnected ? 'Realtime 연결됨' : 'Realtime 연결 끊김'}
+            {realtimeConnected ? 'Realtime (연결됨)' : 'Realtime (연결 끊김)'}
           </Text>
         </View>
       </View>
@@ -216,10 +302,45 @@ export default function TestScreen() {
       {/* 로컬 장치 상태 (LocalDeviceContext 연동) */}
       {renderLocalStatus()}
 
-      {/* Supabase 현재 상태 카드는 숨김 */}
+      {/* Supabase 원격 상태 */}
+      <View style={styles.currentStatusCard}>
+        {/* 상단 헤더: 장비명(좌) / 업데이트 시간(우) */}
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.cardTitle}>장비명 : {TEST_DEVICE_ID}</Text>
+          <Text style={styles.timestampInline}>
+            {latestStatus
+              ? (latestStatus.updated_at
+                  ? new Date(latestStatus.updated_at).toLocaleString('ko-KR')
+                  : latestStatus.created_at
+                  ? new Date(latestStatus.created_at).toLocaleString('ko-KR')
+                  : '-')
+              : '-'}
+          </Text>
+        </View>
 
-      
+        {latestStatus ? (
+          <View style={styles.statusRow}>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(latestStatus.status) }]}>
+              <Text style={styles.statusIconSmall}>{getStatusIcon(latestStatus.status)}</Text>
+              <Text style={styles.statusTextSmall}>{latestStatus.status}</Text>
+            </View>
+            <View style={styles.sideSensors}>
+              <View style={styles.sensorItemInline}>
+                <Text style={styles.sensorLabel}>좌측</Text>
+                <Text style={styles.sensorValue}>{latestStatus.left_sensor ? '✓' : '✗'}</Text>
+              </View>
+              <View style={styles.sensorItemInline}>
+                <Text style={styles.sensorLabel}>우측</Text>
+                <Text style={styles.sensorValue}>{latestStatus.right_sensor ? '✓' : '✗'}</Text>
+              </View>
+            </View>
+          </View>
+        ) : (
+          <Text style={styles.timestamp}>데이터 없음 (아래 버튼으로 보내보세요)</Text>
+        )}
+      </View>
 
+      {/* 테스트 전송 버튼 섹션 제거(아두이노가 실제로 전송하므로 비활성화) */}
     </ScrollView>
   );
 }
@@ -272,29 +393,62 @@ const styles = StyleSheet.create({
     borderColor: '#000',
     marginBottom: 20,
   },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
     fontFamily: FONT_BOLD,
-    marginBottom: 12,
+  },
+  timestampInline: {
+    fontSize: 12,
+    color: '#999',
+    fontFamily: FONT_REGULAR,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: '#000',
+    minWidth: '45%',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  sideSensors: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    flex: 1,
   },
   statusIcon: {
     fontSize: 32,
     marginRight: 12,
   },
+  statusIconSmall: {
+    fontSize: 24,
+    marginRight: 8,
+  },
   statusText: {
     fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    fontFamily: FONT_EXTRABOLD,
+  },
+  statusTextSmall: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
     fontFamily: FONT_EXTRABOLD,
@@ -303,6 +457,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginBottom: 12,
+  },
+  sensorItemInline: {
+    alignItems: 'center',
+    minWidth: 60,
   },
   sensorItem: {
     alignItems: 'center',

@@ -4,6 +4,7 @@ import { LocalDeviceProvider } from '../src/context/LocalDeviceContext';
 import { useFonts } from 'expo-font'; 
 import * as SplashScreen from 'expo-splash-screen';
 import { Alert } from 'react-native'; 
+import { setupNotificationListeners } from '../lib/notifications';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -32,6 +33,8 @@ export default function Layout() {
     if (fontsLoaded) {
       SplashScreen.hideAsync();
       setIsReady(true);
+      // 앱 전역 알림 리스너 초기화(포그라운드 수신 즉시 알림 내역에 반영)
+      setupNotificationListeners();
     }
   }, [fontsLoaded, fontError]);
 

@@ -17,61 +17,131 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalDevice } from '../context/LocalDeviceContext';
+import { supabase } from '../../lib/supabase';
+import { addNotificationHistoryListener } from '../../lib/notifications';
 
 // 폰트 설정
 const FONT_REGULAR = 'NanumSquare-Regular';
 const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
+type NotificationRow = {
+  id: number;
+  created_at: string;
+  device_id: string | null;
+  title: string | null;
+  body: string | null;
+  status: string | null;
+};
+
 export default function NotificationHistoryScreen() {
   const insets = useSafeAreaInsets();
-  const { alerts, status: localConnStatus, clearAlerts } = useLocalDevice();
+  const { status: localConnStatus } = useLocalDevice();
+
+  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<NotificationRow[]>([]);
+  const [rtConnected, setRtConnected] = useState(false);
 
   useEffect(() => {
-    // Supabase 연동 제거: 로컬 장치 알림만 사용
+    let channel: any | null = null;
+    let offLocal: (() => void) | null = null;
+
+    const fetchInitial = async () => {
+      try {
+        const { data, error } = await supabase
+          .from<NotificationRow>('notification_history')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(200);
+        if (error) throw error;
+        setItems(data || []);
+      } catch (e) {
+        console.error('알림 내역 조회 오류:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    channel = supabase
+      .channel('notification_history_stream')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notification_history' },
+        (payload) => {
+          const row = payload.new as NotificationRow;
+          setItems((prev) => [row, ...prev].slice(0, 300));
+        }
+      )
+      .subscribe((status) => setRtConnected(status === 'SUBSCRIBED'));
+
+    fetchInitial();
+
+    // 즉시 반영: 앱 내 수신 이벤트를 상단에 삽입(Realtime 올 때는 필터로 중복 숨김)
+    offLocal = addNotificationHistoryListener((row: any) => {
+      setItems((prev) => [
+        {
+          id: Math.floor(Math.random() * 1e9),
+          created_at: row.created_at || new Date().toISOString(),
+          device_id: row.device_id ?? null,
+          title: row.title ?? '알림',
+          body: row.body ?? null,
+          status: row.status ?? null,
+        },
+        ...prev,
+      ].slice(0, 300));
+    });
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+      if (offLocal) offLocal();
+    };
   }, []);
 
-  const getStatusColor = () => '#ef4444';
+  const getStatusColor = (status?: string | null) => {
+    if (status === '미체결') return '#ef4444';
+    if (status === '단일체결') return '#f59e0b';
+    return '#666';
+  };
 
   return (
     <ScrollView
-      style={[styles.container, { paddingTop: insets.top }]}
+      style={[styles.container, { paddingTop: 8 }]}
       contentContainerStyle={styles.contentContainer}
     >
       {/* 헤더 */}
       <View style={styles.header}>
         <Text style={styles.title}>🔔 알림 내역</Text>
-        <View style={styles.connectionBadge}>
-          <View
-            style={[
-              styles.dot,
-              { backgroundColor: localConnStatus === 'connected' ? '#22c55e' : '#ef4444' },
-            ]}
-          />
-          <Text style={styles.connectionText}>
-            {localConnStatus === 'connected' ? '로컬 연결됨' : '로컬 연결 끊김'}
-          </Text>
-        </View>
       </View>
 
-      {/* 로컬 장치 알림(미체결만) */}
-      {alerts.length > 0 ? (
-        alerts.map((a, idx) => (
-          <View key={idx} style={styles.statusItem}>
-            <Text style={styles.deviceName}>{a.deviceId}</Text>
+      {/* 원격(Supabase) 알림 내역 – Realtime 상태 배지는 숨김 */}
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator />
+          <Text style={styles.loadingText}>알림을 불러오는 중…</Text>
+        </View>
+      ) : items.length > 0 ? (
+        // 보이는 수준에서도 초단위 중복 제거
+        items.filter((n) => !!n.device_id).filter((n, idx, arr) => {
+          const prev = arr[idx - 1];
+          if (!prev) return true;
+          const sameTime = new Date(n.created_at).toISOString().slice(0, 19) === new Date(prev.created_at).toISOString().slice(0, 19);
+          const sameTitle = n.title === prev.title && n.body === prev.body && (n.device_id || '') === (prev.device_id || '');
+          return !(sameTime && sameTitle);
+        }).map((n) => (
+          <View key={n.id} style={styles.statusItem}>
+            <Text style={styles.deviceName}>{n.device_id || '-'}</Text>
             <View style={styles.statusItemHeader}>
-              <View style={[styles.statusDot, { backgroundColor: getStatusColor() }]} />
-              <Text style={styles.statusItemText}>미체결</Text>
-              <Text style={styles.statusItemTime}>{new Date(a.notifiedAt).toLocaleTimeString('ko-KR')}</Text>
+              <View style={[styles.statusDot, { backgroundColor: getStatusColor(n.status) }]} />
+              <Text style={styles.statusItemText}>{n.title || '알림'}</Text>
+              <Text style={styles.statusItemTime}>{new Date(n.created_at).toLocaleString('ko-KR')}</Text>
             </View>
-            <Text style={styles.statusItemDetail}>
-              좌측: {a.left ? '✓' : '✗'} | 우측: {a.right ? '✓' : '✗'}
-            </Text>
+            {!!n.body && <Text style={styles.statusItemDetail}>{n.body}</Text>}
           </View>
         ))
       ) : (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>미체결 알림이 없습니다</Text>
+          <Text style={styles.emptyText}>알림 내역이 없습니다</Text>
         </View>
       )}
     </ScrollView>
