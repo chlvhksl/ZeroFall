@@ -1,7 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Alert, Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 알림 표시 방식 설정
 Notifications.setNotificationHandler({

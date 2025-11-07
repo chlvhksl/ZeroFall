@@ -109,7 +109,31 @@ export default function HookMonitorLocal() {
       // 자동 재연결/자동 시작일 때는 수동 해제 상태면 시작하지 않음
       return;
     }
-    const id = targetId || deviceId;
+    const raw = targetId || deviceId;
+    // 이름을 넣었어도 자동으로 device_id로 해석
+    let id = raw;
+    try {
+      const { data } = await supabase
+        .from('gori_status')
+        .select('device_id')
+        .eq('device_id', raw)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!data?.device_id) {
+        const byName = await supabase
+          .from('gori_status')
+          .select('device_id')
+          .eq('worker_name', raw)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (byName.data?.device_id) {
+          id = String(byName.data.device_id);
+          if (id !== deviceId) setDeviceId(id);
+        }
+      }
+    } catch {}
     // 저장
     try { await AsyncStorage.setItem(STORAGE_KEY_DEVICE, id); } catch {}
 
@@ -218,17 +242,27 @@ export default function HookMonitorLocal() {
     };
   }, []);
 
+  const getStatusLabel = (row: GoriStatus | null) => {
+    if (!row) return '-';
+    if (row.status) return String(row.status);
+    const left = Boolean(row.left_sensor);
+    const right = Boolean(row.right_sensor);
+    if (left && right) return '이중체결';
+    if (left || right) return '단일체결';
+    return '미체결';
+  };
+
   return (
     <View style={[styles.container, { paddingTop: 8 }]}> 
       <Text style={styles.title}>☁️ Supabase 대시보드</Text>
 
       <View style={styles.row}> 
-        <Text style={styles.label}>장비 ID</Text>
+        <Text style={styles.label}>작업자(device_id)</Text>
         <TextInput
           value={deviceId}
           onChangeText={(t) => { setDeviceId(t); try { AsyncStorage.setItem(STORAGE_KEY_DEVICE, t); } catch {} }}
           autoCapitalize="none"
-          placeholder="예: UNO-R4-001"
+          placeholder="예: r4-F412FA6D7118"
           style={styles.input}
         />
       </View>
@@ -243,8 +277,9 @@ export default function HookMonitorLocal() {
       </View>
 
       <View style={styles.statusBox}>
-        <Text style={styles.statusText}>연결: {connection}</Text>
-        <Text style={styles.statusText}>최근: {last ? JSON.stringify(last) : '-'}</Text>
+        <Text style={styles.statusText}>
+          연결: {connection === 'subscribed' ? '✅' : '❌'}   |   작업자: {last?.device_id || deviceId || '-'}   |   최근 상태: {last?.status ? String(last.status) : getStatusLabel(last)}
+        </Text>
       </View>
     </View>
   );
