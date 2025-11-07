@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
+import { formatKoreaTime } from '../../lib/utils';
 
 // 폰트 설정
 const FONT_REGULAR = 'NanumSquare-Regular';
@@ -196,7 +197,7 @@ export default function HookMonitorScreen() {
 
           {/* 업데이트 시간 */}
           <Text style={styles.timestamp}>
-            업데이트: {new Date(currentStatus.timestamp).toLocaleString('ko-KR')}
+            업데이트: {formatKoreaTime(currentStatus.timestamp)}
           </Text>
         </View>
       ) : (

@@ -19,6 +19,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useLocalDevice } from '../context/LocalDeviceContext';
+import { formatKoreaTime } from '../../lib/utils';
 
 // 폰트 설정
 const FONT_REGULAR = 'NanumSquare-Regular';
@@ -273,7 +274,7 @@ export default function TestScreen() {
             <Text style={styles.sensorValue}>{localLast.right_sensor ? '✓' : '✗'}</Text>
           </View>
         </View>
-        <Text style={styles.timestamp}>{lastReceivedAt ? new Date(lastReceivedAt).toLocaleString('ko-KR') : '-'}</Text>
+        <Text style={styles.timestamp}>{formatKoreaTime(lastReceivedAt)}</Text>
       </View>
     );
   };
@@ -308,13 +309,7 @@ export default function TestScreen() {
         <View style={styles.cardHeaderRow}>
           <Text style={styles.cardTitle}>장비명 : {TEST_DEVICE_ID}</Text>
           <Text style={styles.timestampInline}>
-            {latestStatus
-              ? (latestStatus.updated_at
-                  ? new Date(latestStatus.updated_at).toLocaleString('ko-KR')
-                  : latestStatus.created_at
-                  ? new Date(latestStatus.created_at).toLocaleString('ko-KR')
-                  : '-')
-              : '-'}
+            {formatKoreaTime(latestStatus?.updated_at || latestStatus?.created_at)}
           </Text>
         </View>
 

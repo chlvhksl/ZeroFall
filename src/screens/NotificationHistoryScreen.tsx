@@ -1,6 +1,6 @@
 /**
  * 알림 내역 화면
- * 
+ *
  * 기능:
  * - 최근 상태 기록 조회
  * - Realtime으로 실시간 업데이트
@@ -9,16 +9,17 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
   ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalDevice } from '../context/LocalDeviceContext';
-import { supabase } from '../../lib/supabase';
 import { addNotificationHistoryListener } from '../../lib/notifications';
+import { supabase } from '../../lib/supabase';
+import { formatKoreaTime } from '../../lib/utils';
+import { useLocalDevice } from '../context/LocalDeviceContext';
 
 // 폰트 설정
 const FONT_REGULAR = 'NanumSquare-Regular';
@@ -67,28 +68,30 @@ export default function NotificationHistoryScreen() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notification_history' },
-        (payload) => {
+        payload => {
           const row = payload.new as NotificationRow;
-          setItems((prev) => [row, ...prev].slice(0, 300));
-        }
+          setItems(prev => [row, ...prev].slice(0, 300));
+        },
       )
-      .subscribe((status) => setRtConnected(status === 'SUBSCRIBED'));
+      .subscribe(status => setRtConnected(status === 'SUBSCRIBED'));
 
     fetchInitial();
 
     // 즉시 반영: 앱 내 수신 이벤트를 상단에 삽입(Realtime 올 때는 필터로 중복 숨김)
     offLocal = addNotificationHistoryListener((row: any) => {
-      setItems((prev) => [
-        {
-          id: Math.floor(Math.random() * 1e9),
-          created_at: row.created_at || new Date().toISOString(),
-          device_id: row.device_id ?? null,
-          title: row.title ?? '알림',
-          body: row.body ?? null,
-          status: row.status ?? null,
-        },
-        ...prev,
-      ].slice(0, 300));
+      setItems(prev =>
+        [
+          {
+            id: Math.floor(Math.random() * 1e9),
+            created_at: row.created_at || new Date().toISOString(),
+            device_id: row.device_id ?? null,
+            title: row.title ?? '알림',
+            body: row.body ?? null,
+            status: row.status ?? null,
+          },
+          ...prev,
+        ].slice(0, 300),
+      );
     });
 
     return () => {
@@ -122,23 +125,40 @@ export default function NotificationHistoryScreen() {
         </View>
       ) : items.length > 0 ? (
         // 보이는 수준에서도 초단위 중복 제거
-        items.filter((n) => !!n.device_id).filter((n, idx, arr) => {
-          const prev = arr[idx - 1];
-          if (!prev) return true;
-          const sameTime = new Date(n.created_at).toISOString().slice(0, 19) === new Date(prev.created_at).toISOString().slice(0, 19);
-          const sameTitle = n.title === prev.title && n.body === prev.body && (n.device_id || '') === (prev.device_id || '');
-          return !(sameTime && sameTitle);
-        }).map((n) => (
-          <View key={n.id} style={styles.statusItem}>
-            <Text style={styles.deviceName}>{n.device_id || '-'}</Text>
-            <View style={styles.statusItemHeader}>
-              <View style={[styles.statusDot, { backgroundColor: getStatusColor(n.status) }]} />
-              <Text style={styles.statusItemText}>{n.title || '알림'}</Text>
-              <Text style={styles.statusItemTime}>{new Date(n.created_at).toLocaleString('ko-KR')}</Text>
+        items
+          .filter(n => !!n.device_id)
+          .filter((n, idx, arr) => {
+            const prev = arr[idx - 1];
+            if (!prev) return true;
+            const sameTime =
+              new Date(n.created_at).toISOString().slice(0, 19) ===
+              new Date(prev.created_at).toISOString().slice(0, 19);
+            const sameTitle =
+              n.title === prev.title &&
+              n.body === prev.body &&
+              (n.device_id || '') === (prev.device_id || '');
+            return !(sameTime && sameTitle);
+          })
+          .map(n => (
+            <View key={n.id} style={styles.statusItem}>
+              <Text style={styles.deviceName}>{n.device_id || '-'}</Text>
+              <View style={styles.statusItemHeader}>
+                <View
+                  style={[
+                    styles.statusDot,
+                    { backgroundColor: getStatusColor(n.status) },
+                  ]}
+                />
+                <Text style={styles.statusItemText}>{n.title || '알림'}</Text>
+                <Text style={styles.statusItemTime}>
+                  {formatKoreaTime(n.created_at)}
+                </Text>
+              </View>
+              {!!n.body && (
+                <Text style={styles.statusItemDetail}>{n.body}</Text>
+              )}
             </View>
-            {!!n.body && <Text style={styles.statusItemDetail}>{n.body}</Text>}
-          </View>
-        ))
+          ))
       ) : (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>알림 내역이 없습니다</Text>
@@ -258,4 +278,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-
