@@ -47,7 +47,7 @@ async function saveAlertFiredFlag(id: string, fired: boolean) {
 
 export default function HookMonitorLocal() {
   const insets = useSafeAreaInsets();
-  const [deviceId, setDeviceId] = useState('r4-01');
+  const [deviceId, setDeviceId] = useState('r4-F412FA6D7118');
   const [connection, setConnection] = useState<'disconnected' | 'subscribed'>('disconnected');
   const [last, setLast] = useState<GoriStatus | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);

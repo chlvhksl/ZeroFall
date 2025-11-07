@@ -26,7 +26,6 @@ import NotificationHistoryScreen from './NotificationHistoryScreen';
 // 이미지 import
 import DashboardImage from '../../assets/dashboard.png';
 import LogoutImage from '../../assets/logout.png';
-import PersonImage from '../../assets/person.png';
 import RemotePushTestScreen from './RemotePushTestScreen';
 
 // 폰트 설정
@@ -35,7 +34,7 @@ const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 // 탭 타입 정의
-type TabType = 'dashboard' | 'worker' | 'test' | 'notification' | 'remote-push';
+type TabType = 'dashboard' | 'test' | 'notification' | 'remote-push';
 
 export default function MainScreen() {
   const router = useRouter();
@@ -138,8 +137,6 @@ export default function MainScreen() {
           <TestScreen />
         ) : activeTab === 'notification' ? (
           <NotificationHistoryScreen />
-        ) : activeTab === 'worker' ? (
-          <WorkerStatusContent />
         ) : activeTab === 'remote-push' ? (
           <RemotePushTestScreen />
         ) : null}
@@ -213,27 +210,6 @@ export default function MainScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* 구분선 */}
-        <View style={styles.tabDivider} />
-
-        {/* 작업자 현황 탭 */}
-        <TouchableOpacity
-          style={styles.tabButton}
-          onPress={() => setActiveTab('worker')}
-        >
-          {activeTab === 'worker' && (
-            <View style={styles.activeTabBackground} />
-          )}
-          <Image source={PersonImage} style={styles.tabIcon} />
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'worker' && styles.activeTabText,
-            ]}
-          >
-            작업자 현황
-          </Text>
-        </TouchableOpacity>
         {/* 구분선 */}
         <View style={styles.tabDivider} />
                 
@@ -411,14 +387,7 @@ function DashboardContent() {
   );
 }
 
-// 작업자 현황 컨텐츠 컴포넌트
-function WorkerStatusContent() {
-  return (
-    <View style={styles.contentContainer}>
-      <Text style={styles.contentText}>작업자 현황 화면</Text>
-    </View>
-  );
-}
+// (작업자 현황 화면은 제거되었습니다)
 
 const styles = StyleSheet.create({
   container: {

@@ -10,16 +10,16 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
-import { useLocalDevice } from '../context/LocalDeviceContext';
 import { formatKoreaTime } from '../../lib/utils';
+import { useLocalDevice } from '../context/LocalDeviceContext';
 
 // 폰트 설정
 const FONT_REGULAR = 'NanumSquare-Regular';
@@ -42,7 +42,7 @@ export default function TestScreen() {
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [latestStatus, setLatestStatus] = useState<HookStatus | null>(null);
   const { last: localLast, status: localConnStatus, lastReceivedAt } = useLocalDevice();
-  const TEST_DEVICE_ID = 'r4-01';
+  const TEST_DEVICE_ID = 'r4-F412FA6D7118';
 
   // 공유 채널/리스너(탭 전환 후에도 연결 유지)
   // 모듈 스코프 싱글톤들
@@ -305,7 +305,7 @@ export default function TestScreen() {
 
       {/* Supabase 원격 상태 */}
       <View style={styles.currentStatusCard}>
-        {/* 상단 헤더: 장비명(좌) / 업데이트 시간(우) */}
+        {/* 상단 헤더: 장비명(첫 줄) / 업데이트 시간(다음 줄, 우측 정렬) */}
         <View style={styles.cardHeaderRow}>
           <Text style={styles.cardTitle}>장비명 : {TEST_DEVICE_ID}</Text>
           <Text style={styles.timestampInline}>
@@ -389,9 +389,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   cardHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
   cardTitle: {
@@ -404,6 +403,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     fontFamily: FONT_REGULAR,
+    alignSelf: 'flex-end',
+    marginTop: 2,
   },
   statusBadge: {
     flexDirection: 'row',
