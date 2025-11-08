@@ -95,7 +95,8 @@ export async function sendLocalNotification(
   // 스케줄 중복 방지(10초): device_id 기준으로 같은 알림은 건너뜀
   const deviceForKey = extraData?.device_id || extraData?.deviceId || extraData?.device;
   const statusForKey = extraData?.status || '';
-  const scheduleKey = deviceForKey ? `${deviceForKey}|${statusForKey}|${title}|${body}` : null;
+  // 제목/본문이 달라도 같은 장비·같은 상태라면 10초 내 중복 표시 금지
+  const scheduleKey = deviceForKey ? `${deviceForKey}|${statusForKey}` : null;
   if (scheduleKey) {
     try {
       const storeKey = `NOTI_SCHEDULE_${scheduleKey}`;

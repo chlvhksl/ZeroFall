@@ -1,9 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { sendLocalNotification } from '../../lib/notifications';
 import { supabase } from '../../lib/supabase';
+import { formatKoreaTime } from '../../lib/utils';
+
+// 폰트 설정
+const FONT_REGULAR = 'NanumSquare-Regular';
+const FONT_BOLD = 'NanumSquare-Bold';
+const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 type GoriStatus = {
   id?: number;
@@ -13,10 +20,14 @@ type GoriStatus = {
   status?: string;
   created_at?: string; // 또는 timestamp
   timestamp?: string;
+  updated_at?: string;
+  worker_name?: string | null;
   [key: string]: any;
 };
 
 const STORAGE_KEY_DEVICE = 'DASHBOARD_DEVICE_ID';
+const STORAGE_KEY_WORKER = 'DASHBOARD_WORKER_NAME';
+const STALE_MS = 45000; // 최근 이벤트가 45초 이내면 연결됨으로 간주(하트비트 30초 + 여유)
 
 // 화면 전환 시에도 연결 유지하기 위한 모듈 스코프 싱글톤
 let sharedChannel: any | null = null;
@@ -47,9 +58,14 @@ async function saveAlertFiredFlag(id: string, fired: boolean) {
 
 export default function HookMonitorLocal() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [deviceId, setDeviceId] = useState('r4-F412FA6D7118');
+  const [workerName, setWorkerName] = useState('');
   const [connection, setConnection] = useState<'disconnected' | 'subscribed'>('disconnected');
   const [last, setLast] = useState<GoriStatus | null>(null);
+  const [lastEventAt, setLastEventAt] = useState<number | null>(null); // 최근 이벤트(수신/갱신) 시각
+  const [nowTs, setNowTs] = useState<number>(Date.now()); // 표시용 틱
+  const [anyRegistered, setAnyRegistered] = useState<boolean>(false); // 등록된 기기 존재 여부
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -84,7 +100,8 @@ export default function HookMonitorLocal() {
           const l = Boolean(latest?.left_sensor);
           const r = Boolean(latest?.right_sensor);
           if (!l && !r && !alertFiredByDevice[id]) {
-            const title = `🚨 ${id} 안전고리 미체결 경고!`;
+            const displayName = String(latest?.worker_name || workerName || id);
+            const title = `🚨 ${displayName} 안전고리 미체결 경고!`;
             const body = '작업자의 안전고리가 5초 이상 분리되었습니다.';
             await sendLocalNotification(title, body, { device_id: id, status: '미체결' });
             await saveAlertFiredFlag(id, true); // 같은 연속 구간에서는 한 번만
@@ -109,7 +126,8 @@ export default function HookMonitorLocal() {
       // 자동 재연결/자동 시작일 때는 수동 해제 상태면 시작하지 않음
       return;
     }
-    const raw = targetId || deviceId;
+    // 입력 우선순위: 명시 targetId > workerName > deviceId
+    const raw = (targetId || (workerName || '').trim() || deviceId).trim();
     // 이름을 넣었어도 자동으로 device_id로 해석
     let id = raw;
     try {
@@ -163,6 +181,7 @@ export default function HookMonitorLocal() {
           const row = (payload as any).new as GoriStatus;
           setLast(row);
           sharedLast = row;
+      setLastEventAt(Date.now());
           evaluateForAlert(row, id);
         }
       )
@@ -174,10 +193,13 @@ export default function HookMonitorLocal() {
           // 재시도
           if (!sharedManualStopped) {
             if (sharedReconnectHandle) clearTimeout(sharedReconnectHandle);
-            sharedReconnectHandle = setTimeout(() => {
-              sharedReconnectHandle = null;
-              startSubscribe(id, false);
-            }, 1000);
+            // 명확한 장애 상태에서만 재연결, 4초 대기
+            if (['TIMED_OUT', 'CHANNEL_ERROR', 'CLOSED'].includes(String(status))) {
+              sharedReconnectHandle = setTimeout(() => {
+                sharedReconnectHandle = null;
+                startSubscribe(id, false);
+              }, 4000);
+            }
           }
         }
       });
@@ -219,6 +241,10 @@ export default function HookMonitorLocal() {
       if (!error && data) {
         setLast(data);
         sharedLast = data;
+        // 최근 이벤트 시각 업데이트(행의 시간 또는 지금)
+        const t = (data as any).updated_at || data.created_at || (data as any).timestamp;
+        const ts = t ? new Date(String(t)).getTime() : Date.now();
+        setLastEventAt(ts);
         evaluateForAlert(data, id);
         return data;
       }
@@ -226,20 +252,81 @@ export default function HookMonitorLocal() {
     return null;
   };
 
+  const registerWorker = async () => {
+    const raw = (deviceId || '').trim();
+    const worker = (workerName || '').trim();
+    if (!raw || !worker) {
+      Alert.alert('입력 필요', '장비 ID와 작업자 이름을 모두 입력해 주세요.');
+      return;
+    }
+    // 이름을 입력해둔 상태라면 device_id로 해석
+    let id = raw;
+    try {
+      const { data } = await supabase
+        .from('gori_status')
+        .select('device_id')
+        .eq('device_id', raw)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!data?.device_id) {
+        const byName = await supabase
+          .from('gori_status')
+          .select('device_id')
+          .eq('worker_name', raw)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (byName.data?.device_id) id = String(byName.data.device_id);
+      }
+    } catch {}
+
+    const { error } = await supabase
+      .from('gori_status')
+      .upsert({ device_id: id, worker_name: worker }, { onConflict: 'device_id' });
+    if (error) {
+      Alert.alert('등록 실패', error.message);
+      return;
+    }
+    try { await AsyncStorage.setItem(STORAGE_KEY_WORKER, worker); } catch {}
+    await fetchLatest(id);
+    Alert.alert('완료', '작업자 이름이 등록되었습니다.');
+  };
+
   useEffect(() => {
     (async () => {
       try {
         const saved = await AsyncStorage.getItem(STORAGE_KEY_DEVICE);
+        const savedWorker = await AsyncStorage.getItem(STORAGE_KEY_WORKER);
         const idToUse = (saved || sharedDeviceId || deviceId).trim();
         if (idToUse !== deviceId) setDeviceId(idToUse);
+        if (savedWorker) setWorkerName(savedWorker);
         if (sharedLast) setLast(sharedLast);
         sharedManualStopped = false; // 화면 진입 시 자동 시작 허용
         await startSubscribe(idToUse, false);
+        // 등록된 기기 존재 여부 점검(1개만 조회)
+        try {
+          const { data } = await supabase
+            .from('gori_status')
+            .select('device_id,worker_name')
+            .not('worker_name', 'is', null)
+            .limit(1)
+            .maybeSingle();
+          setAnyRegistered(!!data?.device_id);
+        } catch {
+          setAnyRegistered(false);
+        }
       } catch {}
     })();
     return () => {
       // 연결 유지: 해제하지 않음
     };
+  }, []);
+
+  // 1초마다 틱을 갱신하여 "최근 이벤트 기준 연결 상태" 표시를 부드럽게 업데이트
+  useEffect(() => {
+    const handle = setInterval(() => setNowTs(Date.now()), 1000);
+    return () => clearInterval(handle);
   }, []);
 
   const getStatusLabel = (row: GoriStatus | null) => {
@@ -252,17 +339,32 @@ export default function HookMonitorLocal() {
     return '미체결';
   };
 
+  const isConnectedByFreshness = lastEventAt ? (nowTs - lastEventAt) < STALE_MS : false;
+
   return (
     <View style={[styles.container, { paddingTop: 8 }]}> 
       <Text style={styles.title}>☁️ Supabase 대시보드</Text>
 
       <View style={styles.row}> 
-        <Text style={styles.label}>작업자(device_id)</Text>
+        <Text style={styles.label}>장비명</Text>
         <TextInput
           value={deviceId}
           onChangeText={(t) => { setDeviceId(t); try { AsyncStorage.setItem(STORAGE_KEY_DEVICE, t); } catch {} }}
           autoCapitalize="none"
-          placeholder="예: r4-F412FA6D7118"
+          placeholder="작업자 등록 후 자동 설정"
+          style={[styles.input, styles.inputDisabled]}
+          editable={false}
+          selectTextOnFocus={false}
+        />
+      </View>
+
+      <View style={styles.row}>
+        <Text style={styles.label}>작업자 이름</Text>
+        <TextInput
+          value={workerName}
+          onChangeText={(t) => { setWorkerName(t); try { AsyncStorage.setItem(STORAGE_KEY_WORKER, t); } catch {} }}
+          autoCapitalize="none"
+          placeholder="예: 홍길동"
           style={styles.input}
         />
       </View>
@@ -276,11 +378,68 @@ export default function HookMonitorLocal() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.statusBox}>
-        <Text style={styles.statusText}>
-          연결: {connection === 'subscribed' ? '✅' : '❌'}   |   작업자: {last?.device_id || deviceId || '-'}   |   최근 상태: {last?.status ? String(last.status) : getStatusLabel(last)}
-        </Text>
+      <View style={styles.buttonRow}>
+        <TouchableOpacity style={[styles.btn, styles.primary]} onPress={() => router.push('/register')}>
+          <Text style={styles.btnText}>작업자 등록</Text>
+        </TouchableOpacity>
       </View>
+
+      {!anyRegistered ? (
+        <View style={styles.infoBox}>
+          <Text style={styles.infoText}>등록 대기중입니다. 작업자 등록에서 기기 이름을 등록해 주세요.</Text>
+        </View>
+      ) : last && !!String(last?.worker_name || '').trim() ? (
+        <View style={styles.currentStatusCard}>
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.cardTitle}>{last?.worker_name || '-'}</Text>
+            <View style={styles.headerRight}>
+              <View style={[styles.dot, { backgroundColor: isConnectedByFreshness ? '#22c55e' : '#ef4444' }]} />
+              <Text style={styles.timestampInline}>
+                {formatKoreaTime((last as any)?.updated_at || (last as any)?.created_at || (last as any)?.timestamp)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.statusRow}>
+            <View
+              style={[
+                styles.statusBadge,
+                {
+                  backgroundColor:
+                    (getStatusLabel(last) === '이중체결'
+                      ? '#22c55e'
+                      : getStatusLabel(last) === '단일체결'
+                      ? '#f59e0b'
+                      : getStatusLabel(last) === '미체결'
+                      ? '#ef4444'
+                      : '#999'),
+                },
+              ]}
+            >
+              <Text style={styles.statusIconSmall}>
+                {getStatusLabel(last) === '이중체결'
+                  ? '🔒'
+                  : getStatusLabel(last) === '단일체결'
+                  ? '⚠️'
+                  : getStatusLabel(last) === '미체결'
+                  ? '🚨'
+                  : '❓'}
+              </Text>
+              <Text style={styles.statusTextSmall}>{getStatusLabel(last)}</Text>
+            </View>
+            <View style={styles.sideSensors}>
+              <View style={styles.sensorItemInline}>
+                <Text style={styles.sensorLabel}>좌측</Text>
+                <Text style={styles.sensorValue}>{last?.left_sensor ? '✓' : '✗'}</Text>
+              </View>
+              <View style={styles.sensorItemInline}>
+                <Text style={styles.sensorLabel}>우측</Text>
+                <Text style={styles.sensorValue}>{last?.right_sensor ? '✓' : '✗'}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -296,6 +455,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 12,
     color: '#000',
+    fontFamily: FONT_EXTRABOLD,
   },
   row: {
     marginBottom: 12,
@@ -304,6 +464,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#000',
     marginBottom: 6,
+    fontFamily: FONT_BOLD,
   },
   input: {
     backgroundColor: '#fff',
@@ -311,6 +472,11 @@ const styles = StyleSheet.create({
     borderColor: '#000',
     borderRadius: 8,
     padding: 12,
+    fontFamily: FONT_REGULAR,
+  },
+  inputDisabled: {
+    backgroundColor: '#F2F2F2',
+    color: '#666',
   },
   buttonRow: {
     flexDirection: 'row',
@@ -335,6 +501,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#000',
+    fontFamily: FONT_BOLD,
   },
   statusBox: {
     backgroundColor: '#fff',
@@ -346,6 +513,102 @@ const styles = StyleSheet.create({
   statusText: {
     color: '#000',
     marginBottom: 6,
+  },
+  infoBox: {
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  infoText: {
+    color: '#000',
+    fontFamily: FONT_REGULAR,
+  },
+  // 카드 스타일(테스트 화면과 유사)
+  currentStatusCard: {
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 8,
+    padding: 12,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
+    fontFamily: FONT_BOLD,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  timestampInline: {
+    fontSize: 12,
+    color: '#999',
+    fontFamily: FONT_REGULAR,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#000',
+    minWidth: '45%',
+  },
+  statusIconSmall: {
+    fontSize: 24,
+    marginRight: 8,
+  },
+  statusTextSmall: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    fontFamily: FONT_EXTRABOLD,
+  },
+  sideSensors: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    flex: 1,
+  },
+  sensorItemInline: {
+    alignItems: 'center',
+    minWidth: 60,
+  },
+  sensorLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+    fontFamily: FONT_REGULAR,
+  },
+  sensorValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000',
+    fontFamily: FONT_BOLD,
   },
 });
 

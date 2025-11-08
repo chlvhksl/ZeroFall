@@ -141,7 +141,7 @@ export default function NotificationHistoryScreen() {
           })
           .map(n => (
             <View key={n.id} style={styles.statusItem}>
-              <Text style={styles.deviceName}>{n.device_id || '-'}</Text>
+              <Text style={styles.deviceName}>{formatKoreaTime(n.created_at)}</Text>
               <View style={styles.statusItemHeader}>
                 <View
                   style={[
@@ -150,9 +150,6 @@ export default function NotificationHistoryScreen() {
                   ]}
                 />
                 <Text style={styles.statusItemText}>{n.title || '알림'}</Text>
-                <Text style={styles.statusItemTime}>
-                  {formatKoreaTime(n.created_at)}
-                </Text>
               </View>
               {!!n.body && (
                 <Text style={styles.statusItemDetail}>{n.body}</Text>
@@ -229,7 +226,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   deviceName: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#999',
     fontFamily: FONT_REGULAR,
     marginBottom: 4,

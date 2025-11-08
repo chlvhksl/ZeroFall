@@ -20,7 +20,6 @@ import {
 } from '../../lib/notifications';
 import { supabase } from '../../lib/supabase';
 import HookMonitorLocal from './HookMonitorLocal';
-import TestScreen from './TestScreen';
 import NotificationHistoryScreen from './NotificationHistoryScreen';
 
 // 이미지 import
@@ -34,7 +33,7 @@ const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 // 탭 타입 정의
-type TabType = 'dashboard' | 'test' | 'notification' | 'remote-push';
+type TabType = 'dashboard' | 'notification' | 'remote-push';
 
 export default function MainScreen() {
   const router = useRouter();
@@ -133,8 +132,6 @@ export default function MainScreen() {
       <View style={styles.content}>
         {activeTab === 'dashboard' ? (
           <HookMonitorLocal />
-        ) : activeTab === 'test' ? (
-          <TestScreen />
         ) : activeTab === 'notification' ? (
           <NotificationHistoryScreen />
         ) : activeTab === 'remote-push' ? (
@@ -171,25 +168,7 @@ export default function MainScreen() {
         {/* 구분선 */}
         <View style={styles.tabDivider} />
 
-        {/* 테스트 탭 */}
-        <TouchableOpacity
-          style={styles.tabButton}
-          onPress={() => setActiveTab('test')}
-        >
-          {activeTab === 'test' && <View style={styles.activeTabBackground} />}
-          <Text style={styles.tabIconText}>🧪</Text>
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'test' && styles.activeTabText,
-            ]}
-          >
-            테스트
-          </Text>
-        </TouchableOpacity>
-
-        {/* 구분선 */}
-        <View style={styles.tabDivider} />
+        
 
         {/* 알림 내역 탭 */}
         <TouchableOpacity
