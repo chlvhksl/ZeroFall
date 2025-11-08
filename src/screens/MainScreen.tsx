@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT_EXTRABOLD,
   },
   adminInfo: {
-    fontSize: 16,
+    fontSize: 24,
     color: '#000',
     fontFamily: FONT_REGULAR,
   },

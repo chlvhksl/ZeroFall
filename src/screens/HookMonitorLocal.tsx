@@ -380,7 +380,7 @@ export default function HookMonitorLocal() {
 
       <View style={styles.buttonRow}>
         <TouchableOpacity style={[styles.btn, styles.primary]} onPress={() => router.push('/register')}>
-          <Text style={styles.btnText}>작업자 등록</Text>
+          <Text style={styles.btnText}>작업자 등록/변경</Text>
         </TouchableOpacity>
       </View>
 
@@ -448,12 +448,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#EDF6EF',
-    padding: 16,
+    padding: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginTop: 20,
+    marginBottom: 20,
     color: '#000',
     fontFamily: FONT_EXTRABOLD,
   },

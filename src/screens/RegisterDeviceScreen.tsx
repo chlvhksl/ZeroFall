@@ -167,13 +167,13 @@ export default function RegisterDeviceScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
-      <Text style={styles.title}>작업자 등록</Text>
+      <Text style={styles.title}>작업자 등록/변경</Text>
 
       <View style={styles.row}>
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="검색: device_id 또는 작업자 이름"
+          placeholder="기기 또는 이름 검색"
           style={styles.input}
           autoCapitalize="none"
         />
@@ -183,7 +183,7 @@ export default function RegisterDeviceScreen() {
         <TextInput
           value={selectedId}
           onChangeText={() => {}}
-          placeholder="선택된 device_id"
+          placeholder="선택된 기기"
           style={[styles.input, { backgroundColor: '#F2F2F2', color: '#666' }]}
           autoCapitalize="none"
           editable={false}
@@ -200,7 +200,7 @@ export default function RegisterDeviceScreen() {
       </View>
       <View style={styles.buttonRow}>
         <TouchableOpacity style={[styles.btn, styles.primary]} onPress={handleRegister}>
-          <Text style={styles.btnText}>등록</Text>
+          <Text style={styles.btnText}>등록/변경</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.btn, styles.secondary]} onPress={() => router.back()}>
           <Text style={styles.btnText}>취소</Text>
