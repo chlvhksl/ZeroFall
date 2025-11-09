@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { sendLocalNotification } from '../../lib/notifications';
 import { supabase } from '../../lib/supabase';
@@ -293,6 +293,24 @@ export default function HookMonitorLocal() {
     Alert.alert('완료', '작업자 이름이 등록되었습니다.');
   };
 
+  const normalizeStatus = (raw?: string | null): '이중체결' | '단일체결' | '미체결' | '-' => {
+    if (!raw) return '-';
+    const s = String(raw).trim().toLowerCase();
+    if (['이중', '이중체결', 'double', 'both', 'locked', 'lock', 'secure', 'fully', 'ok'].includes(s)) {
+      return '이중체결';
+    }
+    if (['단일', '단일체결', 'single', 'one', 'partial', 'partially', 'half'].includes(s)) {
+      return '단일체결';
+    }
+    if (['미', '미체결', 'none', 'unhooked', 'open', 'danger', 'alert'].includes(s)) {
+      return '미체결';
+    }
+    if (s.includes('이중')) return '이중체결';
+    if (s.includes('단일')) return '단일체결';
+    if (s.includes('미')) return '미체결';
+    return '-';
+  };
+
   useEffect(() => {
     (async () => {
       try {
@@ -331,7 +349,10 @@ export default function HookMonitorLocal() {
 
   const getStatusLabel = (row: GoriStatus | null) => {
     if (!row) return '-';
-    if (row.status) return String(row.status);
+    if (row.status) {
+      const norm = normalizeStatus(row.status);
+      if (norm !== '-') return norm;
+    }
     const left = Boolean(row.left_sensor);
     const right = Boolean(row.right_sensor);
     if (left && right) return '이중체결';
@@ -339,11 +360,17 @@ export default function HookMonitorLocal() {
     return '미체결';
   };
 
+  // 실시간 응답성 우선: 센서 값이 함께 오면 센서 기준으로 즉시 판정, 없으면 status 사용
+
   const isConnectedByFreshness = lastEventAt ? (nowTs - lastEventAt) < STALE_MS : false;
 
   return (
-    <View style={[styles.container, { paddingTop: 8 }]}> 
-      <Text style={styles.title}>☁️ Supabase 대시보드</Text>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={[styles.container, { paddingTop: 8 }]}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={styles.title}>☁️ 대시보드</Text>
 
       <View style={styles.row}> 
         <Text style={styles.label}>장비명</Text>
@@ -440,15 +467,18 @@ export default function HookMonitorLocal() {
           </View>
         </View>
       ) : null}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: '#EDF6EF',
     padding: 20,
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: '#EDF6EF',
   },
   title: {
     fontSize: 32,

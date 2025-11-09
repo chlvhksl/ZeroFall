@@ -264,7 +264,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    // fontWeight: 'bold', // 폰트 파일 자체에 굵기 포함
+    fontFamily: 'NanumSquare-Bold',
     color: '#000',
     marginBottom: 12,
   },
@@ -277,6 +278,7 @@ const styles = StyleSheet.create({
     borderColor: '#000',
     borderRadius: 8,
     padding: 12,
+    fontFamily: 'NanumSquare-Regular',
   },
   buttonRow: {
     flexDirection: 'row',
@@ -299,7 +301,8 @@ const styles = StyleSheet.create({
   },
   btnText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    // fontWeight: 'bold',
+    fontFamily: 'NanumSquare-Bold',
     color: '#000',
   },
   card: {
@@ -318,7 +321,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    // fontWeight: 'bold',
+    fontFamily: 'NanumSquare-Bold',
     color: '#000',
     marginBottom: 6,
   },
@@ -332,20 +336,24 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: '#000',
+    fontFamily: 'NanumSquare-Regular',
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    // fontWeight: 'bold',
+    fontFamily: 'NanumSquare-Bold',
     color: '#000',
     marginBottom: 4,
   },
   cardText: {
     color: '#000',
     marginBottom: 2,
+    fontFamily: 'NanumSquare-Regular',
   },
   cardSub: {
     color: '#333',
     fontSize: 12,
+    fontFamily: 'NanumSquare-Regular',
   },
 });
 
