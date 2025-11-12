@@ -167,7 +167,6 @@ export default function MainScreen() {
 
         {/* 구분선 */}
         <View style={styles.tabDivider} />
-
         
 
         {/* 알림 내역 탭 */}

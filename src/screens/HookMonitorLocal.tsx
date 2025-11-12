@@ -68,6 +68,8 @@ export default function HookMonitorLocal() {
   const [anyRegistered, setAnyRegistered] = useState<boolean>(false); // 등록된 기기 존재 여부
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const allDevicesChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [allDevices, setAllDevices] = useState<Array<GoriStatus>>([]);
 
   const clearTimer = () => {
     if (timerRef.current) {
@@ -161,13 +163,12 @@ export default function HookMonitorLocal() {
     // 최신 1건 로드
     await fetchLatest(id);
 
-    // 기존 채널 유지 전략: 다른 장비를 구독 중이면 교체, 동일 장비면 재사용
-    // 모든 기존 채널 정리(중복 리스너 방지)
+    // 기존 채널 유지 전략: 현재 장비 채널만 정리(다른 전역 구독은 유지)
     try {
-      const channels = (supabase as any).getChannels?.() || [];
-      channels.forEach((ch: any) => {
-        try { supabase.removeChannel(ch); } catch {}
-      });
+      if (channelRef.current) {
+        try { supabase.removeChannel(channelRef.current); } catch {}
+        channelRef.current = null;
+      }
     } catch {}
     sharedChannel = null;
     sharedDeviceId = null;
@@ -347,6 +348,77 @@ export default function HookMonitorLocal() {
     return () => clearInterval(handle);
   }, []);
 
+  // 전체 기기의 최신 상태를 불러와 디바이스별 최신 1건으로 정리
+  const loadAllDevicesLatest = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('gori_status')
+        .select('device_id, worker_name, left_sensor, right_sensor, status, updated_at, created_at, timestamp')
+        .order('updated_at', { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      const byDevice: Record<string, GoriStatus & { __ts?: number }> = {};
+      (data || []).forEach((row: any) => {
+        // 등록된 작업자만 표시
+        if (!row.worker_name || String(row.worker_name).trim().length === 0) return;
+        const key = row.device_id;
+        const tRaw = row.updated_at || row.created_at || row.timestamp;
+        const ts = tRaw ? new Date(String(tRaw)).getTime() : 0;
+        const prev = byDevice[key];
+        if (!prev || ts >= (prev.__ts || 0)) {
+          byDevice[key] = { ...(row as GoriStatus), __ts: ts };
+        }
+      });
+      const list = Object.values(byDevice).sort((a: any, b: any) => (b.__ts || 0) - (a.__ts || 0));
+      setAllDevices(list);
+    } catch {}
+  };
+
+  // 전체 기기 실시간 구독
+  useEffect(() => {
+    loadAllDevicesLatest();
+    const ch = supabase
+      .channel('gori-status-all-devices')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'gori_status' },
+        (payload) => {
+          const row = (payload as any).new as GoriStatus;
+          // 작업자 미등록은 목록에서 제외
+          const hasWorker = !!(row.worker_name && String(row.worker_name).trim().length > 0);
+          setAllDevices((prev) => {
+            const tRaw = (row as any).updated_at || (row as any).created_at || (row as any).timestamp;
+            const ts = tRaw ? new Date(String(tRaw)).getTime() : Date.now();
+            const map: Record<string, any> = {};
+            prev.forEach((r: any) => {
+              map[r.device_id] = r;
+            });
+            if (!hasWorker) {
+              delete map[row.device_id];
+            } else {
+              const ex: any = map[row.device_id];
+              const exTs = ex ? (new Date(String(ex.updated_at || ex.created_at || (ex as any).timestamp)).getTime()) : -1;
+              if (!ex || ts >= exTs) {
+                map[row.device_id] = row;
+              }
+            }
+            const list = Object.values(map).sort((a: any, b: any) => {
+              const aTs = new Date(String(a.updated_at || a.created_at || (a as any).timestamp)).getTime();
+              const bTs = new Date(String(b.updated_at || b.created_at || (b as any).timestamp)).getTime();
+              return bTs - aTs;
+            }) as Array<GoriStatus>;
+            return list;
+          });
+        }
+      )
+      .subscribe();
+    allDevicesChannelRef.current = ch;
+    return () => {
+      try { if (allDevicesChannelRef.current) supabase.removeChannel(allDevicesChannelRef.current); } catch {}
+      allDevicesChannelRef.current = null;
+    };
+  }, []);
+
   const getStatusLabel = (row: GoriStatus | null) => {
     if (!row) return '-';
     if (row.status) {
@@ -362,7 +434,7 @@ export default function HookMonitorLocal() {
 
   // 실시간 응답성 우선: 센서 값이 함께 오면 센서 기준으로 즉시 판정, 없으면 status 사용
 
-  const isConnectedByFreshness = lastEventAt ? (nowTs - lastEventAt) < STALE_MS : false;
+  // 개인 상태 카드 UI는 숨김(전체 기기 목록만 표시)
 
   return (
     <ScrollView
@@ -411,62 +483,66 @@ export default function HookMonitorLocal() {
         </TouchableOpacity>
       </View>
 
-      {!anyRegistered ? (
+      {!anyRegistered && (
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>등록 대기중입니다. 작업자 등록에서 기기 이름을 등록해 주세요.</Text>
         </View>
-      ) : last && !!String(last?.worker_name || '').trim() ? (
-        <View style={styles.currentStatusCard}>
-          <View style={styles.cardHeaderRow}>
-            <Text style={styles.cardTitle}>{last?.worker_name || '-'}</Text>
-            <View style={styles.headerRight}>
-              <View style={[styles.dot, { backgroundColor: isConnectedByFreshness ? '#22c55e' : '#ef4444' }]} />
-              <Text style={styles.timestampInline}>
-                {formatKoreaTime((last as any)?.updated_at || (last as any)?.created_at || (last as any)?.timestamp)}
-              </Text>
-            </View>
-          </View>
+      )}
 
-          <View style={styles.statusRow}>
-            <View
-              style={[
-                styles.statusBadge,
-                {
-                  backgroundColor:
-                    (getStatusLabel(last) === '이중체결'
-                      ? '#22c55e'
-                      : getStatusLabel(last) === '단일체결'
-                      ? '#f59e0b'
-                      : getStatusLabel(last) === '미체결'
-                      ? '#ef4444'
-                      : '#999'),
-                },
-              ]}
-            >
-              <Text style={styles.statusIconSmall}>
-                {getStatusLabel(last) === '이중체결'
-                  ? '🔒'
-                  : getStatusLabel(last) === '단일체결'
-                  ? '⚠️'
-                  : getStatusLabel(last) === '미체결'
-                  ? '🚨'
-                  : '❓'}
-              </Text>
-              <Text style={styles.statusTextSmall}>{getStatusLabel(last)}</Text>
-            </View>
-            <View style={styles.sideSensors}>
-              <View style={styles.sensorItemInline}>
-                <Text style={styles.sensorLabel}>좌측</Text>
-                <Text style={styles.sensorValue}>{last?.left_sensor ? '✓' : '✗'}</Text>
+      {/* 전체 기기 목록 */}
+      {allDevices.length > 0 && (
+        <View style={{ marginTop: 16 }}>
+          <Text style={[styles.label, { marginBottom: 8 }]}>전체 기기</Text>
+          {allDevices.map((item) => {
+            const label = getStatusLabel(item);
+            return (
+              <View key={item.device_id} style={[styles.currentStatusCard, { marginBottom: 10 }]}>
+                <View style={styles.cardHeaderRow}>
+                  <Text style={styles.cardTitle}>{item.worker_name || item.device_id}</Text>
+                  <View style={styles.headerRight}>
+                    <View style={[styles.dot, { backgroundColor: '#22c55e' }]} />
+                    <Text style={styles.timestampInline}>
+                      {formatKoreaTime((item as any)?.updated_at || (item as any)?.created_at || (item as any)?.timestamp)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.statusRow}>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      {
+                        backgroundColor:
+                          label === '이중체결'
+                            ? '#22c55e'
+                            : label === '단일체결'
+                            ? '#f59e0b'
+                            : label === '미체결'
+                            ? '#ef4444'
+                            : '#999',
+                      },
+                    ]}
+                  >
+                    <Text style={styles.statusIconSmall}>
+                      {label === '이중체결' ? '🔒' : label === '단일체결' ? '⚠️' : label === '미체결' ? '🚨' : '❓'}
+                    </Text>
+                    <Text style={styles.statusTextSmall}>{label}</Text>
+                  </View>
+                  <View style={styles.sideSensors}>
+                    <View style={styles.sensorItemInline}>
+                      <Text style={styles.sensorLabel}>좌측</Text>
+                      <Text style={styles.sensorValue}>{item?.left_sensor ? '✓' : '✗'}</Text>
+                    </View>
+                    <View style={styles.sensorItemInline}>
+                      <Text style={styles.sensorLabel}>우측</Text>
+                      <Text style={styles.sensorValue}>{item?.right_sensor ? '✓' : '✗'}</Text>
+                    </View>
+                  </View>
+                </View>
               </View>
-              <View style={styles.sensorItemInline}>
-                <Text style={styles.sensorLabel}>우측</Text>
-                <Text style={styles.sensorValue}>{last?.right_sensor ? '✓' : '✗'}</Text>
-              </View>
-            </View>
-          </View>
+            );
+          })}
         </View>
-      ) : null}
+      )}
     </ScrollView>
   );
 }
