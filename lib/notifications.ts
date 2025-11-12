@@ -90,10 +90,11 @@ const scheduledNotiKeys: Set<string> = new Set();
 export async function sendLocalNotification(
   title: string,
   body: string,
-  extraData?: Record<string, any>
+  extraData?: Record<string, any>,
 ) {
   // 스케줄 중복 방지(10초): device_id 기준으로 같은 알림은 건너뜀
-  const deviceForKey = extraData?.device_id || extraData?.deviceId || extraData?.device;
+  const deviceForKey =
+    extraData?.device_id || extraData?.deviceId || extraData?.device;
   const statusForKey = extraData?.status || '';
   // 제목/본문이 달라도 같은 장비·같은 상태라면 10초 내 중복 표시 금지
   const scheduleKey = deviceForKey ? `${deviceForKey}|${statusForKey}` : null;
@@ -122,14 +123,19 @@ export async function sendLocalNotification(
 }
 
 // Supabase notification_history에 기록
-export async function logNotificationHistory(
-  params: { deviceId?: string; status?: string; title: string; body: string }
-) {
+export async function logNotificationHistory(params: {
+  deviceId?: string;
+  status?: string;
+  title: string;
+  body: string;
+}) {
   try {
     // device_id가 없는 알림은 기록하지 않음(중복/불명확한 소스 차단)
     if (!params.deviceId) return;
     // 클라이언트 측 중복 방지(영구 저장 기반): 10초 윈도우 내 동일 키는 무시
-    const notiKey = `${params.deviceId}|${params.status || ''}|${params.title}|${params.body}`;
+    const notiKey = `${params.deviceId}|${params.status || ''}|${
+      params.title
+    }|${params.body}`;
     try {
       const storeKey = `NOTI_LOG_${notiKey}`;
       const last = await AsyncStorage.getItem(storeKey);
@@ -142,7 +148,7 @@ export async function logNotificationHistory(
     setTimeout(() => recentNotiKeys.delete(notiKey), 10000);
 
     const { supabase } = await import('./supabase');
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('notification_history')
       .insert({
         device_id: params.deviceId || null,
@@ -228,7 +234,11 @@ export function addNotificationHistoryListener(fn: (row: NotiRow) => void) {
   };
 }
 function emitNotificationHistory(row: NotiRow) {
-  notiListeners.forEach((fn) => { try { fn(row); } catch {} });
+  notiListeners.forEach(fn => {
+    try {
+      fn(row);
+    } catch {}
+  });
 }
 export function setupNotificationListeners() {
   if (listenersRegistered) return () => {};
@@ -242,7 +252,8 @@ export function setupNotificationListeners() {
         const title = content?.title || '알림';
         const body = content?.body || '';
         const data = content?.data || {};
-        const deviceId = data.device_id || data.deviceId || data.device || undefined;
+        const deviceId =
+          data.device_id || data.deviceId || data.device || undefined;
         // device_id 없는 알림은 무시(테스트/기타 알림 차단)
         if (!deviceId) return;
         const now = Date.now();
@@ -252,9 +263,20 @@ export function setupNotificationListeners() {
         // DB 기록 + 즉시 UI 반영(emit은 logNotificationHistory에서 처리)
         const createdAt = new Date().toISOString();
         // 즉시 UI 반영
-        emitNotificationHistory({ device_id: deviceId, status: data.status ?? null, title, body, created_at: createdAt });
+        emitNotificationHistory({
+          device_id: deviceId,
+          status: data.status ?? null,
+          title,
+          body,
+          created_at: createdAt,
+        });
         // DB 기록(중복 방지 로직 포함)
-        logNotificationHistory({ deviceId, status: data.status || null, title, body });
+        logNotificationHistory({
+          deviceId,
+          status: data.status || null,
+          title,
+          body,
+        });
       } catch {}
     },
   );
@@ -266,8 +288,12 @@ export function setupNotificationListeners() {
     });
 
   return () => {
-    try { notificationListener.remove(); } catch {}
-    try { responseListener.remove(); } catch {}
+    try {
+      notificationListener.remove();
+    } catch {}
+    try {
+      responseListener.remove();
+    } catch {}
     listenersRegistered = false;
   };
 }
