@@ -27,19 +27,19 @@ type GoriStatus = {
 
 const STORAGE_KEY_DEVICE = 'DASHBOARD_DEVICE_ID';
 const STORAGE_KEY_WORKER = 'DASHBOARD_WORKER_NAME';
-const STALE_MS = 45000; // 최근 이벤트가 45초 이내면 연결됨으로 간주(하트비트 30초 + 여유)
+const STALE_MS = 30000; // 최근 이벤트가 30초 이내면 연결됨으로 간주(하트비트 15초 + 여유)
 
 // 화면 전환 시에도 연결 유지하기 위한 모듈 스코프 싱글톤
 let sharedChannel: any | null = null;
 let sharedDeviceId: string | null = null;
-let sharedTimer: ReturnType<typeof setTimeout> | null = null;
 let sharedLast: GoriStatus | null = null;
-let sharedTimerDevice: string | null = null;
 const lastUnhookedByDevice: Record<string, boolean> = {};
 const alertFiredByDevice: Record<string, boolean> = {};
 let sharedManualStopped = false; // 사용자가 해제 버튼을 눌렀는지
 let sharedReconnectHandle: ReturnType<typeof setTimeout> | null = null;
 const ALERT_FIRED_PREFIX = 'ALERT_FIRED_';
+// 전체 기기 목록 캐시(화면 전환 시 깜빡임 방지)
+let sharedAllDevices: Array<GoriStatus> = [];
 
 async function loadAlertFiredFlag(id: string) {
   try {
@@ -67,15 +67,21 @@ export default function HookMonitorLocal() {
   const [nowTs, setNowTs] = useState<number>(Date.now()); // 표시용 틱
   const [anyRegistered, setAnyRegistered] = useState<boolean>(false); // 등록된 기기 존재 여부
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 기기별 미체결 알림 타이머
+  const timersRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
   const allDevicesChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const [allDevices, setAllDevices] = useState<Array<GoriStatus>>([]);
+  const [allDevices, setAllDevices] = useState<Array<GoriStatus>>(sharedAllDevices);
 
-  const clearTimer = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
+  const clearTimerFor = (id: string) => {
+    const t = timersRef.current[id];
+    if (t) {
+      clearTimeout(t);
+      timersRef.current[id] = null;
     }
+  };
+
+  const clearAllTimers = () => {
+    Object.keys(timersRef.current).forEach((k) => clearTimerFor(k));
   };
 
   const evaluateForAlert = (row: GoriStatus, id: string) => {
@@ -92,16 +98,19 @@ export default function HookMonitorLocal() {
       // 이미 같은 연속 구간에서 알림을 보냈다면 아무 것도 안 함
       if (alertFired) return;
 
-      // 새롭게 미체결로 전이됐거나(또는 초기) 아직 알림 안 보냈다면 타이머 시작
-      if (!timerRef.current && !sharedTimer) {
-        sharedTimerDevice = id;
-        timerRef.current = setTimeout(async () => {
-          timerRef.current = null;
-          sharedTimer = null;
-          const latest = sharedLast ?? row;
-          const l = Boolean(latest?.left_sensor);
-          const r = Boolean(latest?.right_sensor);
-          if (!l && !r && !alertFiredByDevice[id]) {
+      // 새롭게 미체결로 전이됐거나(또는 초기) 아직 알림 안 보냈다면 기기별 타이머 시작
+      if (!timersRef.current[id]) {
+        timersRef.current[id] = setTimeout(async () => {
+          timersRef.current[id] = null;
+          const l = Boolean(row?.left_sensor);
+          const r = Boolean(row?.right_sensor);
+          // 타임아웃 시점에 최신 상태를 한 번 더 점검하기 위해 allDevices 캐시에서 확인
+          let latest: GoriStatus | null = null;
+          const found = sharedAllDevices.find((d) => d.device_id === id);
+          latest = found || row || sharedLast;
+          const ll = Boolean(latest?.left_sensor);
+          const rr = Boolean(latest?.right_sensor);
+          if (!ll && !rr && !alertFiredByDevice[id]) {
             const displayName = String(latest?.worker_name || workerName || id);
             const title = `🚨 ${displayName} 안전고리 미체결 경고!`;
             const body = '작업자의 안전고리가 5초 이상 분리되었습니다.';
@@ -109,13 +118,10 @@ export default function HookMonitorLocal() {
             await saveAlertFiredFlag(id, true); // 같은 연속 구간에서는 한 번만
           }
         }, 5000);
-        sharedTimer = timerRef.current;
       }
     } else {
       // 안전 상태로 전환: 타이머/플래그 초기화
-      clearTimer();
-      sharedTimer = null;
-      sharedTimerDevice = null;
+      clearTimerFor(id);
       saveAlertFiredFlag(id, false);
     }
   };
@@ -223,8 +229,7 @@ export default function HookMonitorLocal() {
     sharedChannel = null;
     sharedDeviceId = null;
     setConnection('disconnected');
-    clearTimer();
-    sharedTimer = null;
+    clearAllTimers();
   };
 
   const fetchLatest = async (targetId?: string): Promise<GoriStatus | null> => {
@@ -370,7 +375,10 @@ export default function HookMonitorLocal() {
         }
       });
       const list = Object.values(byDevice).sort((a: any, b: any) => (b.__ts || 0) - (a.__ts || 0));
-      setAllDevices(list);
+      sharedAllDevices = list as Array<GoriStatus>;
+      setAllDevices(sharedAllDevices);
+      // 초기 로드 시점에도 각 기기에 대해 미체결 알림 로직 연결
+      sharedAllDevices.forEach((r) => evaluateForAlert(r, r.device_id));
     } catch {}
   };
 
@@ -386,6 +394,10 @@ export default function HookMonitorLocal() {
           const row = (payload as any).new as GoriStatus;
           // 작업자 미등록은 목록에서 제외
           const hasWorker = !!(row.worker_name && String(row.worker_name).trim().length > 0);
+          if (hasWorker && row.device_id) {
+            // 어떤 기기든 상태 이벤트 들어올 때마다 즉시 알림 평가
+            evaluateForAlert(row, row.device_id);
+          }
           setAllDevices((prev) => {
             const tRaw = (row as any).updated_at || (row as any).created_at || (row as any).timestamp;
             const ts = tRaw ? new Date(String(tRaw)).getTime() : Date.now();
@@ -407,7 +419,8 @@ export default function HookMonitorLocal() {
               const bTs = new Date(String(b.updated_at || b.created_at || (b as any).timestamp)).getTime();
               return bTs - aTs;
             }) as Array<GoriStatus>;
-            return list;
+            sharedAllDevices = list;
+            return sharedAllDevices;
           });
         }
       )
