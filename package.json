@@ -6,6 +6,8 @@
   "scripts": {
     "android": "expo start --android",
     "ios": "expo start --ios",
+    "android:device": "expo run:android",
+    "ios:device": "expo run:ios",
     "web": "expo start --web",
     "lint": "eslint .",
     "start": "expo start",
