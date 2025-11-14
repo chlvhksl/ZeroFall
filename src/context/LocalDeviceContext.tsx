@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useRef, useState } from 'react';
-import { sendLocalNotification } from '../../lib/notifications';
+import { sendRemotePush } from '../../lib/notifications';
 
 type HookMsg = {
   device_id: string;
@@ -71,7 +71,7 @@ export function LocalDeviceProvider({ children }: { children: React.ReactNode })
           const latest = lastRef.current;
           const stillUnhooked = !!latest && !latest.left_sensor && !latest.right_sensor;
           if (stillUnhooked && !alertIssuedRef.current) {
-            await sendLocalNotification('미체결 경고', '미체결 상태가 5초 이상 지속되었습니다.');
+            await sendRemotePush('미체결 경고', '미체결 상태가 5초 이상 지속되었습니다.');
             alertIssuedRef.current = true; // 에피소드 잠금
             setAlerts(prev => [
               {

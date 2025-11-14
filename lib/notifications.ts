@@ -328,6 +328,87 @@ export async function registerTokenToServer(token: string) {
   }
 }
 
+// 원격 푸시 알림 발송 (특정 토큰으로)
+export async function sendRemotePushToToken(
+  token: string,
+  title: string,
+  body: string,
+  extraData?: Record<string, any>,
+) {
+  try {
+    const serverUrl = process.env.EXPO_PUBLIC_PUSH_SERVER_URL;
+
+    if (!serverUrl) {
+      console.error('푸시 서버 URL이 설정되지 않았습니다.');
+      return null;
+    }
+
+    const response = await fetch(`${serverUrl}/api/send-push`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token: token,
+        title: title,
+        body: body,
+        data: { timestamp: Date.now(), ...(extraData || {}) },
+      }),
+    });
+
+    const result = await response.json();
+    console.log('원격 푸시 발송 응답:', result);
+    return result;
+  } catch (error) {
+    console.error('원격 푸시 발송 실패:', error);
+    return null;
+  }
+}
+
+// 원격 푸시 알림 발송 (현재 로그인한 사용자에게)
+export async function sendRemotePush(
+  title: string,
+  body: string,
+  extraData?: Record<string, any>,
+) {
+  try {
+    const { supabase } = await import('./supabase');
+
+    // 현재 로그인한 사용자 정보 가져오기
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user?.email) {
+      console.error('로그인한 사용자 정보를 찾을 수 없습니다.');
+      return null;
+    }
+
+    // admin 테이블에서 푸시 토큰 가져오기
+    const { data: adminData, error: fetchError } = await supabase
+      .from('zerofall_admin')
+      .select('push_token')
+      .eq('admin_mail', user.email)
+      .single();
+
+    if (fetchError || !adminData?.push_token) {
+      console.error('푸시 토큰을 찾을 수 없습니다:', fetchError);
+      return null;
+    }
+
+    // 원격 푸시 발송
+    return await sendRemotePushToToken(
+      adminData.push_token,
+      title,
+      body,
+      extraData,
+    );
+  } catch (error) {
+    console.error('원격 푸시 발송 중 오류:', error);
+    return null;
+  }
+}
+
 // 모든 사용자에게 푸시 요청
 export async function requestBroadcastPush(title: string, body: string) {
   try {

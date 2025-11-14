@@ -15,7 +15,7 @@ import {
   registerTokenToServer,
   requestBroadcastPush,
   requestTestPush,
-  sendLocalNotification,
+  sendRemotePush,
   testNotificationInSimulator,
 } from '../../lib/notifications';
 import { supabase } from '../../lib/supabase';
@@ -234,14 +234,14 @@ function DashboardContent() {
 
   const handleLocalNotification = async () => {
     try {
-      await sendLocalNotification(
-        '로컬 알림 테스트',
-        '이것은 로컬 알림입니다!',
+      await sendRemotePush(
+        '원격 푸시 테스트',
+        '이것은 원격 푸시 알림입니다!',
       );
-      Alert.alert('성공', '로컬 알림이 발송되었습니다!');
+      Alert.alert('성공', '원격 푸시 알림이 발송되었습니다!');
     } catch (error) {
-      console.error('로컬 알림 에러:', error);
-      Alert.alert('오류', '로컬 알림 발송 중 오류가 발생했습니다.');
+      console.error('원격 푸시 에러:', error);
+      Alert.alert('오류', '원격 푸시 발송 중 오류가 발생했습니다.');
     }
   };
 

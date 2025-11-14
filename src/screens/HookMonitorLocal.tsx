@@ -1,9 +1,17 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { sendLocalNotification } from '../../lib/notifications';
+import { sendRemotePush } from '../../lib/notifications';
 import { supabase } from '../../lib/supabase';
 import { formatKoreaTime } from '../../lib/utils';
 
@@ -61,16 +69,23 @@ export default function HookMonitorLocal() {
   const router = useRouter();
   const [deviceId, setDeviceId] = useState('r4-F412FA6D7118');
   const [workerName, setWorkerName] = useState('');
-  const [connection, setConnection] = useState<'disconnected' | 'subscribed'>('disconnected');
+  const [connection, setConnection] = useState<'disconnected' | 'subscribed'>(
+    'disconnected',
+  );
   const [last, setLast] = useState<GoriStatus | null>(null);
   const [lastEventAt, setLastEventAt] = useState<number | null>(null); // 최근 이벤트(수신/갱신) 시각
   const [nowTs, setNowTs] = useState<number>(Date.now()); // 표시용 틱
   const [anyRegistered, setAnyRegistered] = useState<boolean>(false); // 등록된 기기 존재 여부
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   // 기기별 미체결 알림 타이머
-  const timersRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
-  const allDevicesChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const [allDevices, setAllDevices] = useState<Array<GoriStatus>>(sharedAllDevices);
+  const timersRef = useRef<
+    Record<string, ReturnType<typeof setTimeout> | null>
+  >({});
+  const allDevicesChannelRef = useRef<ReturnType<
+    typeof supabase.channel
+  > | null>(null);
+  const [allDevices, setAllDevices] =
+    useState<Array<GoriStatus>>(sharedAllDevices);
 
   const clearTimerFor = (id: string) => {
     const t = timersRef.current[id];
@@ -81,7 +96,7 @@ export default function HookMonitorLocal() {
   };
 
   const clearAllTimers = () => {
-    Object.keys(timersRef.current).forEach((k) => clearTimerFor(k));
+    Object.keys(timersRef.current).forEach(k => clearTimerFor(k));
   };
 
   const evaluateForAlert = (row: GoriStatus, id: string) => {
@@ -106,7 +121,7 @@ export default function HookMonitorLocal() {
           const r = Boolean(row?.right_sensor);
           // 타임아웃 시점에 최신 상태를 한 번 더 점검하기 위해 allDevices 캐시에서 확인
           let latest: GoriStatus | null = null;
-          const found = sharedAllDevices.find((d) => d.device_id === id);
+          const found = sharedAllDevices.find(d => d.device_id === id);
           latest = found || row || sharedLast;
           const ll = Boolean(latest?.left_sensor);
           const rr = Boolean(latest?.right_sensor);
@@ -114,7 +129,10 @@ export default function HookMonitorLocal() {
             const displayName = String(latest?.worker_name || workerName || id);
             const title = `🚨 ${displayName} 안전고리 미체결 경고!`;
             const body = '작업자의 안전고리가 5초 이상 분리되었습니다.';
-            await sendLocalNotification(title, body, { device_id: id, status: '미체결' });
+            await sendRemotePush(title, body, {
+              device_id: id,
+              status: '미체결',
+            });
             await saveAlertFiredFlag(id, true); // 같은 연속 구간에서는 한 번만
           }
         }, 5000);
@@ -161,7 +179,9 @@ export default function HookMonitorLocal() {
       }
     } catch {}
     // 저장
-    try { await AsyncStorage.setItem(STORAGE_KEY_DEVICE, id); } catch {}
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY_DEVICE, id);
+    } catch {}
 
     // 이전 알림 플래그 불러오기
     await loadAlertFiredFlag(id);
@@ -172,7 +192,9 @@ export default function HookMonitorLocal() {
     // 기존 채널 유지 전략: 현재 장비 채널만 정리(다른 전역 구독은 유지)
     try {
       if (channelRef.current) {
-        try { supabase.removeChannel(channelRef.current); } catch {}
+        try {
+          supabase.removeChannel(channelRef.current);
+        } catch {}
         channelRef.current = null;
       }
     } catch {}
@@ -183,16 +205,21 @@ export default function HookMonitorLocal() {
       .channel(`gori-status-${id}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'gori_status', filter: `device_id=eq.${id}` },
-        (payload) => {
+        {
+          event: '*',
+          schema: 'public',
+          table: 'gori_status',
+          filter: `device_id=eq.${id}`,
+        },
+        payload => {
           const row = (payload as any).new as GoriStatus;
           setLast(row);
           sharedLast = row;
-      setLastEventAt(Date.now());
+          setLastEventAt(Date.now());
           evaluateForAlert(row, id);
-        }
+        },
       )
-      .subscribe((status) => {
+      .subscribe(status => {
         if (status === 'SUBSCRIBED') {
           setConnection('subscribed');
         } else {
@@ -201,7 +228,9 @@ export default function HookMonitorLocal() {
           if (!sharedManualStopped) {
             if (sharedReconnectHandle) clearTimeout(sharedReconnectHandle);
             // 명확한 장애 상태에서만 재연결, 4초 대기
-            if (['TIMED_OUT', 'CHANNEL_ERROR', 'CLOSED'].includes(String(status))) {
+            if (
+              ['TIMED_OUT', 'CHANNEL_ERROR', 'CLOSED'].includes(String(status))
+            ) {
               sharedReconnectHandle = setTimeout(() => {
                 sharedReconnectHandle = null;
                 startSubscribe(id, false);
@@ -223,7 +252,9 @@ export default function HookMonitorLocal() {
       sharedReconnectHandle = null;
     }
     if (channelRef.current) {
-      try { supabase.removeChannel(channelRef.current); } catch {}
+      try {
+        supabase.removeChannel(channelRef.current);
+      } catch {}
       channelRef.current = null;
     }
     sharedChannel = null;
@@ -248,7 +279,10 @@ export default function HookMonitorLocal() {
         setLast(data);
         sharedLast = data;
         // 최근 이벤트 시각 업데이트(행의 시간 또는 지금)
-        const t = (data as any).updated_at || data.created_at || (data as any).timestamp;
+        const t =
+          (data as any).updated_at ||
+          data.created_at ||
+          (data as any).timestamp;
         const ts = t ? new Date(String(t)).getTime() : Date.now();
         setLastEventAt(ts);
         evaluateForAlert(data, id);
@@ -289,26 +323,59 @@ export default function HookMonitorLocal() {
 
     const { error } = await supabase
       .from('gori_status')
-      .upsert({ device_id: id, worker_name: worker }, { onConflict: 'device_id' });
+      .upsert(
+        { device_id: id, worker_name: worker },
+        { onConflict: 'device_id' },
+      );
     if (error) {
       Alert.alert('등록 실패', error.message);
       return;
     }
-    try { await AsyncStorage.setItem(STORAGE_KEY_WORKER, worker); } catch {}
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY_WORKER, worker);
+    } catch {}
     await fetchLatest(id);
     Alert.alert('완료', '작업자 이름이 등록되었습니다.');
   };
 
-  const normalizeStatus = (raw?: string | null): '이중체결' | '단일체결' | '미체결' | '-' => {
+  const normalizeStatus = (
+    raw?: string | null,
+  ): '이중체결' | '단일체결' | '미체결' | '-' => {
     if (!raw) return '-';
     const s = String(raw).trim().toLowerCase();
-    if (['이중', '이중체결', 'double', 'both', 'locked', 'lock', 'secure', 'fully', 'ok'].includes(s)) {
+    if (
+      [
+        '이중',
+        '이중체결',
+        'double',
+        'both',
+        'locked',
+        'lock',
+        'secure',
+        'fully',
+        'ok',
+      ].includes(s)
+    ) {
       return '이중체결';
     }
-    if (['단일', '단일체결', 'single', 'one', 'partial', 'partially', 'half'].includes(s)) {
+    if (
+      [
+        '단일',
+        '단일체결',
+        'single',
+        'one',
+        'partial',
+        'partially',
+        'half',
+      ].includes(s)
+    ) {
       return '단일체결';
     }
-    if (['미', '미체결', 'none', 'unhooked', 'open', 'danger', 'alert'].includes(s)) {
+    if (
+      ['미', '미체결', 'none', 'unhooked', 'open', 'danger', 'alert'].includes(
+        s,
+      )
+    ) {
       return '미체결';
     }
     if (s.includes('이중')) return '이중체결';
@@ -358,14 +425,17 @@ export default function HookMonitorLocal() {
     try {
       const { data, error } = await supabase
         .from('gori_status')
-        .select('device_id, worker_name, left_sensor, right_sensor, status, updated_at, created_at, timestamp')
+        .select(
+          'device_id, worker_name, left_sensor, right_sensor, status, updated_at, created_at, timestamp',
+        )
         .order('updated_at', { ascending: false })
         .limit(1000);
       if (error) throw error;
       const byDevice: Record<string, GoriStatus & { __ts?: number }> = {};
       (data || []).forEach((row: any) => {
         // 등록된 작업자만 표시
-        if (!row.worker_name || String(row.worker_name).trim().length === 0) return;
+        if (!row.worker_name || String(row.worker_name).trim().length === 0)
+          return;
         const key = row.device_id;
         const tRaw = row.updated_at || row.created_at || row.timestamp;
         const ts = tRaw ? new Date(String(tRaw)).getTime() : 0;
@@ -374,11 +444,13 @@ export default function HookMonitorLocal() {
           byDevice[key] = { ...(row as GoriStatus), __ts: ts };
         }
       });
-      const list = Object.values(byDevice).sort((a: any, b: any) => (b.__ts || 0) - (a.__ts || 0));
+      const list = Object.values(byDevice).sort(
+        (a: any, b: any) => (b.__ts || 0) - (a.__ts || 0),
+      );
       sharedAllDevices = list as Array<GoriStatus>;
       setAllDevices(sharedAllDevices);
       // 초기 로드 시점에도 각 기기에 대해 미체결 알림 로직 연결
-      sharedAllDevices.forEach((r) => evaluateForAlert(r, r.device_id));
+      sharedAllDevices.forEach(r => evaluateForAlert(r, r.device_id));
     } catch {}
   };
 
@@ -390,16 +462,21 @@ export default function HookMonitorLocal() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'gori_status' },
-        (payload) => {
+        payload => {
           const row = (payload as any).new as GoriStatus;
           // 작업자 미등록은 목록에서 제외
-          const hasWorker = !!(row.worker_name && String(row.worker_name).trim().length > 0);
+          const hasWorker = !!(
+            row.worker_name && String(row.worker_name).trim().length > 0
+          );
           if (hasWorker && row.device_id) {
             // 어떤 기기든 상태 이벤트 들어올 때마다 즉시 알림 평가
             evaluateForAlert(row, row.device_id);
           }
-          setAllDevices((prev) => {
-            const tRaw = (row as any).updated_at || (row as any).created_at || (row as any).timestamp;
+          setAllDevices(prev => {
+            const tRaw =
+              (row as any).updated_at ||
+              (row as any).created_at ||
+              (row as any).timestamp;
             const ts = tRaw ? new Date(String(tRaw)).getTime() : Date.now();
             const map: Record<string, any> = {};
             prev.forEach((r: any) => {
@@ -409,25 +486,38 @@ export default function HookMonitorLocal() {
               delete map[row.device_id];
             } else {
               const ex: any = map[row.device_id];
-              const exTs = ex ? (new Date(String(ex.updated_at || ex.created_at || (ex as any).timestamp)).getTime()) : -1;
+              const exTs = ex
+                ? new Date(
+                    String(
+                      ex.updated_at || ex.created_at || (ex as any).timestamp,
+                    ),
+                  ).getTime()
+                : -1;
               if (!ex || ts >= exTs) {
                 map[row.device_id] = row;
               }
             }
             const list = Object.values(map).sort((a: any, b: any) => {
-              const aTs = new Date(String(a.updated_at || a.created_at || (a as any).timestamp)).getTime();
-              const bTs = new Date(String(b.updated_at || b.created_at || (b as any).timestamp)).getTime();
+              const aTs = new Date(
+                String(a.updated_at || a.created_at || (a as any).timestamp),
+              ).getTime();
+              const bTs = new Date(
+                String(b.updated_at || b.created_at || (b as any).timestamp),
+              ).getTime();
               return bTs - aTs;
             }) as Array<GoriStatus>;
             sharedAllDevices = list;
             return sharedAllDevices;
           });
-        }
+        },
       )
       .subscribe();
     allDevicesChannelRef.current = ch;
     return () => {
-      try { if (allDevicesChannelRef.current) supabase.removeChannel(allDevicesChannelRef.current); } catch {}
+      try {
+        if (allDevicesChannelRef.current)
+          supabase.removeChannel(allDevicesChannelRef.current);
+      } catch {}
       allDevicesChannelRef.current = null;
     };
   }, []);
@@ -457,11 +547,16 @@ export default function HookMonitorLocal() {
     >
       <Text style={styles.title}>☁️ 대시보드</Text>
 
-      <View style={styles.row}> 
+      <View style={styles.row}>
         <Text style={styles.label}>장비명</Text>
         <TextInput
           value={deviceId}
-          onChangeText={(t) => { setDeviceId(t); try { AsyncStorage.setItem(STORAGE_KEY_DEVICE, t); } catch {} }}
+          onChangeText={t => {
+            setDeviceId(t);
+            try {
+              AsyncStorage.setItem(STORAGE_KEY_DEVICE, t);
+            } catch {}
+          }}
           autoCapitalize="none"
           placeholder="작업자 등록 후 자동 설정"
           style={[styles.input, styles.inputDisabled]}
@@ -474,7 +569,12 @@ export default function HookMonitorLocal() {
         <Text style={styles.label}>작업자 이름</Text>
         <TextInput
           value={workerName}
-          onChangeText={(t) => { setWorkerName(t); try { AsyncStorage.setItem(STORAGE_KEY_WORKER, t); } catch {} }}
+          onChangeText={t => {
+            setWorkerName(t);
+            try {
+              AsyncStorage.setItem(STORAGE_KEY_WORKER, t);
+            } catch {}
+          }}
           autoCapitalize="none"
           placeholder="예: 홍길동"
           style={styles.input}
@@ -482,23 +582,34 @@ export default function HookMonitorLocal() {
       </View>
 
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={[styles.btn, styles.primary]} onPress={() => startSubscribe(undefined, true)}>
+        <TouchableOpacity
+          style={[styles.btn, styles.primary]}
+          onPress={() => startSubscribe(undefined, true)}
+        >
           <Text style={styles.btnText}>실시간 시작</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.btn, styles.secondary]} onPress={stopSubscribe}>
+        <TouchableOpacity
+          style={[styles.btn, styles.secondary]}
+          onPress={stopSubscribe}
+        >
           <Text style={styles.btnText}>해제</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={[styles.btn, styles.primary]} onPress={() => router.push('/register')}>
+        <TouchableOpacity
+          style={[styles.btn, styles.primary]}
+          onPress={() => router.push('/register')}
+        >
           <Text style={styles.btnText}>작업자 등록/변경</Text>
         </TouchableOpacity>
       </View>
 
       {!anyRegistered && (
         <View style={styles.infoBox}>
-          <Text style={styles.infoText}>등록 대기중입니다. 작업자 등록에서 기기 이름을 등록해 주세요.</Text>
+          <Text style={styles.infoText}>
+            등록 대기중입니다. 작업자 등록에서 기기 이름을 등록해 주세요.
+          </Text>
         </View>
       )}
 
@@ -506,16 +617,27 @@ export default function HookMonitorLocal() {
       {allDevices.length > 0 && (
         <View style={{ marginTop: 16 }}>
           <Text style={[styles.label, { marginBottom: 8 }]}>전체 기기</Text>
-          {allDevices.map((item) => {
+          {allDevices.map(item => {
             const label = getStatusLabel(item);
             return (
-              <View key={item.device_id} style={[styles.currentStatusCard, { marginBottom: 10 }]}>
+              <View
+                key={item.device_id}
+                style={[styles.currentStatusCard, { marginBottom: 10 }]}
+              >
                 <View style={styles.cardHeaderRow}>
-                  <Text style={styles.cardTitle}>{item.worker_name || item.device_id}</Text>
+                  <Text style={styles.cardTitle}>
+                    {item.worker_name || item.device_id}
+                  </Text>
                   <View style={styles.headerRight}>
-                    <View style={[styles.dot, { backgroundColor: '#22c55e' }]} />
+                    <View
+                      style={[styles.dot, { backgroundColor: '#22c55e' }]}
+                    />
                     <Text style={styles.timestampInline}>
-                      {formatKoreaTime((item as any)?.updated_at || (item as any)?.created_at || (item as any)?.timestamp)}
+                      {formatKoreaTime(
+                        (item as any)?.updated_at ||
+                          (item as any)?.created_at ||
+                          (item as any)?.timestamp,
+                      )}
                     </Text>
                   </View>
                 </View>
@@ -536,18 +658,28 @@ export default function HookMonitorLocal() {
                     ]}
                   >
                     <Text style={styles.statusIconSmall}>
-                      {label === '이중체결' ? '🔒' : label === '단일체결' ? '⚠️' : label === '미체결' ? '🚨' : '❓'}
+                      {label === '이중체결'
+                        ? '🔒'
+                        : label === '단일체결'
+                        ? '⚠️'
+                        : label === '미체결'
+                        ? '🚨'
+                        : '❓'}
                     </Text>
                     <Text style={styles.statusTextSmall}>{label}</Text>
                   </View>
                   <View style={styles.sideSensors}>
                     <View style={styles.sensorItemInline}>
                       <Text style={styles.sensorLabel}>좌측</Text>
-                      <Text style={styles.sensorValue}>{item?.left_sensor ? '✓' : '✗'}</Text>
+                      <Text style={styles.sensorValue}>
+                        {item?.left_sensor ? '✓' : '✗'}
+                      </Text>
                     </View>
                     <View style={styles.sensorItemInline}>
                       <Text style={styles.sensorLabel}>우측</Text>
-                      <Text style={styles.sensorValue}>{item?.right_sensor ? '✓' : '✗'}</Text>
+                      <Text style={styles.sensorValue}>
+                        {item?.right_sensor ? '✓' : '✗'}
+                      </Text>
                     </View>
                   </View>
                 </View>
@@ -731,5 +863,3 @@ const styles = StyleSheet.create({
     fontFamily: FONT_BOLD,
   },
 });
-
-

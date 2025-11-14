@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
@@ -12,13 +13,26 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Supabase 클라이언트 초기화
+const supabaseUrl =
+  process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+
+let supabase = null;
+if (supabaseUrl && supabaseKey) {
+  supabase = createClient(supabaseUrl, supabaseKey);
+  console.log('✅ Supabase 클라이언트 초기화 완료');
+} else {
+  console.warn(
+    '⚠️ Supabase 환경 변수가 설정되지 않았습니다. 메모리 저장소만 사용합니다.',
+  );
+}
+
 // 토큰 저장소 (Vercel에서는 메모리 저장, 실제로는 데이터베이스 사용 권장)
 let userTokens = [];
 
-// Vercel에서는 파일 시스템이 읽기 전용이므로 메모리 저장 사용
-// 실제 프로덕션에서는 Supabase, MongoDB, PostgreSQL 등 사용 권장
-
-console.log('🚀 푸시 서버 시작 - 메모리 저장소 사용');
+console.log('🚀 푸시 서버 시작 - Supabase 연동');
 
 // 푸시 알림 발송 함수
 async function sendPushNotification(token, title, body, data = {}) {
@@ -137,7 +151,7 @@ app.post('/api/send-push', async (req, res) => {
   }
 });
 
-// 모든 사용자에게 푸시 알림 발송
+// 모든 사용자에게 푸시 알림 발송 (Supabase에서 모든 admin 토큰 조회)
 app.post('/api/broadcast-push', async (req, res) => {
   try {
     const { title, body, data } = req.body;
@@ -149,22 +163,57 @@ app.post('/api/broadcast-push', async (req, res) => {
       });
     }
 
-    if (userTokens.length === 0) {
+    let tokens = [];
+
+    // Supabase에서 모든 admin의 푸시 토큰 조회
+    if (supabase) {
+      try {
+        const { data: adminData, error: fetchError } = await supabase
+          .from('zerofall_admin')
+          .select('push_token, admin_mail')
+          .not('push_token', 'is', null);
+
+        if (fetchError) {
+          console.error('Supabase에서 토큰 조회 실패:', fetchError);
+        } else if (adminData && adminData.length > 0) {
+          // null이 아닌 푸시 토큰만 필터링
+          tokens = adminData
+            .filter(admin => admin.push_token && admin.push_token.trim() !== '')
+            .map(admin => ({
+              token: admin.push_token,
+              email: admin.admin_mail,
+            }));
+          console.log(
+            `✅ Supabase에서 ${tokens.length}개의 푸시 토큰 조회 완료`,
+          );
+        }
+      } catch (supabaseError) {
+        console.error('Supabase 조회 중 오류:', supabaseError);
+      }
+    }
+
+    // Supabase에서 토큰을 가져오지 못한 경우 메모리 저장소 사용 (fallback)
+    if (tokens.length === 0 && userTokens.length > 0) {
+      console.log('⚠️ Supabase 토큰이 없어 메모리 저장소 사용');
+      tokens = userTokens.map(t => ({ token: t.token, email: t.userId }));
+    }
+
+    if (tokens.length === 0) {
       return res.status(400).json({
         success: false,
-        message: '등록된 토큰이 없습니다.',
+        message: '등록된 푸시 토큰이 없습니다.',
         totalTokens: 0,
       });
     }
 
-    console.log(`📢 모든 사용자에게 푸시 발송 시작 (${userTokens.length}명)`);
+    console.log(`📢 모든 사용자에게 푸시 발송 시작 (${tokens.length}명)`);
 
     const results = [];
     let successCount = 0;
     let failCount = 0;
 
     // 모든 토큰에 순차적으로 푸시 발송
-    for (const tokenData of userTokens) {
+    for (const tokenData of tokens) {
       try {
         const result = await sendPushNotification(
           tokenData.token,
@@ -180,15 +229,15 @@ app.post('/api/broadcast-push', async (req, res) => {
         }
 
         results.push({
+          email: tokenData.email || 'unknown',
           token: tokenData.token.substring(0, 20) + '...',
-          platform: tokenData.platform,
           success: result.success !== false,
         });
       } catch (error) {
         failCount++;
         results.push({
+          email: tokenData.email || 'unknown',
           token: tokenData.token.substring(0, 20) + '...',
-          platform: tokenData.platform,
           success: false,
           error: error.message,
         });
@@ -202,7 +251,7 @@ app.post('/api/broadcast-push', async (req, res) => {
     res.json({
       success: true,
       message: `모든 사용자에게 푸시 알림을 발송했습니다.`,
-      totalTokens: userTokens.length,
+      totalTokens: tokens.length,
       successCount: successCount,
       failCount: failCount,
       results: results,
