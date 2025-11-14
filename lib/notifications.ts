@@ -28,23 +28,68 @@ export async function registerForPushNotificationsAsync() {
   }
 
   // 권한 요청 (시뮬레이터와 실제 기기 모두에서 가능)
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
+  const permissionStatus = await Notifications.getPermissionsAsync();
+  let finalStatus = permissionStatus.status;
 
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync({
-      ios: {
-        allowAlert: true,
-        allowBadge: true,
-        allowSound: true,
-      },
-    });
-    finalStatus = status;
-  }
+  console.log('현재 알림 권한 상태:', finalStatus);
+  console.log('권한 상세 정보:', JSON.stringify(permissionStatus, null, 2));
 
+  // 권한이 없거나 거부된 경우 요청
   if (finalStatus !== 'granted') {
-    Alert.alert('알림 권한 필요', '푸시 알림 권한이 필요합니다!');
-    return;
+    console.log('알림 권한 요청 중...');
+
+    try {
+      const permissionResponse = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowBadge: true,
+          allowSound: true,
+        },
+        android: {
+          // Android 13 이상에서 POST_NOTIFICATIONS 권한 요청
+        },
+      });
+
+      finalStatus = permissionResponse.status;
+      console.log('권한 요청 결과:', finalStatus);
+      console.log(
+        '권한 응답 상세:',
+        JSON.stringify(permissionResponse, null, 2),
+      );
+
+      // 권한이 여전히 거부된 경우
+      if (finalStatus === 'denied' || finalStatus === 'undetermined') {
+        console.warn('알림 권한이 거부되었습니다. 상태:', finalStatus);
+        Alert.alert(
+          '알림 권한 필요',
+          '푸시 알림을 받으려면 알림 권한이 필요합니다.\n\n설정에서 알림 권한을 허용해주세요.',
+          [
+            { text: '나중에', style: 'cancel' },
+            {
+              text: '설정 열기',
+              onPress: async () => {
+                // Linking을 사용하여 설정 앱 열기
+                try {
+                  const { Linking } = await import('react-native');
+                  if (Platform.OS === 'android') {
+                    await Linking.openSettings();
+                  } else {
+                    await Linking.openURL('app-settings:');
+                  }
+                } catch (err) {
+                  console.error('설정 앱 열기 실패:', err);
+                }
+              },
+            },
+          ],
+        );
+        return null;
+      }
+    } catch (permissionError) {
+      console.error('권한 요청 중 오류 발생:', permissionError);
+      Alert.alert('오류', '알림 권한 요청 중 오류가 발생했습니다.');
+      return null;
+    }
   }
 
   // 시뮬레이터 체크
@@ -59,26 +104,33 @@ export async function registerForPushNotificationsAsync() {
   }
 
   // 실제 기기에서만 푸시 토큰 발급 시도
-  if (Platform.OS === 'ios') {
-    try {
-      token = (await Notifications.getExpoPushTokenAsync()).data;
-      console.log('✅ iOS 푸시 토큰 발급 성공:', token);
-    } catch (tokenError) {
-      console.log('❌ iOS 푸시 토큰 발급 실패:', tokenError);
-      console.log('💡 Apple Developer 계정과 APNs 인증서가 필요합니다.');
-      console.log('💡 또는 로컬 알림을 사용하세요.');
-      // 개발 환경에서는 임시 토큰 생성
-      token = `ios-dev-token-${Date.now()}`;
+  try {
+    // projectId를 명시적으로 전달 (app.json의 extra.eas.projectId)
+    const projectId = 'd0386660-2228-4773-a478-d72799d1f08d';
+    const tokenResponse = await Notifications.getExpoPushTokenAsync({
+      projectId: projectId,
+    });
+    token = tokenResponse.data;
+    console.log(`✅ ${Platform.OS} 푸시 토큰 발급 성공:`, token);
+  } catch (tokenError: any) {
+    console.error(`❌ ${Platform.OS} 푸시 토큰 발급 실패:`, tokenError);
+    console.error('에러 상세:', JSON.stringify(tokenError, null, 2));
+
+    // 에러 메시지에 따라 다른 안내
+    if (tokenError.message?.includes('projectId')) {
+      console.error('💡 projectId가 설정되지 않았거나 잘못되었습니다.');
+    } else if (tokenError.message?.includes('network')) {
+      console.error('💡 네트워크 연결을 확인하세요.');
+    } else if (tokenError.message?.includes('permission')) {
+      console.error('💡 알림 권한이 필요합니다.');
+    } else {
+      console.error(
+        '💡 알 수 없는 오류입니다. Expo 프로젝트 설정을 확인하세요.',
+      );
     }
-  } else {
-    // Android
-    try {
-      token = (await Notifications.getExpoPushTokenAsync()).data;
-      console.log('✅ Android 푸시 토큰 발급 성공:', token);
-    } catch (tokenError) {
-      console.log('❌ Android 푸시 토큰 발급 실패:', tokenError);
-      token = `android-dev-token-${Date.now()}`;
-    }
+
+    // 개발 환경에서는 임시 토큰 생성하지 않음 (null 반환)
+    return null;
   }
 
   return token;
