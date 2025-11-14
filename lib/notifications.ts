@@ -18,6 +18,17 @@ Notifications.setNotificationHandler({
 export async function registerForPushNotificationsAsync() {
   let token;
 
+  // 시뮬레이터 체크 (맨 앞에서 처리)
+  if (!Device.isDevice) {
+    console.log('⚠️ 시뮬레이터에서는 실제 푸시 알림이 작동하지 않습니다.');
+    console.log('📱 실제 기기에서 테스트하거나 로컬 알림을 사용하세요.');
+    console.log(
+      '💡 시뮬레이터에서도 서버 테스트를 원한다면 실제 기기를 사용하세요.',
+    );
+    // 시뮬레이터에서는 토큰 발급하지 않음
+    return null;
+  }
+
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
@@ -27,18 +38,19 @@ export async function registerForPushNotificationsAsync() {
     });
   }
 
-  // 권한 요청 (시뮬레이터와 실제 기기 모두에서 가능)
+  // 권한 상태 확인
   const permissionStatus = await Notifications.getPermissionsAsync();
   let finalStatus = permissionStatus.status;
 
-  console.log('현재 알림 권한 상태:', finalStatus);
-  console.log('권한 상세 정보:', JSON.stringify(permissionStatus, null, 2));
+  console.log('📱 현재 알림 권한 상태:', finalStatus);
+  console.log('📱 권한 상세 정보:', JSON.stringify(permissionStatus, null, 2));
 
-  // 권한이 없거나 거부된 경우 요청
+  // 권한이 없거나 거부된 경우 명시적으로 요청
   if (finalStatus !== 'granted') {
-    console.log('알림 권한 요청 중...');
+    console.log('🔔 알림 권한 요청 시작...');
 
     try {
+      // iOS와 Android 모두에서 명시적으로 권한 요청
       const permissionResponse = await Notifications.requestPermissionsAsync({
         ios: {
           allowAlert: true,
@@ -47,60 +59,67 @@ export async function registerForPushNotificationsAsync() {
         },
         android: {
           // Android 13 이상에서 POST_NOTIFICATIONS 권한 요청
+          // 빈 객체여도 expo-notifications가 자동으로 처리
         },
       });
 
       finalStatus = permissionResponse.status;
-      console.log('권한 요청 결과:', finalStatus);
+      console.log('✅ 권한 요청 결과:', finalStatus);
       console.log(
-        '권한 응답 상세:',
+        '✅ 권한 응답 상세:',
         JSON.stringify(permissionResponse, null, 2),
       );
 
-      // 권한이 여전히 거부된 경우
-      if (finalStatus === 'denied' || finalStatus === 'undetermined') {
-        console.warn('알림 권한이 거부되었습니다. 상태:', finalStatus);
-        Alert.alert(
-          '알림 권한 필요',
-          '푸시 알림을 받으려면 알림 권한이 필요합니다.\n\n설정에서 알림 권한을 허용해주세요.',
-          [
-            { text: '나중에', style: 'cancel' },
-            {
-              text: '설정 열기',
-              onPress: async () => {
-                // Linking을 사용하여 설정 앱 열기
-                try {
-                  const { Linking } = await import('react-native');
-                  if (Platform.OS === 'android') {
-                    await Linking.openSettings();
-                  } else {
-                    await Linking.openURL('app-settings:');
+      // 권한이 여전히 거부되었거나 결정되지 않은 경우
+      if (finalStatus !== 'granted') {
+        console.warn('⚠️ 알림 권한이 허용되지 않았습니다. 상태:', finalStatus);
+
+        // iOS: 이미 거부된 경우 설정 앱으로 이동해야 함
+        // Android: 이미 거부된 경우에도 다시 요청하면 다이얼로그가 표시될 수 있음
+        if (finalStatus === 'denied') {
+          // Android에서는 설정 앱으로 이동하되, 사용자가 다시 돌아올 수 있도록 안내
+          // iOS에서는 설정 앱으로 이동해야 함
+          Alert.alert(
+            '알림 권한 필요',
+            Platform.OS === 'ios'
+              ? '푸시 알림을 받으려면 알림 권한이 필요합니다.\n\n설정에서 알림 권한을 허용해주세요.'
+              : '푸시 알림을 받으려면 알림 권한이 필요합니다.\n\n설정에서 알림 권한을 허용한 후 앱으로 돌아오시면 자동으로 토큰을 발급받습니다.',
+            [
+              { text: '나중에', style: 'cancel' },
+              {
+                text: '설정 열기',
+                onPress: async () => {
+                  try {
+                    const { Linking } = await import('react-native');
+                    if (Platform.OS === 'android') {
+                      await Linking.openSettings();
+                    } else {
+                      await Linking.openURL('app-settings:');
+                    }
+                  } catch (err) {
+                    console.error('설정 앱 열기 실패:', err);
                   }
-                } catch (err) {
-                  console.error('설정 앱 열기 실패:', err);
-                }
+                },
               },
-            },
-          ],
-        );
+            ],
+          );
+        } else {
+          // undetermined 상태인 경우 다시 시도 안내
+          console.log(
+            'ℹ️ 권한 상태가 아직 결정되지 않았습니다. 잠시 후 다시 시도해주세요.',
+          );
+        }
+
         return null;
       }
     } catch (permissionError) {
-      console.error('권한 요청 중 오류 발생:', permissionError);
+      console.error('❌ 권한 요청 중 오류 발생:', permissionError);
+      console.error('❌ 에러 상세:', JSON.stringify(permissionError, null, 2));
       Alert.alert('오류', '알림 권한 요청 중 오류가 발생했습니다.');
       return null;
     }
-  }
-
-  // 시뮬레이터 체크
-  if (!Device.isDevice) {
-    console.log('⚠️ 시뮬레이터에서는 실제 푸시 알림이 작동하지 않습니다.');
-    console.log('📱 실제 기기에서 테스트하거나 로컬 알림을 사용하세요.');
-    console.log(
-      '💡 시뮬레이터에서도 서버 테스트를 원한다면 실제 기기를 사용하세요.',
-    );
-    token = `simulator-token-${Date.now()}`;
-    return token;
+  } else {
+    console.log('✅ 알림 권한이 이미 허용되어 있습니다.');
   }
 
   // 실제 기기에서만 푸시 토큰 발급 시도
@@ -441,10 +460,17 @@ export async function sendRemotePush(
       .from('zerofall_admin')
       .select('push_token')
       .eq('admin_mail', user.email)
-      .single();
+      .maybeSingle(); // .single() 대신 .maybeSingle() 사용 (결과가 없어도 에러 발생 안 함)
 
-    if (fetchError || !adminData?.push_token) {
-      console.error('푸시 토큰을 찾을 수 없습니다:', fetchError);
+    if (fetchError) {
+      console.error('푸시 토큰 조회 중 오류:', fetchError);
+      return null;
+    }
+
+    if (!adminData?.push_token) {
+      console.warn(
+        '푸시 토큰이 없습니다. 로그인 시 푸시 토큰이 발급되지 않았을 수 있습니다.',
+      );
       return null;
     }
 

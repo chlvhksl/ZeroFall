@@ -53,8 +53,8 @@ export default function SignInScreen() {
         '아이디 또는 비밀번호가 잘못 입력되었습니다.', // 사용자 요청 메시지
       );
     } else {
-      router.replace('/main');
-      // 푸시 알림 권한 요청 (최초 로그인 시에만 저장)
+      // 로그인할 때마다 푸시 토큰 확인 및 발급
+      // 권한 요청을 먼저 완료한 후 메인 화면으로 이동
       try {
         // 기존 admin 정보 확인 (푸시 토큰이 있는지 체크)
         const { data: adminData } = await supabase
@@ -63,39 +63,65 @@ export default function SignInScreen() {
           .eq('admin_mail', email)
           .single();
 
-        // 최초 로그인인 경우 (push_token이 없거나 null인 경우)에만 토큰 저장
+        // 푸시 토큰이 없거나 null인 경우 발급 및 저장
         if (!adminData?.push_token) {
+          console.log('🔔 푸시 토큰 없음 - 알림 권한 요청 및 토큰 발급 시작');
           const pushToken = await registerForPushNotificationsAsync();
           if (pushToken) {
-            console.log('푸시 토큰 발급 완료:', pushToken);
+            console.log('✅ 푸시 토큰 발급 완료:', pushToken);
 
-            // 최초 로그인 시 admin 데이터베이스에 푸시 토큰 저장
+            // admin 데이터베이스에 푸시 토큰 저장
             const { error: updateError } = await supabase
               .from('zerofall_admin')
               .update({ push_token: pushToken })
               .eq('admin_mail', email);
 
             if (updateError) {
-              console.log('푸시 토큰 저장 실패:', updateError.message);
+              console.log('❌ 푸시 토큰 저장 실패:', updateError.message);
             } else {
-              console.log('✅ 최초 로그인 - 푸시 토큰 저장 성공');
+              console.log('✅ 푸시 토큰 저장 성공');
             }
-
-            // // 최초 로그인 성공 알림 발송
-            // await sendLocalNotification(
-            //   '🎉 로그인 성공!',
-            //   `${email}님, ZeroFall에 오신 것을 환영합니다!`,
-            // );
+          } else {
+            console.log('⚠️ 푸시 토큰 발급 실패 (권한 거부 또는 오류)');
           }
         } else {
-          console.log('ℹ️ 기존 푸시 토큰이 있습니다. 업데이트하지 않습니다.');
+          // 기존 토큰이 있는 경우에도 최신 토큰으로 업데이트 (기기 변경 대비)
+          console.log(
+            'ℹ️ 기존 푸시 토큰 확인:',
+            adminData.push_token.substring(0, 20) + '...',
+          );
+          console.log('🔄 최신 푸시 토큰으로 업데이트 시도');
+
+          const pushToken = await registerForPushNotificationsAsync();
+          if (pushToken) {
+            // 기존 토큰과 다른 경우에만 업데이트
+            if (pushToken !== adminData.push_token) {
+              console.log('🔄 푸시 토큰 변경 감지 - 업데이트 시작');
+              const { error: updateError } = await supabase
+                .from('zerofall_admin')
+                .update({ push_token: pushToken })
+                .eq('admin_mail', email);
+
+              if (updateError) {
+                console.log('❌ 푸시 토큰 업데이트 실패:', updateError.message);
+              } else {
+                console.log('✅ 푸시 토큰 업데이트 성공');
+              }
+            } else {
+              console.log('ℹ️ 푸시 토큰이 동일합니다. 업데이트하지 않습니다.');
+            }
+          } else {
+            console.log(
+              '⚠️ 푸시 토큰 발급 실패 (권한 거부 또는 오류) - 기존 토큰 유지',
+            );
+          }
         }
       } catch (err) {
-        console.log('푸시 알림 권한 요청 실패:', err);
+        console.log('❌ 푸시 알림 권한 요청 실패:', err);
       }
 
-      // 로그인 성공 후 메인 화면으로 이동 로직
-      // router.replace('/');
+      // 권한 요청 완료 후 메인 화면으로 이동
+      router.replace('/main');
     }
   };
 

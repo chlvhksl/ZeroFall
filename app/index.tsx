@@ -20,12 +20,24 @@ export default function Index() {
     try {
       // 앱 버전 확인 - 버전 또는 빌드 번호가 변경되면 세션 초기화
       const savedVersion = await AsyncStorage.getItem(APP_VERSION_KEY);
-      if (savedVersion !== CURRENT_APP_VERSION) {
-        console.log('앱 버전/빌드 변경 감지 - 세션 초기화', {
+
+      // 재설치 감지: savedVersion이 null이면 앱이 재설치된 것
+      if (savedVersion === null || savedVersion !== CURRENT_APP_VERSION) {
+        console.log('앱 버전/빌드 변경 또는 재설치 감지 - 세션 초기화', {
           saved: savedVersion,
           current: CURRENT_APP_VERSION,
+          isReinstall: savedVersion === null,
         });
-        await supabase.auth.signOut();
+
+        // 기존 세션이 있다면 명시적으로 로그아웃
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session) {
+          await supabase.auth.signOut();
+        }
+
+        // 버전 정보 저장
         await AsyncStorage.setItem(APP_VERSION_KEY, CURRENT_APP_VERSION);
         router.replace('/signin');
         return;

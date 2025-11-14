@@ -12,7 +12,9 @@
       "image": "./assets/splash.png"
     },
     "icon": "./assets/splash.png",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "packagerOpts": {
       "config": "metro.config.js"
     },
@@ -20,14 +22,17 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.zerofall",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.zerofall"
+      "package": "com.zerofall",
+      "versionCode": 2
     },
     "web": {
       "bundler": "metro"
