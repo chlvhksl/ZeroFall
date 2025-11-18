@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link, useRouter } from 'expo-router';
 import { registerForPushNotificationsAsync } from '../../lib/notifications';
 import { supabase } from '../../lib/supabase';
@@ -28,6 +29,7 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   // 1. 기존 로그인 기능
   const handleSignIn = async () => {
@@ -56,6 +58,12 @@ export default function SignInScreen() {
       // 로그인할 때마다 푸시 토큰 확인 및 발급
       // 권한 요청을 먼저 완료한 후 메인 화면으로 이동
       try {
+        // 로그인 유지 설정 저장
+        try {
+          await AsyncStorage.setItem('@remember_me', rememberMe ? 'true' : 'false');
+        } catch (e) {
+          console.log('remember_me 저장 실패:', e);
+        }
         console.log('🔍 admin 정보 조회 시작:', email);
         // 기존 admin 정보 확인 (푸시 토큰이 있는지 체크)
         const { data: adminData, error: adminError } = await supabase
@@ -235,6 +243,20 @@ export default function SignInScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* 로그인 유지 체크박스 */}
+            <TouchableOpacity
+              style={styles.rememberRow}
+              onPress={() => setRememberMe(!rememberMe)}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={rememberMe ? 'checkbox-outline' : 'square-outline'}
+                size={22}
+                color="#5FCCC4"
+              />
+              <Text style={styles.rememberText}>로그인 유지</Text>
+            </TouchableOpacity>
+
             {/* 로그인 버튼 - ⭐️ 굵은 폰트 적용 */}
             <TouchableOpacity
               style={[
@@ -337,6 +359,20 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     paddingHorizontal: 16,
+  },
+
+  // --- 로그인 유지 체크박스 ---
+  rememberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 12,
+  },
+  rememberText: {
+    marginLeft: 8,
+    color: '#333',
+    fontSize: 14,
+    fontFamily: FONT_REGULAR,
   },
 
   // --- 로그인 버튼 스타일 ---

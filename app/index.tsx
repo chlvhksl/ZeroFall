@@ -43,6 +43,20 @@ export default function Index() {
         return;
       }
 
+      // 로그인 유지 설정 확인: 기본값은 true (키가 없으면 기존 동작 유지)
+      const rememberPref = await AsyncStorage.getItem('@remember_me');
+      if (rememberPref === 'false') {
+        // 사용자가 '로그인 유지'를 해제한 경우 - 세션을 유지하지 않음
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session) {
+          await supabase.auth.signOut();
+        }
+        router.replace('/signin');
+        return;
+      }
+
       // 로컬 세션 확인
       const {
         data: { session },
