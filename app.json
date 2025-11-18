@@ -32,7 +32,7 @@
         "backgroundColor": "#FFFFFF"
       },
       "package": "com.zerofall",
-      "versionCode": 3
+      "versionCode": 5
     },
     "web": {
       "bundler": "metro"

@@ -436,34 +436,31 @@ export function setupNotificationListeners() {
   };
 }
 
-// 서버에 푸시 토큰 등록
+// 서버에 푸시 토큰 등록 (더 이상 필요 없음 - Supabase에 직접 저장)
+// 이 함수는 하위 호환성을 위해 유지하지만, 실제로는 Supabase에 직접 저장됨
 export async function registerTokenToServer(token: string) {
   try {
-    // Vercel 배포 URL로 변경 (실제 배포 후 URL 교체)
-    const serverUrl = process.env.EXPO_PUBLIC_PUSH_SERVER_URL;
-    // process.env.NODE_ENV === 'production'
-    //   ? process.env.EXPO_PUBLIC_PUSH_SERVER_URL
-    //   : 'http://localhost:3001';
-
-    const response = await fetch(`${serverUrl}/api/register-token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        token: token,
-        userId: 'user-' + Date.now(), // 임시 사용자 ID
-        platform: Platform.OS,
-      }),
-    });
-
-    const result = await response.json();
-    console.log('토큰 등록 응답:', result);
-    return result;
+    console.log('ℹ️ registerTokenToServer는 더 이상 사용되지 않습니다.');
+    console.log('ℹ️ 푸시 토큰은 Supabase에 직접 저장됩니다.');
+    
+    // 하위 호환성을 위해 성공 응답 반환
+    return {
+      success: true,
+      message: '토큰은 Supabase에 직접 저장됩니다.',
+      totalTokens: 1,
+    };
   } catch (error) {
     console.error('토큰 등록 실패:', error);
     return null;
   }
+}
+
+// Supabase Edge Function URL 가져오기
+function getSupabaseFunctionUrl(functionName: string): string {
+  const supabaseUrl =
+    process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://your-project-id.supabase.co';
+  // Supabase Edge Functions URL 형식: https://{project-ref}.supabase.co/functions/v1/{function-name}
+  return `${supabaseUrl}/functions/v1/${functionName}`;
 }
 
 // 원격 푸시 알림 발송 (특정 토큰으로)
@@ -474,17 +471,21 @@ export async function sendRemotePushToToken(
   extraData?: Record<string, any>,
 ) {
   try {
-    const serverUrl = process.env.EXPO_PUBLIC_PUSH_SERVER_URL;
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (!serverUrl) {
-      console.error('푸시 서버 URL이 설정되지 않았습니다.');
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Supabase 설정이 올바르지 않습니다.');
       return null;
     }
 
-    const response = await fetch(`${serverUrl}/api/send-push`, {
+    const functionUrl = getSupabaseFunctionUrl('send-push');
+
+    const response = await fetch(functionUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${supabaseAnonKey}`,
       },
       body: JSON.stringify({
         token: token,
@@ -557,16 +558,21 @@ export async function sendRemotePush(
 // 모든 사용자에게 푸시 요청
 export async function requestBroadcastPush(title: string, body: string) {
   try {
-    // Vercel 배포 URL로 변경 (실제 배포 후 URL 교체)
-    const serverUrl = process.env.EXPO_PUBLIC_PUSH_SERVER_URL;
-    // process.env.NODE_ENV === 'production'
-    //   ? process.env.EXPO_PUBLIC_PUSH_SERVER_URL
-    //   : 'http://localhost:3001';
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-    const response = await fetch(`${serverUrl}/api/broadcast-push`, {
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Supabase 설정이 올바르지 않습니다.');
+      return null;
+    }
+
+    const functionUrl = getSupabaseFunctionUrl('broadcast-push');
+
+    const response = await fetch(functionUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${supabaseAnonKey}`,
       },
       body: JSON.stringify({
         title: title,
@@ -590,16 +596,21 @@ export async function requestBroadcastPush(title: string, body: string) {
 // 서버에서 테스트 푸시 요청
 export async function requestTestPush(token: string) {
   try {
-    // Vercel 배포 URL로 변경 (실제 배포 후 URL 교체)
-    const serverUrl = process.env.EXPO_PUBLIC_PUSH_SERVER_URL;
-    // process.env.NODE_ENV === 'production'
-    //   ? 'https://your-app-name.vercel.app'
-    //   : 'http://localhost:3001';
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-    const response = await fetch(`${serverUrl}/api/test-push`, {
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Supabase 설정이 올바르지 않습니다.');
+      return null;
+    }
+
+    const functionUrl = getSupabaseFunctionUrl('test-push');
+
+    const response = await fetch(functionUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${supabaseAnonKey}`,
       },
       body: JSON.stringify({
         token: token,
