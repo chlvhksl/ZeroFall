@@ -60,7 +60,10 @@ export default function SignInScreen() {
       try {
         // 로그인 유지 설정 저장
         try {
-          await AsyncStorage.setItem('@remember_me', rememberMe ? 'true' : 'false');
+          await AsyncStorage.setItem(
+            '@remember_me',
+            rememberMe ? 'true' : 'false',
+          );
         } catch (e) {
           console.log('remember_me 저장 실패:', e);
         }
@@ -85,14 +88,11 @@ export default function SignInScreen() {
         // 푸시 토큰이 없거나 null인 경우 발급 및 저장
         if (!adminData?.push_token) {
           console.log('🔔 푸시 토큰 없음 - 알림 권한 요청 및 토큰 발급 시작');
-          const pushToken = await registerForPushNotificationsAsync();
-          console.log(
-            '📱 토큰 발급 결과:',
-            pushToken ? '성공' : '실패',
-            pushToken,
-          );
+          const tokenResult = await registerForPushNotificationsAsync();
+          console.log('📱 토큰 발급 결과:', tokenResult);
 
-          if (pushToken) {
+          if (tokenResult.success && tokenResult.token) {
+            const pushToken = tokenResult.token;
             console.log(
               '✅ 푸시 토큰 발급 완료:',
               pushToken.substring(0, 30) + '...',
@@ -117,11 +117,19 @@ export default function SignInScreen() {
               );
             } else {
               console.log('✅ 푸시 토큰 저장 성공:', updateData);
+              // EAS 빌드에서도 성공 여부를 명확히 알 수 있도록 알림
+              Alert.alert('성공', '푸시 알림 토큰이 등록되었습니다.');
             }
           } else {
-            console.warn('⚠️ 푸시 토큰 발급 실패 (권한 거부 또는 오류)');
-            console.warn(
-              '⚠️ 권한을 허용하지 않았거나 시뮬레이터에서 실행 중일 수 있습니다.',
+            console.warn('⚠️ 푸시 토큰 발급 실패');
+            console.warn('⚠️ 에러 코드:', tokenResult.errorCode);
+            console.warn('⚠️ 에러 메시지:', tokenResult.errorMessage);
+
+            // EAS 빌드에서도 실패 원인을 명확히 알 수 있도록 알림
+            Alert.alert(
+              '푸시 토큰 발급 실패',
+              tokenResult.errorMessage ||
+                '푸시 알림 토큰 발급에 실패했습니다.\n알림 권한을 확인하거나 나중에 다시 시도해주세요.',
             );
           }
         } else {
@@ -132,14 +140,11 @@ export default function SignInScreen() {
           );
           console.log('🔄 최신 푸시 토큰으로 업데이트 시도');
 
-          const pushToken = await registerForPushNotificationsAsync();
-          console.log(
-            '📱 토큰 발급 결과:',
-            pushToken ? '성공' : '실패',
-            pushToken,
-          );
+          const tokenResult = await registerForPushNotificationsAsync();
+          console.log('📱 토큰 발급 결과:', tokenResult);
 
-          if (pushToken) {
+          if (tokenResult.success && tokenResult.token) {
+            const pushToken = tokenResult.token;
             // 기존 토큰과 다른 경우에만 업데이트
             if (pushToken !== adminData.push_token) {
               console.log('🔄 푸시 토큰 변경 감지 - 업데이트 시작');
@@ -157,13 +162,24 @@ export default function SignInScreen() {
                 );
               } else {
                 console.log('✅ 푸시 토큰 업데이트 성공:', updateData);
+                // EAS 빌드에서도 업데이트 성공 여부를 명확히 알 수 있도록 알림
+                Alert.alert('성공', '푸시 알림 토큰이 업데이트되었습니다.');
               }
             } else {
               console.log('ℹ️ 푸시 토큰이 동일합니다. 업데이트하지 않습니다.');
             }
           } else {
-            console.warn(
-              '⚠️ 푸시 토큰 발급 실패 (권한 거부 또는 오류) - 기존 토큰 유지',
+            console.warn('⚠️ 푸시 토큰 발급 실패 - 기존 토큰 유지');
+            console.warn('⚠️ 에러 코드:', tokenResult.errorCode);
+            console.warn('⚠️ 에러 메시지:', tokenResult.errorMessage);
+
+            // EAS 빌드에서도 실패 원인을 명확히 알 수 있도록 알림 (기존 토큰 유지 안내)
+            Alert.alert(
+              '푸시 토큰 업데이트 실패',
+              `${
+                tokenResult.errorMessage ||
+                '푸시 알림 토큰 업데이트에 실패했습니다.'
+              }\n\n기존 토큰을 유지합니다.`,
             );
           }
         }

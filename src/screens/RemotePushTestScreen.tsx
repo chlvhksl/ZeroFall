@@ -1,10 +1,10 @@
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
   Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -22,16 +22,23 @@ const FONT_REGULAR = 'NanumSquare-Regular';
 const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
-
-
 export default function RemotePushTestScreen() {
   const insets = useSafeAreaInsets();
 
   // 푸시 알림 테스트 핸들러
   const handleNotificationTest = async () => {
     try {
-      const token = await registerForPushNotificationsAsync();
-      console.log('푸시 토큰:', token);
+      const tokenResult = await registerForPushNotificationsAsync();
+      console.log('푸시 토큰 결과:', tokenResult);
+
+      if (!tokenResult.success) {
+        Alert.alert(
+          '푸시 토큰 발급 실패',
+          tokenResult.errorMessage || '푸시 알림 토큰 발급에 실패했습니다.',
+        );
+        return;
+      }
+
       await testNotificationInSimulator();
       Alert.alert('알림 테스트', '알림 테스트가 완료되었습니다!');
     } catch (error) {
@@ -44,7 +51,7 @@ export default function RemotePushTestScreen() {
     try {
       await sendLocalNotification(
         '로컬 알림 테스트',
-        '이것은 로컬 알림입니다!'
+        '이것은 로컬 알림입니다!',
       );
       Alert.alert('성공', '로컬 알림이 발송되었습니다!');
     } catch (error) {
@@ -55,16 +62,19 @@ export default function RemotePushTestScreen() {
 
   const handleServerTest = async () => {
     try {
-      const token = await registerForPushNotificationsAsync();
-      if (!token) {
-        Alert.alert('오류', '푸시 토큰을 가져올 수 없습니다.');
+      const tokenResult = await registerForPushNotificationsAsync();
+      if (!tokenResult.success || !tokenResult.token) {
+        Alert.alert(
+          '푸시 토큰 발급 실패',
+          tokenResult.errorMessage || '푸시 토큰을 가져올 수 없습니다.',
+        );
         return;
       }
-      const result = await registerTokenToServer(token);
+      const result = await registerTokenToServer(tokenResult.token);
       if (result?.success) {
         Alert.alert(
           '성공',
-          `서버에 토큰이 등록되었습니다!\n총 등록된 토큰: ${result.totalTokens}개`
+          `서버에 토큰이 등록되었습니다!\n총 등록된 토큰: ${result.totalTokens}개`,
         );
       } else {
         Alert.alert('오류', '서버 통신에 실패했습니다.');
@@ -79,17 +89,17 @@ export default function RemotePushTestScreen() {
     try {
       const result = await requestBroadcastPush(
         '📢 전체 공지',
-        '모든 사용자에게 전송되는 테스트 푸시 알림입니다!'
+        '모든 사용자에게 전송되는 테스트 푸시 알림입니다!',
       );
       if (result?.success) {
         Alert.alert(
           '성공',
-          `전체 푸시 발송 완료!\n총 ${result.totalTokens}명에게 발송\n성공: ${result.successCount}개\n실패: ${result.failCount}개`
+          `전체 푸시 발송 완료!\n총 ${result.totalTokens}명에게 발송\n성공: ${result.successCount}개\n실패: ${result.failCount}개`,
         );
       } else {
         Alert.alert(
           '오류',
-          result?.message || '전체 푸시 발송에 실패했습니다.'
+          result?.message || '전체 푸시 발송에 실패했습니다.',
         );
       }
     } catch (error) {
@@ -100,12 +110,15 @@ export default function RemotePushTestScreen() {
 
   const handleServerPush = async () => {
     try {
-      const token = await registerForPushNotificationsAsync();
-      if (!token) {
-        Alert.alert('오류', '푸시 토큰을 가져올 수 없습니다.');
+      const tokenResult = await registerForPushNotificationsAsync();
+      if (!tokenResult.success || !tokenResult.token) {
+        Alert.alert(
+          '푸시 토큰 발급 실패',
+          tokenResult.errorMessage || '푸시 토큰을 가져올 수 없습니다.',
+        );
         return;
       }
-      const result = await requestTestPush(token);
+      const result = await requestTestPush(tokenResult.token);
       if (result?.success) {
         Alert.alert('성공', '서버에서 푸시 알림을 발송했습니다!');
       } else {
@@ -162,7 +175,6 @@ export default function RemotePushTestScreen() {
           <Text style={styles.notificationButtonText}>📢 전체 푸시</Text>
         </TouchableOpacity>
       </View>
-
     </ScrollView>
   );
 }
@@ -348,4 +360,3 @@ const styles = StyleSheet.create({
     fontFamily: FONT_BOLD,
   },
 });
-

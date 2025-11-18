@@ -167,7 +167,6 @@ export default function MainScreen() {
 
         {/* 구분선 */}
         <View style={styles.tabDivider} />
-        
 
         {/* 알림 내역 탭 */}
         <TouchableOpacity
@@ -190,7 +189,7 @@ export default function MainScreen() {
 
         {/* 구분선 */}
         <View style={styles.tabDivider} />
-                
+
         {/* 원격푸시테스트 탭 */}
         <TouchableOpacity
           style={styles.tabButton}
@@ -208,7 +207,7 @@ export default function MainScreen() {
           >
             원격 푸시
           </Text>
-        </TouchableOpacity>        
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -219,8 +218,16 @@ function DashboardContent() {
   const handleNotificationTest = async () => {
     try {
       // 푸시 알림 권한 요청 및 토큰 발급
-      const token = await registerForPushNotificationsAsync();
-      console.log('푸시 토큰:', token);
+      const tokenResult = await registerForPushNotificationsAsync();
+      console.log('푸시 토큰 결과:', tokenResult);
+
+      if (!tokenResult.success) {
+        Alert.alert(
+          '푸시 토큰 발급 실패',
+          tokenResult.errorMessage || '푸시 알림 토큰 발급에 실패했습니다.',
+        );
+        return;
+      }
 
       // 시뮬레이터에서는 로컬 알림 테스트
       await testNotificationInSimulator();
@@ -234,10 +241,7 @@ function DashboardContent() {
 
   const handleLocalNotification = async () => {
     try {
-      await sendRemotePush(
-        '원격 푸시 테스트',
-        '이것은 원격 푸시 알림입니다!',
-      );
+      await sendRemotePush('원격 푸시 테스트', '이것은 원격 푸시 알림입니다!');
       Alert.alert('성공', '원격 푸시 알림이 발송되었습니다!');
     } catch (error) {
       console.error('원격 푸시 에러:', error);
@@ -248,15 +252,18 @@ function DashboardContent() {
   const handleServerTest = async () => {
     try {
       // 푸시 토큰 가져오기
-      const token = await registerForPushNotificationsAsync();
+      const tokenResult = await registerForPushNotificationsAsync();
 
-      if (!token) {
-        Alert.alert('오류', '푸시 토큰을 가져올 수 없습니다.');
+      if (!tokenResult.success || !tokenResult.token) {
+        Alert.alert(
+          '푸시 토큰 발급 실패',
+          tokenResult.errorMessage || '푸시 토큰을 가져올 수 없습니다.',
+        );
         return;
       }
 
       // 서버에 토큰 등록
-      const result = await registerTokenToServer(token);
+      const result = await registerTokenToServer(tokenResult.token);
 
       if (result?.success) {
         Alert.alert(
@@ -299,15 +306,18 @@ function DashboardContent() {
   const handleServerPush = async () => {
     try {
       // 푸시 토큰 가져오기
-      const token = await registerForPushNotificationsAsync();
+      const tokenResult = await registerForPushNotificationsAsync();
 
-      if (!token) {
-        Alert.alert('오류', '푸시 토큰을 가져올 수 없습니다.');
+      if (!tokenResult.success || !tokenResult.token) {
+        Alert.alert(
+          '푸시 토큰 발급 실패',
+          tokenResult.errorMessage || '푸시 토큰을 가져올 수 없습니다.',
+        );
         return;
       }
 
       // 서버에서 테스트 푸시 요청
-      const result = await requestTestPush(token);
+      const result = await requestTestPush(tokenResult.token);
 
       if (result?.success) {
         Alert.alert('성공', '서버에서 푸시 알림을 발송했습니다!');

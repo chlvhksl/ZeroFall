@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Alert, Platform } from 'react-native';
@@ -14,8 +15,13 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// 푸시 토큰 가져오기
-export async function registerForPushNotificationsAsync() {
+// 푸시 토큰 가져오기 (성공/실패 정보 포함)
+export async function registerForPushNotificationsAsync(): Promise<{
+  token: string | null;
+  success: boolean;
+  errorCode?: string;
+  errorMessage?: string;
+}> {
   let token;
 
   if (Platform.OS === 'android') {
@@ -43,8 +49,13 @@ export async function registerForPushNotificationsAsync() {
   }
 
   if (finalStatus !== 'granted') {
-    Alert.alert('알림 권한 필요', '푸시 알림 권한이 필요합니다!');
-    return;
+    console.warn('⚠️ 알림 권한이 허용되지 않았습니다.');
+    return {
+      token: null,
+      success: false,
+      errorCode: 'PERMISSION_DENIED',
+      errorMessage: '알림 권한이 필요합니다.',
+    };
   }
 
   // 시뮬레이터 체크
@@ -55,40 +66,86 @@ export async function registerForPushNotificationsAsync() {
       '💡 시뮬레이터에서도 서버 테스트를 원한다면 실제 기기를 사용하세요.',
     );
     token = `simulator-token-${Date.now()}`;
-    return token;
+    return {
+      token,
+      success: true, // 시뮬레이터는 성공으로 처리하되, 실제 토큰은 아님
+    };
   }
 
   // 실제 기기에서만 푸시 토큰 발급 시도
   try {
-    // projectId를 명시적으로 전달 (app.json의 extra.eas.projectId)
-    const projectId = 'd0386660-2228-4773-a478-d72799d1f08d';
+    // projectId를 app.json의 extra.eas.projectId에서 가져오기
+    const projectId =
+      Constants.expoConfig?.extra?.eas?.projectId ||
+      Constants.easConfig?.projectId;
+
+    if (!projectId) {
+      console.error('❌ projectId가 설정되지 않았습니다.');
+      console.error('💡 app.json의 extra.eas.projectId를 확인하세요.');
+      return {
+        token: null,
+        success: false,
+        errorCode: 'PROJECT_ID_MISSING',
+        errorMessage: '프로젝트 ID가 설정되지 않았습니다.',
+      };
+    }
+
     const tokenResponse = await Notifications.getExpoPushTokenAsync({
       projectId: projectId,
     });
     token = tokenResponse.data;
     console.log(`✅ ${Platform.OS} 푸시 토큰 발급 성공:`, token);
+    return {
+      token,
+      success: true,
+    };
   } catch (tokenError: any) {
     console.error(`❌ ${Platform.OS} 푸시 토큰 발급 실패:`, tokenError);
     console.error('에러 상세:', JSON.stringify(tokenError, null, 2));
 
-    // 에러 메시지에 따라 다른 안내
-    if (tokenError.message?.includes('projectId')) {
+    // 에러 코드에 따른 구체적인 안내
+    const errorCode = tokenError.code || 'UNKNOWN_ERROR';
+    let errorMessage = '푸시 토큰 발급에 실패했습니다.';
+
+    if (errorCode === 'E_REGISTRATION_FAILED') {
+      console.error('❌ 푸시 토큰 등록 실패 (E_REGISTRATION_FAILED)');
+      console.error('💡 가능한 원인:');
+      console.error('   1. Google Play Services가 설치/업데이트되지 않음');
+      console.error('   2. FCM (Firebase Cloud Messaging) 설정 문제');
+      console.error('   3. 네트워크 연결 문제');
+      console.error(
+        '   4. 로컬 빌드는 EAS 빌드와 달리 FCM 자동 설정이 안 될 수 있음',
+      );
+      console.error('💡 해결 방법:');
+      console.error('   - Google Play Services 업데이트 확인');
+      console.error('   - EAS 빌드(preview/development) 사용 권장');
+      console.error('   - 네트워크 연결 확인');
+      errorMessage =
+        '푸시 토큰 등록 실패\n\n가능한 원인:\n- Google Play Services 문제\n- FCM 설정 문제\n- 네트워크 연결 문제';
+    } else if (tokenError.message?.includes('projectId')) {
       console.error('💡 projectId가 설정되지 않았거나 잘못되었습니다.');
+      errorMessage = '프로젝트 ID 설정 오류';
     } else if (tokenError.message?.includes('network')) {
       console.error('💡 네트워크 연결을 확인하세요.');
+      errorMessage = '네트워크 연결 오류';
     } else if (tokenError.message?.includes('permission')) {
       console.error('💡 알림 권한이 필요합니다.');
+      errorMessage = '알림 권한이 필요합니다';
     } else {
       console.error(
         '💡 알 수 없는 오류입니다. Expo 프로젝트 설정을 확인하세요.',
       );
+      console.error('💡 에러 코드:', errorCode);
+      errorMessage = `알 수 없는 오류 (코드: ${errorCode})`;
     }
 
-    // 개발 환경에서는 임시 토큰 생성하지 않음 (null 반환)
-    return null;
+    return {
+      token: null,
+      success: false,
+      errorCode,
+      errorMessage,
+    };
   }
-
-  return token;
 }
 
 // 로컬 푸시 알림 발송
