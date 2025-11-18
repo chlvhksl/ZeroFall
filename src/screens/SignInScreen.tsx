@@ -222,13 +222,21 @@ export default function SignInScreen() {
               ]}
             >
               <TextInput
-                style={[styles.passwordInput, { fontFamily: FONT_REGULAR }]}
+                style={[
+                  styles.passwordInput,
+                  Platform.OS === 'ios' || showPassword
+                    ? { fontFamily: FONT_REGULAR }
+                    : null,
+                ]}
                 placeholder="비밀번호"
                 placeholderTextColor="#999"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="password"
+                textContentType="password"
               />
               {/* 비밀번호 보기/숨기기 토글 기능 유지 */}
               <TouchableOpacity
