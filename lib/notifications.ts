@@ -440,14 +440,45 @@ export function setupNotificationListeners() {
 // 이 함수는 하위 호환성을 위해 유지하지만, 실제로는 Supabase에 직접 저장됨
 export async function registerTokenToServer(token: string) {
   try {
-    console.log('ℹ️ registerTokenToServer는 더 이상 사용되지 않습니다.');
-    console.log('ℹ️ 푸시 토큰은 Supabase에 직접 저장됩니다.');
-    
-    // 하위 호환성을 위해 성공 응답 반환
+    const { supabase } = await import('./supabase');
+
+    // 현재 로그인한 사용자 확인
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user || !user.email) {
+      console.log('ℹ️ 로그인된 사용자가 없어 토큰을 서버에 저장하지 않습니다.');
+      return null;
+    }
+    const { error: adminError } = await supabase
+      .from('zerofall_admin')
+      .select('*')
+      .eq('admin_mail', user.email)
+      .maybeSingle(); // .single() 대신 .maybeSingle() 사용
+
+    console.log('???????', user);
+    if (adminError) {
+      console.error('❌ Supabase에서 사용자 조회 실패:', adminError);
+      return null;
+    }
+
+    // zerofall_admin 테이블에 토큰 삽입
+    const { first_name, last_name, affiliation } = user.user_metadata;
+    const { error, data } = await supabase.from('zerofall_admin').upsert([
+      {
+        admin_id: user.id,
+        push_token: token,
+        admin_name: `${first_name}${last_name}`,
+        admin_aff: affiliation,
+        admin_mail: user.email,
+      },
+    ]);
+    console.log('insertytttt', error, data);
+
     return {
       success: true,
-      message: '토큰은 Supabase에 직접 저장됩니다.',
-      totalTokens: 1,
+      message: 'Supabase에 토큰이 저장되었습니다.',
     };
   } catch (error) {
     console.error('토큰 등록 실패:', error);
@@ -458,7 +489,8 @@ export async function registerTokenToServer(token: string) {
 // Supabase Edge Function URL 가져오기
 function getSupabaseFunctionUrl(functionName: string): string {
   const supabaseUrl =
-    process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://your-project-id.supabase.co';
+    process.env.EXPO_PUBLIC_SUPABASE_URL ||
+    'https://your-project-id.supabase.co';
   // Supabase Edge Functions URL 형식: https://{project-ref}.supabase.co/functions/v1/{function-name}
   return `${supabaseUrl}/functions/v1/${functionName}`;
 }
@@ -558,33 +590,38 @@ export async function sendRemotePush(
 // 모든 사용자에게 푸시 요청
 export async function requestBroadcastPush(title: string, body: string) {
   try {
-    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    const { supabase } = await import('./supabase');
+    const EXPO_PUSH_API_URL = 'https://exp.host/--/api/v2/push/send';
 
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('Supabase 설정이 올바르지 않습니다.');
-      return null;
-    }
+    // 모든 admin의 푸시 토큰 조회
+    const { data: adminData, error: fetchError } = await supabase
+      .from('zerofall_admin')
+      .select('push_token, admin_mail')
+      .not('push_token', 'is', null);
 
-    const functionUrl = getSupabaseFunctionUrl('broadcast-push');
+    const pushTokens = adminData?.map(admin => admin.push_token);
 
-    const response = await fetch(functionUrl, {
+    const message = {
+      to: pushTokens,
+      sound: 'default',
+      title: title,
+      body: body,
+      data: { broadcast: true, timestamp: Date.now() },
+    };
+
+    const pushResponse = await fetch(EXPO_PUSH_API_URL, {
       method: 'POST',
       headers: {
+        Accept: 'application/json',
+        'Accept-encoding': 'gzip, deflate',
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${supabaseAnonKey}`,
       },
-      body: JSON.stringify({
-        title: title,
-        body: body,
-        data: {
-          type: 'broadcast',
-          timestamp: Date.now(),
-        },
-      }),
+      body: JSON.stringify(message),
     });
 
-    const result = await response.json();
+    console.log('pushTokens', pushTokens, pushResponse);
+
+    const result = await pushResponse.json();
     console.log('전체 푸시 응답:', result);
     return result;
   } catch (error) {

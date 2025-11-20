@@ -74,7 +74,7 @@ export default function RemotePushTestScreen() {
       if (result?.success) {
         Alert.alert(
           '성공',
-          `서버에 토큰이 등록되었습니다!\n총 등록된 토큰: ${result.totalTokens}개`,
+          `서버에 토큰이 등록되었습니다!`,
         );
       } else {
         Alert.alert('오류', '서버 통신에 실패했습니다.');
