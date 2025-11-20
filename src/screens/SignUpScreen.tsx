@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import {
-  View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
+  View,
 } from 'react-native';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
@@ -24,7 +24,7 @@ const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 // ⭐️ 이 파일이 Expo Router에서 '/signup' 경로로 인식됩니다.
 export default function SignUpScreen() {
   const router = useRouter();
-  
+
   const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [affiliation, setAffiliation] = useState('');
@@ -38,14 +38,17 @@ export default function SignUpScreen() {
   // 1. 회원가입 기능 (실제 Supabase 연동)
   const handleSignUp = async () => {
     if (password !== confirmPassword) {
-      Alert.alert('비밀번호 불일치', '비밀번호와 비밀번호 확인이 일치하지 않습니다.');
+      Alert.alert(
+        '비밀번호 불일치',
+        '비밀번호와 비밀번호 확인이 일치하지 않습니다.',
+      );
       return;
     }
 
     setLoading(true);
-    
+
     // Supabase 회원가입 요청
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -53,8 +56,8 @@ export default function SignUpScreen() {
           last_name: lastName,
           first_name: firstName,
           affiliation: affiliation,
-        }
-      }
+        },
+      },
     });
 
     setLoading(false);
@@ -62,27 +65,43 @@ export default function SignUpScreen() {
     if (error) {
       Alert.alert('회원가입 실패', error.message);
     } else {
+      if (data?.user) {
+        const { error: adminError } = await supabase
+          .from('zerofall_admin')
+          .insert({
+            admin_name: lastName + firstName,
+            admin_aff: affiliation,
+            admin_mail: email,
+            admin_pwd: password,
+          });
+        if (adminError) {
+          Alert.alert('회원가입 실패', adminError.message);
+        } else {
+          Alert.alert('회원가입 성공', '회원가입이 완료되었습니다.');
+          router.replace('/signin');
+        }
+      }
+
       Alert.alert(
         '회원가입 성공',
-        '인증 이메일이 발송되었습니다. 이메일을 확인하여 계정을 활성화해 주세요.'
+        '인증 이메일이 발송되었습니다. 이메일을 확인하여 계정을 활성화해 주세요.',
       );
       // 회원가입 성공 후에는 replace를 사용하여 로그인 화면으로 이동 (뒤로가기 방지)
-      router.replace('/signin'); 
+      router.replace('/signin');
     }
   };
 
-  
   const goToSignIn = () => {
     router.replace('/signin');
   };
-    
-  const isFormValid = 
+
+  const isFormValid =
     lastName.length > 0 &&
     firstName.length > 0 &&
     affiliation.length > 0 &&
     email.length > 0 &&
-    password.length >= 6 && 
-    password === confirmPassword && 
+    password.length >= 6 &&
+    password === confirmPassword &&
     !loading;
 
   return (
@@ -91,24 +110,33 @@ export default function SignUpScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-        >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* 뒤로 가기 버튼 (Header) - SignInScreen에서 push로 넘어왔다면, 여기에 Back 버튼이 자동으로 생깁니다. */}
           {/* 수동 뒤로가기 버튼: Expo Router의 헤더가 숨겨진 경우를 대비 */}
           <View style={styles.header}>
-             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                 <Ionicons name="arrow-back" size={24} color="#000" />
-             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backButton}
+            >
+              <Ionicons name="arrow-back" size={24} color="#000" />
+            </TouchableOpacity>
           </View>
-          
+
           <Text style={styles.title}>ZeroFall 회원가입</Text>
-          <Text style={styles.subtitle}>계정을 만들고 서비스를 이용해보세요.</Text>
-          
+          <Text style={styles.subtitle}>
+            계정을 만들고 서비스를 이용해보세요.
+          </Text>
+
           {/* 성 */}
           <Text style={styles.inputLabel}>성</Text>
           <TextInput
-            style={[styles.input, { borderColor: lastName.length > 0 ? '#78C4B4' : '#D0D0D0', fontFamily: FONT_REGULAR }]}
+            style={[
+              styles.input,
+              {
+                borderColor: lastName.length > 0 ? '#78C4B4' : '#D0D0D0',
+                fontFamily: FONT_REGULAR,
+              },
+            ]}
             placeholder="성"
             placeholderTextColor="#999"
             value={lastName}
@@ -119,7 +147,13 @@ export default function SignUpScreen() {
           {/* 이름 */}
           <Text style={styles.inputLabel}>이름</Text>
           <TextInput
-            style={[styles.input, { borderColor: firstName.length > 0 ? '#78C4B4' : '#D0D0D0', fontFamily: FONT_REGULAR }]}
+            style={[
+              styles.input,
+              {
+                borderColor: firstName.length > 0 ? '#78C4B4' : '#D0D0D0',
+                fontFamily: FONT_REGULAR,
+              },
+            ]}
             placeholder="이름"
             placeholderTextColor="#999"
             value={firstName}
@@ -130,18 +164,30 @@ export default function SignUpScreen() {
           {/* 소속 */}
           <Text style={styles.inputLabel}>소속</Text>
           <TextInput
-            style={[styles.input, { borderColor: affiliation.length > 0 ? '#78C4B4' : '#D0D0D0', fontFamily: FONT_REGULAR }]}
+            style={[
+              styles.input,
+              {
+                borderColor: affiliation.length > 0 ? '#78C4B4' : '#D0D0D0',
+                fontFamily: FONT_REGULAR,
+              },
+            ]}
             placeholder="소속 (회사명, 학교명 등)"
             placeholderTextColor="#999"
             value={affiliation}
             onChangeText={setAffiliation}
             autoCapitalize="none"
           />
-          
+
           {/* 이메일 주소 */}
           <Text style={styles.inputLabel}>이메일 주소</Text>
           <TextInput
-            style={[styles.input, { borderColor: email.length > 0 ? '#78C4B4' : '#D0D0D0', fontFamily: FONT_REGULAR }]}
+            style={[
+              styles.input,
+              {
+                borderColor: email.length > 0 ? '#78C4B4' : '#D0D0D0',
+                fontFamily: FONT_REGULAR,
+              },
+            ]}
             placeholder="example@email.com"
             placeholderTextColor="#999"
             value={email}
@@ -152,7 +198,19 @@ export default function SignUpScreen() {
 
           {/* 비밀번호 */}
           <Text style={styles.inputLabel}>비밀번호 (6자 이상)</Text>
-          <View style={[styles.passwordContainer, { borderColor: password.length >= 6 ? '#78C4B4' : (password.length > 0 && password.length < 6 ? '#FF4A4A' : '#D0D0D0') }]}>
+          <View
+            style={[
+              styles.passwordContainer,
+              {
+                borderColor:
+                  password.length >= 6
+                    ? '#78C4B4'
+                    : password.length > 0 && password.length < 6
+                    ? '#FF4A4A'
+                    : '#D0D0D0',
+              },
+            ]}
+          >
             <TextInput
               style={[styles.passwordInput, { fontFamily: FONT_REGULAR }]}
               placeholder="비밀번호"
@@ -173,10 +231,22 @@ export default function SignUpScreen() {
               />
             </TouchableOpacity>
           </View>
-          
+
           {/* 비밀번호 확인 */}
           <Text style={styles.inputLabel}>비밀번호 확인</Text>
-          <View style={[styles.passwordContainer, { borderColor: password.length > 0 && password === confirmPassword ? '#78C4B4' : (confirmPassword.length > 0 && password !== confirmPassword ? '#FF4A4A' : '#D0D0D0') }]}>
+          <View
+            style={[
+              styles.passwordContainer,
+              {
+                borderColor:
+                  password.length > 0 && password === confirmPassword
+                    ? '#78C4B4'
+                    : confirmPassword.length > 0 && password !== confirmPassword
+                    ? '#FF4A4A'
+                    : '#D0D0D0',
+              },
+            ]}
+          >
             <TextInput
               style={[styles.passwordInput, { fontFamily: FONT_REGULAR }]}
               placeholder="비밀번호 확인"
@@ -217,12 +287,11 @@ export default function SignUpScreen() {
             <View style={styles.signInLinkContainer}>
               <Text style={styles.footerText}>이미 계정이 있으신가요?</Text>
               {/* ⭐️ [핵심] 로그인 페이지로 push하여 뒤로가기 버튼이 생기게 함 */}
-              <TouchableOpacity onPress={goToSignIn}> 
+              <TouchableOpacity onPress={goToSignIn}>
                 <Text style={styles.signInText}>로그인하기</Text>
               </TouchableOpacity>
             </View>
           </View>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -241,23 +310,23 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 24,
     alignItems: 'center',
-    paddingTop: 0, 
+    paddingTop: 0,
   },
   header: {
-      width: '100%',
-      marginBottom: 30, // 제목과의 간격
-      alignItems: 'flex-start',
+    width: '100%',
+    marginBottom: 30, // 제목과의 간격
+    alignItems: 'flex-start',
   },
   backButton: {
-      padding: 5,
+    padding: 5,
   },
   title: {
-    fontSize: 28, 
-    fontWeight: 'bold', 
+    fontSize: 28,
+    fontWeight: 'bold',
     color: '#000',
-    marginBottom: 8, 
-    alignSelf: 'flex-start', 
-    fontFamily: FONT_EXTRABOLD, 
+    marginBottom: 8,
+    alignSelf: 'flex-start',
+    fontFamily: FONT_EXTRABOLD,
   },
   subtitle: {
     fontSize: 16,
@@ -277,7 +346,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: '#fff',
     paddingHorizontal: 20,
-    paddingVertical: 14, 
+    paddingVertical: 14,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#D0D0D0',
@@ -299,7 +368,7 @@ const styles = StyleSheet.create({
   passwordInput: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingVertical: 14, 
+    paddingVertical: 14,
     fontSize: 16,
     color: '#000',
   },
@@ -307,14 +376,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   signUpButton: {
-    backgroundColor: '#78C4B4', 
+    backgroundColor: '#78C4B4',
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: 'center',
     width: '100%',
     marginTop: 10,
     shadowOpacity: 0.2,
-    elevation: 3, 
+    elevation: 3,
     marginBottom: 30,
   },
   signUpButtonDisabled: {
@@ -323,13 +392,13 @@ const styles = StyleSheet.create({
   signUpButtonText: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: '700', 
-    fontFamily: FONT_BOLD, 
+    fontWeight: '700',
+    fontFamily: FONT_BOLD,
   },
   footer: {
-      width: '100%',
-      alignItems: 'center',
-      marginTop: 20,
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 20,
   },
   signInLinkContainer: {
     flexDirection: 'row',
@@ -339,13 +408,13 @@ const styles = StyleSheet.create({
   footerText: {
     color: '#666',
     fontSize: 14,
-    fontFamily: FONT_REGULAR, 
+    fontFamily: FONT_REGULAR,
     marginRight: 5,
   },
   signInText: {
     color: '#78C4B4',
     fontSize: 14,
-    fontWeight: '700', 
-    fontFamily: FONT_BOLD, 
+    fontWeight: '700',
+    fontFamily: FONT_BOLD,
   },
 });
