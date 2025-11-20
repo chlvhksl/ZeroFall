@@ -12,9 +12,7 @@
       "image": "./assets/splash.png"
     },
     "icon": "./assets/splash.png",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "packagerOpts": {
       "config": "metro.config.js"
     },
@@ -22,12 +20,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.zerofall",
       "infoPlist": {
-        "UIBackgroundModes": [
-          "remote-notification"
-        ]
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF"
       },

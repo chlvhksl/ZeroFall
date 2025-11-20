@@ -81,11 +81,6 @@ export default function SignUpScreen() {
           router.replace('/signin');
         }
       }
-
-      Alert.alert(
-        '회원가입 성공',
-        '인증 이메일이 발송되었습니다. 이메일을 확인하여 계정을 활성화해 주세요.',
-      );
       // 회원가입 성공 후에는 replace를 사용하여 로그인 화면으로 이동 (뒤로가기 방지)
       router.replace('/signin');
     }
