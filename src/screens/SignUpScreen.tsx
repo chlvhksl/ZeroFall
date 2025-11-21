@@ -69,10 +69,11 @@ export default function SignUpScreen() {
         const { error: adminError } = await supabase
           .from('zerofall_admin')
           .insert({
+            admin_id: data.user.id,
             admin_name: lastName + firstName,
             admin_aff: affiliation,
             admin_mail: email,
-            admin_pwd: password,
+            push_token: null,
           });
         if (adminError) {
           Alert.alert('회원가입 실패', adminError.message);
