@@ -207,7 +207,12 @@ export default function SignUpScreen() {
             ]}
           >
             <TextInput
-              style={[styles.passwordInput, { fontFamily: FONT_REGULAR }]}
+              style={[
+                styles.passwordInput,
+                Platform.OS === 'ios' || showPassword
+                  ? { fontFamily: FONT_REGULAR }
+                  : null,
+              ]}
               placeholder="비밀번호"
               placeholderTextColor="#999"
               value={password}
@@ -243,7 +248,12 @@ export default function SignUpScreen() {
             ]}
           >
             <TextInput
-              style={[styles.passwordInput, { fontFamily: FONT_REGULAR }]}
+              style={[
+                styles.passwordInput,
+                Platform.OS === 'ios' || showPassword
+                  ? { fontFamily: FONT_REGULAR }
+                  : null,
+              ]}
               placeholder="비밀번호 확인"
               placeholderTextColor="#999"
               value={confirmPassword}
