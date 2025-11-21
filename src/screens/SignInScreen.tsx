@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link, useRouter } from 'expo-router';
+import { PushTokenManager } from '../../lib/push-token-manager';
 import { supabase } from '../../lib/supabase';
 
 // ⭐️ 사용할 폰트 이름 정의 (app/_layout.tsx에서 로드된 이름과 일치해야 함)
@@ -69,9 +70,6 @@ export default function SignInScreen() {
         console.log('🔍 통합 토큰 관리 시작:', email);
 
         // 🎯 통합 토큰 매니저 사용 (토큰 발급 + DB 저장 + 로컬 저장 모두 처리)
-        const { PushTokenManager } = await import(
-          '../../lib/push-token-manager'
-        );
         const tokenResult = await PushTokenManager.manageTokenComplete(
           data.user.id,
         );
