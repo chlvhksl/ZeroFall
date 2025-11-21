@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "489176396986",
-    "project_id": "zero-fall-64b55",
-    "storage_bucket": "zero-fall-64b55.firebasestorage.app"
+    "project_number": "570248644182",
+    "project_id": "zero-fall-baabd",
+    "storage_bucket": "zero-fall-baabd.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:489176396986:android:bbfff749742dc007a1fe83",
+        "mobilesdk_app_id": "1:570248644182:android:d934b72ce6acc6858f5df7",
         "android_client_info": {
           "package_name": "com.zerofall"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDFIpxkQP6ocVUqjn7CAJV4-PRfokCq8Rw"
+          "current_key": "AIzaSyBhJ2-62tkXsa8d8DQPLmCKTuA4rimFkmY"
         }
       ],
       "services": {
