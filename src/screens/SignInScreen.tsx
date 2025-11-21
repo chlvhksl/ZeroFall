@@ -69,7 +69,9 @@ export default function SignInScreen() {
         console.log('🔍 통합 토큰 관리 시작:', email);
 
         // 🎯 통합 토큰 매니저 사용 (토큰 발급 + DB 저장 + 로컬 저장 모두 처리)
-        const { PushTokenManager } = await import('../lib/push-token-manager');
+        const { PushTokenManager } = await import(
+          '../../lib/push-token-manager'
+        );
         const tokenResult = await PushTokenManager.manageTokenComplete(
           data.user.id,
         );

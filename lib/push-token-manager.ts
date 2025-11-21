@@ -258,7 +258,6 @@ export class PushTokenManager {
     }
   }
 
-
   /**
    * 토큰 강제 갱신 (재설치 등)
    */
@@ -278,5 +277,4 @@ export class PushTokenManager {
       return false;
     }
   }
-
-  
+}
