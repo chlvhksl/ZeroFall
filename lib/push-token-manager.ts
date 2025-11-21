@@ -258,55 +258,6 @@ export class PushTokenManager {
     }
   }
 
-  /**
-   * 모든 사용자의 푸시 토큰 조회 (푸시 발송용)
-   */
-  static async getAllPushTokens(): Promise<{
-    success: boolean;
-    tokens?: string[];
-    users?: Array<{ email: string; token: string }>;
-    error?: string;
-  }> {
-    try {
-      const { data, error } = await supabase
-        .from('zerofall_admin')
-        .select('push_token, admin_mail')
-        .not('push_token', 'is', null);
-
-      if (error) {
-        console.error('❌ 전체 토큰 조회 실패:', error);
-        return {
-          success: false,
-          error: error.message,
-        };
-      }
-
-      const validTokens = data
-        .filter(
-          user =>
-            user.push_token && !user.push_token.startsWith('simulator-token-'),
-        )
-        .map(user => ({
-          email: user.admin_mail,
-          token: user.push_token,
-        }));
-
-      const tokens = validTokens.map(item => item.token);
-
-      console.log(`✅ ${tokens.length}개의 유효한 푸시 토큰 조회 완료`);
-      return {
-        success: true,
-        tokens,
-        users: validTokens,
-      };
-    } catch (error) {
-      console.error('❌ 전체 토큰 조회 예외:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : '알 수 없는 오류',
-      };
-    }
-  }
 
   /**
    * 토큰 강제 갱신 (재설치 등)
@@ -328,42 +279,4 @@ export class PushTokenManager {
     }
   }
 
-  /**
-   * 토큰 유효성 테스트 (실제 푸시 발송으로 확인)
-   */
-  static async validateToken(token: string): Promise<boolean> {
-    try {
-      const testMessage = {
-        to: token,
-        title: '토큰 유효성 검사',
-        body: '이 메시지는 토큰 검증용입니다.',
-        data: { test: true },
-      };
-
-      const response = await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testMessage),
-      });
-
-      const result = await response.json();
-
-      if (result.data?.[0]?.status === 'ok') {
-        console.log('✅ 토큰 유효성 확인됨');
-        return true;
-      } else if (result.data?.[0]?.details?.error === 'DeviceNotRegistered') {
-        console.log('❌ 토큰 무효 - DeviceNotRegistered');
-        return false;
-      } else {
-        console.log('⚠️ 토큰 상태 불명:', result);
-        return true; // 불확실한 경우 유효한 것으로 간주
-      }
-    } catch (error) {
-      console.error('❌ 토큰 검증 실패:', error);
-      return true; // 에러 시 유효한 것으로 간주
-    }
-  }
-}
+  
