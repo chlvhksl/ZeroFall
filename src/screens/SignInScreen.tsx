@@ -15,7 +15,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link, useRouter } from 'expo-router';
-import { registerForPushNotificationsAsync } from '../../lib/notifications';
 import { supabase } from '../../lib/supabase';
 
 // ⭐️ 사용할 폰트 이름 정의 (app/_layout.tsx에서 로드된 이름과 일치해야 함)
@@ -39,7 +38,7 @@ export default function SignInScreen() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -67,130 +66,44 @@ export default function SignInScreen() {
         } catch (e) {
           console.log('remember_me 저장 실패:', e);
         }
-        console.log('🔍 admin 정보 조회 시작:', email);
-        // 기존 admin 정보 확인 (푸시 토큰이 있는지 체크)
-        const { data: adminData, error: adminError } = await supabase
-          .from('zerofall_admin')
-          .select('push_token')
-          .eq('admin_mail', email)
-          .maybeSingle(); // .single() 대신 .maybeSingle() 사용
+        console.log('🔍 통합 토큰 관리 시작:', email);
 
-        if (adminError) {
-          console.error('❌ admin 정보 조회 실패:', adminError);
-          console.error('❌ 에러 상세:', JSON.stringify(adminError, null, 2));
-        } else {
+        // 🎯 통합 토큰 매니저 사용 (토큰 발급 + DB 저장 + 로컬 저장 모두 처리)
+        const { PushTokenManager } = await import('../lib/push-token-manager');
+        const tokenResult = await PushTokenManager.manageTokenComplete(
+          data.user.id,
+        );
+
+        if (tokenResult.success) {
           console.log(
-            '✅ admin 정보 조회 성공:',
-            adminData ? '데이터 있음' : '데이터 없음',
+            `✅ ${tokenResult.message}:`,
+            tokenResult.token?.substring(0, 30) + '...',
           );
-        }
 
-        // 푸시 토큰이 없거나 null인 경우 발급 및 저장
-        if (!adminData?.push_token) {
-          console.log('🔔 푸시 토큰 없음 - 알림 권한 요청 및 토큰 발급 시작');
-          const tokenResult = await registerForPushNotificationsAsync();
-          console.log('📱 토큰 발급 결과:', tokenResult);
-
-          if (tokenResult.success && tokenResult.token) {
-            const pushToken = tokenResult.token;
-            console.log(
-              '✅ 푸시 토큰 발급 완료:',
-              pushToken.substring(0, 30) + '...',
-            );
-
-            // admin 데이터베이스에 푸시 토큰 저장
-            const { error: updateError, data: updateData } = await supabase
-              .from('zerofall_admin')
-              .update({ push_token: pushToken })
-              .eq('admin_mail', email)
-              .select();
-
-            if (updateError) {
-              console.error('❌ 푸시 토큰 저장 실패:', updateError);
-              console.error(
-                '❌ 에러 상세:',
-                JSON.stringify(updateError, null, 2),
-              );
-              Alert.alert(
-                '오류',
-                '푸시 토큰 저장에 실패했습니다. 관리자에게 문의하세요.',
-              );
-            } else {
-              console.log('✅ 푸시 토큰 저장 성공:', updateData);
-              // EAS 빌드에서도 성공 여부를 명확히 알 수 있도록 알림
-              Alert.alert('성공', '푸시 알림 토큰이 등록되었습니다.');
-            }
-          } else {
-            console.warn('⚠️ 푸시 토큰 발급 실패');
-            console.warn('⚠️ 에러 코드:', tokenResult.errorCode);
-            console.warn('⚠️ 에러 메시지:', tokenResult.errorMessage);
-
-            // EAS 빌드에서도 실패 원인을 명확히 알 수 있도록 알림
+          if (tokenResult.action === 'updated') {
             Alert.alert(
-              '푸시 토큰 발급 실패',
-              tokenResult.errorMessage ||
-                '푸시 알림 토큰 발급에 실패했습니다.\n알림 권한을 확인하거나 나중에 다시 시도해주세요.',
+              '푸시 알림 설정 완료 🔔',
+              '새로운 푸시 토큰이 발급되어 저장되었습니다.\n이제 알림을 받을 수 있습니다.',
             );
           }
         } else {
-          // 기존 토큰이 있는 경우에도 최신 토큰으로 업데이트 (기기 변경 대비)
-          console.log(
-            'ℹ️ 기존 푸시 토큰 확인:',
-            adminData.push_token.substring(0, 30) + '...',
+          console.error('❌ 토큰 관리 실패:', tokenResult.message);
+          Alert.alert(
+            '푸시 알림 설정 실패',
+            `${tokenResult.message}\n\n알림을 받지 못할 수 있습니다.`,
           );
-          console.log('🔄 최신 푸시 토큰으로 업데이트 시도');
-
-          const tokenResult = await registerForPushNotificationsAsync();
-          console.log('📱 토큰 발급 결과:', tokenResult);
-
-          if (tokenResult.success && tokenResult.token) {
-            const pushToken = tokenResult.token;
-            // 기존 토큰과 다른 경우에만 업데이트
-            if (pushToken !== adminData.push_token) {
-              console.log('🔄 푸시 토큰 변경 감지 - 업데이트 시작');
-              const { error: updateError, data: updateData } = await supabase
-                .from('zerofall_admin')
-                .update({ push_token: pushToken })
-                .eq('admin_mail', email)
-                .select();
-
-              if (updateError) {
-                console.error('❌ 푸시 토큰 업데이트 실패:', updateError);
-                console.error(
-                  '❌ 에러 상세:',
-                  JSON.stringify(updateError, null, 2),
-                );
-              } else {
-                console.log('✅ 푸시 토큰 업데이트 성공:', updateData);
-                // EAS 빌드에서도 업데이트 성공 여부를 명확히 알 수 있도록 알림
-                Alert.alert('성공', '푸시 알림 토큰이 업데이트되었습니다.');
-              }
-            } else {
-              console.log('ℹ️ 푸시 토큰이 동일합니다. 업데이트하지 않습니다.');
-            }
-          } else {
-            console.warn('⚠️ 푸시 토큰 발급 실패 - 기존 토큰 유지');
-            console.warn('⚠️ 에러 코드:', tokenResult.errorCode);
-            console.warn('⚠️ 에러 메시지:', tokenResult.errorMessage);
-
-            // EAS 빌드에서도 실패 원인을 명확히 알 수 있도록 알림 (기존 토큰 유지 안내)
-            Alert.alert(
-              '푸시 토큰 업데이트 실패',
-              `${
-                tokenResult.errorMessage ||
-                '푸시 알림 토큰 업데이트에 실패했습니다.'
-              }\n\n기존 토큰을 유지합니다.`,
-            );
-          }
         }
-      } catch (err) {
-        console.error('❌ 푸시 알림 권한 요청 실패:', err);
-        console.error('❌ 에러 상세:', JSON.stringify(err, null, 2));
-        // 에러가 발생해도 로그인은 계속 진행
+
+        // 🎉 토큰 관리 완료 - 메인 화면으로 이동
+        console.log('🚀 로그인 완료 - 메인 화면으로 이동');
+        router.replace('/main');
+      } catch (error) {
+        console.error('❌ 로그인 후 처리 실패:', error);
+        Alert.alert(
+          '오류',
+          '로그인 후 처리 중 오류가 발생했습니다.\n다시 시도해주세요.',
+        );
       }
-
-      // 권한 요청 완료 후 메인 화면으로 이동
-      router.replace('/main');
     }
   };
 
