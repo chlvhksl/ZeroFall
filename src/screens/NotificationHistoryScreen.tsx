@@ -53,7 +53,7 @@ export default function NotificationHistoryScreen() {
           .from<NotificationRow>('notification_history')
           .select('*')
           .order('created_at', { ascending: false })
-          .limit(200);
+          .limit(30);
         if (error) throw error;
         setItems(data || []);
       } catch (e) {
@@ -70,7 +70,7 @@ export default function NotificationHistoryScreen() {
         { event: 'INSERT', schema: 'public', table: 'notification_history' },
         payload => {
           const row = payload.new as NotificationRow;
-          setItems(prev => [row, ...prev].slice(0, 300));
+          setItems(prev => [row, ...prev].slice(0, 30));
         },
       )
       .subscribe(status => setRtConnected(status === 'SUBSCRIBED'));
@@ -90,7 +90,7 @@ export default function NotificationHistoryScreen() {
             status: row.status ?? null,
           },
           ...prev,
-        ].slice(0, 300),
+        ].slice(0, 30),
       );
     });
 

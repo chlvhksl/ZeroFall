@@ -11,7 +11,7 @@
       "backgroundColor": "#ffffff",
       "image": "./assets/splash.png"
     },
-    "icon": "./assets/splash.png",
+    "icon": "./assets/app_logo.png",
     "assetBundlePatterns": ["**/*"],
     "packagerOpts": {
       "config": "metro.config.js"
@@ -40,14 +40,14 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
+          "icon": "./assets/app_logo.png",
           "color": "#ffffff",
           "defaultChannel": "default"
         }
       ]
     ],
     "notification": {
-      "icon": "./assets/notification-icon.png",
+      "icon": "./assets/app_logo.png",
       "color": "#ffffff"
     },
     "extra": {
