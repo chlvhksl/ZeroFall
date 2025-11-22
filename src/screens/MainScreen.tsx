@@ -17,7 +17,6 @@ import NotificationHistoryScreen from './NotificationHistoryScreen';
 // 이미지 import
 import DashboardImage from '../../assets/dashboard.png';
 import LogoutImage from '../../assets/logout.png';
-import RemotePushTestScreen from './RemotePushTestScreen';
 
 // 폰트 설정
 const FONT_REGULAR = 'NanumSquare-Regular';
@@ -25,7 +24,7 @@ const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 // 탭 타입 정의
-type TabType = 'dashboard' | 'notification' | 'remote-push';
+type TabType = 'dashboard' | 'notification';
 
 export default function MainScreen() {
   const router = useRouter();
@@ -126,8 +125,6 @@ export default function MainScreen() {
           <HookMonitorLocal />
         ) : activeTab === 'notification' ? (
           <NotificationHistoryScreen />
-        ) : activeTab === 'remote-push' ? (
-          <RemotePushTestScreen />
         ) : null}
       </View>
 
@@ -176,28 +173,6 @@ export default function MainScreen() {
             ]}
           >
             알림 내역
-          </Text>
-        </TouchableOpacity>
-
-        {/* 구분선 */}
-        <View style={styles.tabDivider} />
-
-        {/* 원격푸시테스트 탭 */}
-        <TouchableOpacity
-          style={styles.tabButton}
-          onPress={() => setActiveTab('remote-push')}
-        >
-          {activeTab === 'remote-push' && (
-            <View style={styles.activeTabBackground} />
-          )}
-          <Text style={styles.tabIconText}>📣</Text>
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'remote-push' && styles.activeTabText,
-            ]}
-          >
-            원격 푸시
           </Text>
         </TouchableOpacity>
       </View>
