@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
+import { getSelectedSite } from '../../lib/siteManagement';
 import HookMonitorLocal from './HookMonitorLocal';
 import NotificationHistoryScreen from './NotificationHistoryScreen';
 import SettingsScreen from './SettingsScreen';
@@ -32,11 +33,22 @@ export default function MainScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [adminInfo, setAdminInfo] = useState({ affiliation: '', name: '' });
+  const [currentSite, setCurrentSite] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 관리자 정보 가져오기
+  // 관리자 정보 및 현재 현장 가져오기
   useEffect(() => {
     fetchAdminInfo();
+    loadCurrentSite();
+  }, []);
+
+  // 화면 포커스 시 현재 현장 다시 로드 (환경설정에서 현장 변경 시 반영)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadCurrentSite();
+    }, 2000); // 2초마다 체크
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchAdminInfo = async () => {
@@ -64,6 +76,20 @@ export default function MainScreen() {
       Alert.alert('오류', '관리자 정보를 불러올 수 없습니다.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 현재 선택한 현장 로드
+  const loadCurrentSite = async () => {
+    try {
+      const site = await getSelectedSite();
+      if (site) {
+        setCurrentSite(site.name);
+      } else {
+        setCurrentSite(null);
+      }
+    } catch (error) {
+      console.error('현재 현장 로드 실패:', error);
     }
   };
 
@@ -114,9 +140,20 @@ export default function MainScreen() {
       {/* 타이틀 및 관리자 정보 */}
       <View style={styles.titleContainer}>
         <Text style={styles.title}>ZeroFall</Text>
-        <Text style={styles.adminInfo}>
-          {adminInfo.affiliation}-{adminInfo.name}
-        </Text>
+        <View style={styles.infoContainer}>
+          {currentSite && (
+            <TouchableOpacity
+              style={styles.siteBadge}
+              onPress={() => router.push('/site-select')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.siteBadgeText}>현장: {currentSite}</Text>
+            </TouchableOpacity>
+          )}
+          <Text style={styles.adminInfo}>
+            {adminInfo.affiliation}-{adminInfo.name}
+          </Text>
+        </View>
       </View>
       <View style={styles.divider} />
 
@@ -249,6 +286,24 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000',
     fontFamily: FONT_EXTRABOLD,
+  },
+  infoContainer: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  siteBadge: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#000',
+  },
+  siteBadgeText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFF',
+    fontFamily: FONT_BOLD,
   },
   adminInfo: {
     fontSize: 24,

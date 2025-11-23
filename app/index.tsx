@@ -4,6 +4,11 @@ import { useRouter } from 'expo-router';
 import { useCallback, useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { supabase } from '../lib/supabase';
+import {
+  getSelectedSite,
+  hasSelectedSite,
+  validateSiteAccess,
+} from '../lib/siteManagement';
 
 const APP_VERSION_KEY = '@zerofall_app_version';
 // 버전 + 빌드 번호를 함께 체크 (빌드할 때마다 변경됨)
@@ -85,7 +90,33 @@ export default function Index() {
           return;
         }
 
-        router.replace('/main');
+        // 현장 선택 여부 확인
+        const hasSite = await hasSelectedSite();
+        
+        if (!hasSite) {
+          // 현장이 선택되지 않았으면 현장 선택 화면으로 이동
+          console.log('⚠️ [Index] 현장이 선택되지 않음 - 현장 선택 화면으로 이동');
+          router.replace('/site-select');
+        } else {
+          // 선택한 현장이 있으면 접근 권한 확인
+          const selectedSite = await getSelectedSite();
+          
+          if (selectedSite) {
+            const hasAccess = await validateSiteAccess(selectedSite.id);
+            
+            if (hasAccess) {
+              // 접근 권한이 있으면 메인으로 이동
+              router.replace('/main');
+            } else {
+              // 접근 권한이 없으면 현장 선택 화면으로 이동
+              console.log('⚠️ [Index] 현장 접근 권한 없음 - 현장 선택 화면으로 이동');
+              router.replace('/site-select');
+            }
+          } else {
+            // 선택한 현장 정보가 없으면 현장 선택 화면으로 이동
+            router.replace('/site-select');
+          }
+        }
       } else {
         router.replace('/signin');
       }

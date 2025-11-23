@@ -94,9 +94,9 @@ export default function SignInScreen() {
           );
         }
 
-        // 🎉 토큰 관리 완료 - 메인 화면으로 이동
-        console.log('🚀 로그인 완료 - 메인 화면으로 이동');
-        router.replace('/main');
+        // 🎉 토큰 관리 완료 - 현장 선택 화면으로 이동
+        console.log('🚀 로그인 완료 - 현장 선택 화면으로 이동');
+        router.replace('/site-select');
       } catch (error) {
         console.error('❌ 로그인 후 처리 실패:', error);
         Alert.alert(

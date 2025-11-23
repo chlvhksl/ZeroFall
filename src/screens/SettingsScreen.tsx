@@ -27,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { getSelectedSite } from '../../lib/siteManagement';
 
 // 폰트 설정
 const FONT_REGULAR = 'NanumSquare-Regular';
@@ -48,6 +49,7 @@ export default function SettingsScreen() {
     affiliation: '',
     email: '',
   });
+  const [currentSite, setCurrentSite] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAccountInfo();
@@ -57,8 +59,23 @@ export default function SettingsScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchAccountInfo();
+      loadCurrentSite();
     }, []),
   );
+
+  // 현재 선택한 현장 로드
+  const loadCurrentSite = async () => {
+    try {
+      const site = await getSelectedSite();
+      if (site) {
+        setCurrentSite(site.name);
+      } else {
+        setCurrentSite(null);
+      }
+    } catch (error) {
+      console.error('현재 현장 로드 실패:', error);
+    }
+  };
 
   const fetchAccountInfo = async () => {
     try {
@@ -92,6 +109,11 @@ export default function SettingsScreen() {
   // 비밀번호 변경 화면으로 이동
   const handleChangePassword = () => {
     router.push('/change-password');
+  };
+
+  // 현장 변경 화면으로 이동
+  const handleChangeSite = () => {
+    router.push('/site-select');
   };
 
   // 알림 내역 전체 삭제
@@ -324,6 +346,22 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>데이터 관리</Text>
         <TouchableOpacity
           style={styles.actionButton}
+          onPress={handleChangeSite}
+        >
+          <View style={styles.actionButtonContent}>
+            <View>
+              <Text style={styles.actionButtonText}>현장 변경</Text>
+              {currentSite && (
+                <Text style={styles.actionButtonSubtext}>
+                  현재: {currentSite}
+                </Text>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#000" />
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
           onPress={handleDeleteNotificationHistory}
         >
           <Text style={styles.actionButtonText}>알림 내역 전체 삭제</Text>
@@ -431,9 +469,6 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   actionButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     backgroundColor: '#FFF',
     padding: 16,
     borderRadius: 8,
@@ -441,10 +476,21 @@ const styles = StyleSheet.create({
     borderColor: '#000',
     marginBottom: 8,
   },
+  actionButtonContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   actionButtonText: {
     fontSize: 16,
     color: '#000',
     fontFamily: FONT_BOLD,
+  },
+  actionButtonSubtext: {
+    fontSize: 12,
+    color: '#666',
+    fontFamily: FONT_REGULAR,
+    marginTop: 4,
   },
   dangerButton: {
     borderColor: '#ef4444',

@@ -10,8 +10,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+// @ts-ignore
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { sendRemotePush } from '../../lib/notifications';
+import { getCurrentSiteRole, getSelectedSite } from '../../lib/siteManagement';
 import { supabase } from '../../lib/supabase';
 import { formatKoreaTime } from '../../lib/utils';
 
@@ -86,6 +89,9 @@ export default function HookMonitorLocal() {
   > | null>(null);
   const [allDevices, setAllDevices] =
     useState<Array<GoriStatus>>(sharedAllDevices);
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  const [currentSiteRole, setCurrentSiteRole] = useState<'admin' | 'manager' | 'viewer' | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const clearTimerFor = (id: string) => {
     const t = timersRef.current[id];
@@ -420,22 +426,64 @@ export default function HookMonitorLocal() {
     return () => clearInterval(handle);
   }, []);
 
+  // 선택한 현장 로드 및 권한 확인
+  useEffect(() => {
+    const loadSelectedSite = async () => {
+      const site = await getSelectedSite();
+      if (site) {
+        setSelectedSiteId(site.id);
+        // 현재 현장 권한 확인
+        const role = await getCurrentSiteRole();
+        console.log('🔍 [HookMonitorLocal] 현재 현장 권한:', role, '현장:', site.name);
+        setCurrentSiteRole(role);
+      } else {
+        setSelectedSiteId(null);
+        setCurrentSiteRole(null);
+        console.log('⚠️ [HookMonitorLocal] 선택한 현장이 없습니다.');
+      }
+    };
+    loadSelectedSite();
+    
+    // 현장이 변경될 수 있으므로 주기적으로 확인 (2초마다)
+    const interval = setInterval(() => {
+      loadSelectedSite();
+    }, 2000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   // 전체 기기의 최신 상태를 불러와 디바이스별 최신 1건으로 정리
   const loadAllDevicesLatest = async () => {
     try {
-      const { data, error } = await supabase
+      // 선택한 현장이 없으면 조회하지 않음
+      if (!selectedSiteId) {
+        console.log('⚠️ [HookMonitorLocal] 현장이 선택되지 않음');
+        return;
+      }
+
+      let query = supabase
         .from('gori_status')
         .select(
-          'device_id, worker_name, left_sensor, right_sensor, status, updated_at, created_at, timestamp',
+          'device_id, worker_name, left_sensor, right_sensor, status, updated_at, created_at, timestamp, site_id',
         )
         .order('updated_at', { ascending: false })
         .limit(1000);
+
+      // 현장별 필터링: 선택한 현장의 장비만 조회
+      // site_id가 NULL인 기존 데이터는 하위 호환성을 위해 모두 조회 가능
+      query = query.or(`site_id.eq.${selectedSiteId},site_id.is.null`);
+
+      const { data, error } = await query;
       if (error) throw error;
       const byDevice: Record<string, GoriStatus & { __ts?: number }> = {};
       (data || []).forEach((row: any) => {
         // 등록된 작업자만 표시
         if (!row.worker_name || String(row.worker_name).trim().length === 0)
           return;
+        // 현장 필터링: site_id가 NULL이 아니면 선택한 현장과 일치해야 함
+        if (row.site_id && row.site_id !== selectedSiteId) {
+          return;
+        }
         const key = row.device_id;
         const tRaw = row.updated_at || row.created_at || row.timestamp;
         const ts = tRaw ? new Date(String(tRaw)).getTime() : 0;
@@ -456,6 +504,11 @@ export default function HookMonitorLocal() {
 
   // 전체 기기 실시간 구독
   useEffect(() => {
+    if (!selectedSiteId) {
+      // 현장이 선택되지 않았으면 구독하지 않음
+      return;
+    }
+
     loadAllDevicesLatest();
     const ch = supabase
       .channel('gori-status-all-devices')
@@ -468,6 +521,14 @@ export default function HookMonitorLocal() {
           const hasWorker = !!(
             row.worker_name && String(row.worker_name).trim().length > 0
           );
+          
+          // 현장 필터링: 선택한 현장의 장비만 처리
+          const rowSiteId = (row as any).site_id;
+          if (rowSiteId && rowSiteId !== selectedSiteId) {
+            // 다른 현장의 장비는 무시
+            return;
+          }
+          
           if (hasWorker && row.device_id) {
             // 어떤 기기든 상태 이벤트 들어올 때마다 즉시 알림 평가
             evaluateForAlert(row, row.device_id);
@@ -520,7 +581,7 @@ export default function HookMonitorLocal() {
       } catch {}
       allDevicesChannelRef.current = null;
     };
-  }, []);
+  }, [selectedSiteId]);
 
   const getStatusLabel = (row: GoriStatus | null) => {
     if (!row) return '-';
@@ -547,63 +608,42 @@ export default function HookMonitorLocal() {
     >
       <Text style={styles.title}>☁️ 대시보드</Text>
 
-      <View style={styles.row}>
-        <Text style={styles.label}>장비명</Text>
-        <TextInput
-          value={deviceId}
-          onChangeText={t => {
-            setDeviceId(t);
-            try {
-              AsyncStorage.setItem(STORAGE_KEY_DEVICE, t);
-            } catch {}
-          }}
-          autoCapitalize="none"
-          placeholder="작업자 등록 후 자동 설정"
-          style={[styles.input, styles.inputDisabled]}
-          editable={false}
-          selectTextOnFocus={false}
-        />
+      {/* 검색창 */}
+      <View style={styles.searchContainer}>
+        <Text style={styles.label}>장비 검색</Text>
+        <View style={styles.searchInputContainer}>
+          <Ionicons name="search-outline" size={20} color="#666" style={styles.searchIcon} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="장비명 또는 작업자 이름으로 검색..."
+            placeholderTextColor="#999"
+            style={styles.searchInput}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              style={styles.clearButton}
+            >
+              <Ionicons name="close-circle" size={20} color="#666" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      <View style={styles.row}>
-        <Text style={styles.label}>작업자 이름</Text>
-        <TextInput
-          value={workerName}
-          onChangeText={t => {
-            setWorkerName(t);
-            try {
-              AsyncStorage.setItem(STORAGE_KEY_WORKER, t);
-            } catch {}
-          }}
-          autoCapitalize="none"
-          placeholder="예: 홍길동"
-          style={styles.input}
-        />
-      </View>
-
-      <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={[styles.btn, styles.primary]}
-          onPress={() => startSubscribe(undefined, true)}
-        >
-          <Text style={styles.btnText}>실시간 시작</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.btn, styles.secondary]}
-          onPress={stopSubscribe}
-        >
-          <Text style={styles.btnText}>해제</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={[styles.btn, styles.primary]}
-          onPress={() => router.push('/register')}
-        >
-          <Text style={styles.btnText}>작업자 등록/변경</Text>
-        </TouchableOpacity>
-      </View>
+      {/* 관리자만 작업자 등록 버튼 표시 */}
+      {currentSiteRole === 'admin' && (
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={[styles.btn, styles.primary]}
+            onPress={() => router.push('/register')}
+          >
+            <Text style={styles.btnText}>작업자 등록/변경</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {!anyRegistered && (
         <View style={styles.infoBox}>
@@ -614,80 +654,100 @@ export default function HookMonitorLocal() {
       )}
 
       {/* 전체 기기 목록 */}
-      {allDevices.length > 0 && (
-        <View style={{ marginTop: 16 }}>
-          <Text style={[styles.label, { marginBottom: 8 }]}>전체 기기</Text>
-          {allDevices.map(item => {
-            const label = getStatusLabel(item);
-            return (
-              <View
-                key={item.device_id}
-                style={[styles.currentStatusCard, { marginBottom: 10 }]}
-              >
-                <View style={styles.cardHeaderRow}>
-                  <Text style={styles.cardTitle}>
-                    {item.worker_name || item.device_id}
-                  </Text>
-                  <View style={styles.headerRight}>
-                    <View
-                      style={[styles.dot, { backgroundColor: '#22c55e' }]}
-                    />
-                    <Text style={styles.timestampInline}>
-                      {formatKoreaTime(
-                        (item as any)?.updated_at ||
-                          (item as any)?.created_at ||
-                          (item as any)?.timestamp,
-                      )}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.statusRow}>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      {
-                        backgroundColor:
-                          label === '이중체결'
-                            ? '#22c55e'
-                            : label === '단일체결'
-                            ? '#f59e0b'
-                            : label === '미체결'
-                            ? '#ef4444'
-                            : '#999',
-                      },
-                    ]}
-                  >
-                    <Text style={styles.statusIconSmall}>
-                      {label === '이중체결'
-                        ? '🔒'
-                        : label === '단일체결'
-                        ? '⚠️'
-                        : label === '미체결'
-                        ? '🚨'
-                        : '❓'}
-                    </Text>
-                    <Text style={styles.statusTextSmall}>{label}</Text>
-                  </View>
-                  <View style={styles.sideSensors}>
-                    <View style={styles.sensorItemInline}>
-                      <Text style={styles.sensorLabel}>좌측</Text>
-                      <Text style={styles.sensorValue}>
-                        {item?.left_sensor ? '✓' : '✗'}
-                      </Text>
-                    </View>
-                    <View style={styles.sensorItemInline}>
-                      <Text style={styles.sensorLabel}>우측</Text>
-                      <Text style={styles.sensorValue}>
-                        {item?.right_sensor ? '✓' : '✗'}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
+      {allDevices.length > 0 && (() => {
+        const filteredDevices = allDevices.filter(item => {
+          const query = searchQuery.toLowerCase().trim();
+          if (!query) return true;
+          const deviceId = (item.device_id || '').toLowerCase();
+          const workerName = (item.worker_name || '').toLowerCase();
+          return deviceId.includes(query) || workerName.includes(query);
+        });
+
+        return (
+          <View style={{ marginTop: 16 }}>
+            <Text style={[styles.label, { marginBottom: 8 }]}>
+              전체 기기 {searchQuery ? `(${filteredDevices.length}개)` : `(${allDevices.length}개)`}
+            </Text>
+            {filteredDevices.length === 0 ? (
+              <View style={styles.infoBox}>
+                <Text style={styles.infoText}>
+                  검색 결과가 없습니다. 다른 검색어를 입력해주세요.
+                </Text>
               </View>
-            );
-          })}
-        </View>
-      )}
+            ) : (
+              filteredDevices.map(item => {
+                const label = getStatusLabel(item);
+                return (
+                  <View
+                    key={item.device_id}
+                    style={[styles.currentStatusCard, { marginBottom: 10 }]}
+                  >
+                    <View style={styles.cardHeaderRow}>
+                      <Text style={styles.cardTitle}>
+                        {item.worker_name || item.device_id}
+                      </Text>
+                      <View style={styles.headerRight}>
+                        <View
+                          style={[styles.dot, { backgroundColor: '#22c55e' }]}
+                        />
+                        <Text style={styles.timestampInline}>
+                          {formatKoreaTime(
+                            (item as any)?.updated_at ||
+                              (item as any)?.created_at ||
+                              (item as any)?.timestamp,
+                          )}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.statusRow}>
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          {
+                            backgroundColor:
+                              label === '이중체결'
+                                ? '#22c55e'
+                                : label === '단일체결'
+                                ? '#f59e0b'
+                                : label === '미체결'
+                                ? '#ef4444'
+                                : '#999',
+                          },
+                        ]}
+                      >
+                        <Text style={styles.statusIconSmall}>
+                          {label === '이중체결'
+                            ? '🔒'
+                            : label === '단일체결'
+                            ? '⚠️'
+                            : label === '미체결'
+                            ? '🚨'
+                            : '❓'}
+                        </Text>
+                        <Text style={styles.statusTextSmall}>{label}</Text>
+                      </View>
+                      <View style={styles.sideSensors}>
+                        <View style={styles.sensorItemInline}>
+                          <Text style={styles.sensorLabel}>좌측</Text>
+                          <Text style={styles.sensorValue}>
+                            {item?.left_sensor ? '✓' : '✗'}
+                          </Text>
+                        </View>
+                        <View style={styles.sensorItemInline}>
+                          <Text style={styles.sensorLabel}>우측</Text>
+                          <Text style={styles.sensorValue}>
+                            {item?.right_sensor ? '✓' : '✗'}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </View>
+        );
+      })()}
     </ScrollView>
   );
 }
@@ -861,5 +921,32 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000',
     fontFamily: FONT_BOLD,
+  },
+  searchContainer: {
+    marginBottom: 16,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: FONT_REGULAR,
+    color: '#000',
+    paddingVertical: 0,
+  },
+  clearButton: {
+    marginLeft: 8,
+    padding: 4,
   },
 });

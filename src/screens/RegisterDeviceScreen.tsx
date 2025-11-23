@@ -3,6 +3,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
+// @ts-ignore
+import { Ionicons } from '@expo/vector-icons';
 
 type Row = {
   device_id: string;
@@ -27,6 +29,7 @@ export default function RegisterDeviceScreen() {
   const [selectedId, setSelectedId] = useState<string>('');
   const [workerName, setWorkerName] = useState('');
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [wifiWarning, setWifiWarning] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -169,6 +172,17 @@ export default function RegisterDeviceScreen() {
     <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
       <Text style={styles.title}>작업자 등록/변경</Text>
 
+      {/* 와이파이 안내 메시지 */}
+      <View style={styles.infoBox}>
+        <View style={styles.infoRow}>
+          <Ionicons name="information-circle-outline" size={20} color="#007AFF" />
+          <Text style={styles.infoText}>
+            <Text style={styles.infoBold}>아두이노 등록 시:</Text> 아두이노와 같은 와이파이에 연결되어 있어야 등록 대기중인 기기를 확인할 수 있습니다.{'\n'}
+            <Text style={styles.infoBold}>등록 후:</Text> 다른 와이파이에서도 아두이노 상태를 확인할 수 있습니다.
+          </Text>
+        </View>
+      </View>
+
       <View style={styles.row}>
         <TextInput
           value={query}
@@ -211,7 +225,10 @@ export default function RegisterDeviceScreen() {
       <Text style={styles.sectionTitle}>등록 대기중 (최근 2분)</Text>
       {pending.length === 0 ? (
         <View style={styles.emptyBox}>
-          <Text style={styles.emptyText}>현재 대기중 기기가 없습니다.</Text>
+          <Text style={styles.emptyText}>
+            현재 대기중 기기가 없습니다.{'\n'}
+            아두이노가 같은 와이파이에 연결되어 있고, 최근 2분 내에 데이터를 전송했는지 확인해주세요.
+          </Text>
         </View>
       ) : (
         <View style={{ marginBottom: 10 }}>
@@ -337,6 +354,17 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#000',
     fontFamily: 'NanumSquare-Regular',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  infoBold: {
+    fontFamily: 'NanumSquare-Bold',
+    fontWeight: 'bold',
   },
   cardTitle: {
     fontSize: 16,
