@@ -105,23 +105,48 @@ export class PushTokenManager {
       // 1. 현재 로컬 토큰 조회
       const localToken = await this.getLocalToken();
 
-      // 2. 서버에서 기존 토큰 조회
+      // 2. 서버에서 기존 토큰 조회 (없으면 생성)
       const { data: userData, error: fetchError } = await supabase
         .from('zerofall_admin')
         .select('push_token')
         .eq('admin_id', userId)
-        .single();
+        .maybeSingle();
 
-      if (fetchError) {
-        console.error('❌ 서버 토큰 조회 실패:', fetchError);
-        return {
-          success: false,
-          action: 'failed',
-          message: '서버 토큰 조회 실패',
-        };
+      // 사용자가 zerofall_admin 테이블에 없으면 생성
+      if (fetchError || !userData) {
+        console.log('⚠️ zerofall_admin 테이블에 사용자 없음 - 생성 시도');
+        
+        // 사용자 정보 가져오기
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          console.error('❌ 사용자 정보 없음');
+          return {
+            success: false,
+            action: 'failed',
+            message: '사용자 정보 없음',
+          };
+        }
+
+        // zerofall_admin 테이블에 사용자 추가
+        const { error: insertError } = await supabase
+          .from('zerofall_admin')
+          .insert({
+            admin_id: userId,
+            admin_name: user.user_metadata?.last_name + user.user_metadata?.first_name || '사용자',
+            admin_aff: user.user_metadata?.affiliation || '',
+            admin_mail: user.email || '',
+            push_token: null,
+          });
+
+        if (insertError) {
+          console.error('❌ zerofall_admin 사용자 생성 실패:', insertError);
+          // 생성 실패해도 계속 진행 (기존 사용자일 수 있음)
+        } else {
+          console.log('✅ zerofall_admin 사용자 생성 완료');
+        }
       }
 
-      const serverToken = userData?.push_token;
+      const serverToken = userData?.push_token || null;
 
       // 3. 토큰 갱신 필요성 판단
       const needsUpdate = await this.shouldUpdateToken(localToken, serverToken);
@@ -195,6 +220,49 @@ export class PushTokenManager {
     error?: string;
   }> {
     try {
+      // 먼저 사용자가 존재하는지 확인
+      const { data: existingUser, error: checkError } = await supabase
+        .from('zerofall_admin')
+        .select('admin_id')
+        .eq('admin_id', userId)
+        .maybeSingle();
+
+      // 사용자가 없으면 생성
+      if (checkError || !existingUser) {
+        console.log('⚠️ zerofall_admin 테이블에 사용자 없음 - 생성 시도');
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          return {
+            success: false,
+            error: '사용자 정보 없음',
+          };
+        }
+
+        const { error: insertError } = await supabase
+          .from('zerofall_admin')
+          .insert({
+            admin_id: userId,
+            admin_name: user.user_metadata?.last_name + user.user_metadata?.first_name || '사용자',
+            admin_aff: user.user_metadata?.affiliation || '',
+            admin_mail: user.email || '',
+            push_token: token,
+            updated_at: new Date().toISOString(),
+          });
+
+        if (insertError) {
+          console.error('❌ zerofall_admin 사용자 생성 실패:', insertError);
+          return {
+            success: false,
+            error: insertError.message,
+          };
+        }
+
+        console.log('✅ zerofall_admin 사용자 생성 및 토큰 저장 완료');
+        return { success: true };
+      }
+
+      // 사용자가 있으면 업데이트
       const { error } = await supabase
         .from('zerofall_admin')
         .update({
