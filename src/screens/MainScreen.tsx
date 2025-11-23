@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import HookMonitorLocal from './HookMonitorLocal';
 import NotificationHistoryScreen from './NotificationHistoryScreen';
+import SettingsScreen from './SettingsScreen';
 
 // 이미지 import
 import DashboardImage from '../../assets/dashboard.png';
@@ -24,7 +25,7 @@ const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 // 탭 타입 정의
-type TabType = 'dashboard' | 'notification';
+type TabType = 'dashboard' | 'notification' | 'settings';
 
 export default function MainScreen() {
   const router = useRouter();
@@ -125,6 +126,8 @@ export default function MainScreen() {
           <HookMonitorLocal />
         ) : activeTab === 'notification' ? (
           <NotificationHistoryScreen />
+        ) : activeTab === 'settings' ? (
+          <SettingsScreen />
         ) : null}
       </View>
 
@@ -173,6 +176,28 @@ export default function MainScreen() {
             ]}
           >
             알림 내역
+          </Text>
+        </TouchableOpacity>
+
+        {/* 구분선 */}
+        <View style={styles.tabDivider} />
+
+        {/* 환경설정 탭 */}
+        <TouchableOpacity
+          style={styles.tabButton}
+          onPress={() => setActiveTab('settings')}
+        >
+          {activeTab === 'settings' && (
+            <View style={styles.activeTabBackground} />
+          )}
+          <Text style={styles.tabIconText}>⚙️</Text>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'settings' && styles.activeTabText,
+            ]}
+          >
+            환경설정
           </Text>
         </TouchableOpacity>
       </View>
