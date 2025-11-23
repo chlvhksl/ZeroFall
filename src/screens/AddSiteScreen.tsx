@@ -174,7 +174,7 @@ export default function AddSiteScreen() {
           <Text style={styles.label}>비밀번호 *</Text>
           <View style={styles.passwordContainer}>
             <TextInput
-              style={styles.passwordInput}
+              style={[styles.passwordInput, { fontFamily: showPassword ? FONT_REGULAR : undefined }]}
               value={password}
               onChangeText={setPassword}
               placeholder="현장 접근 비밀번호 (최소 4자)"
@@ -203,7 +203,7 @@ export default function AddSiteScreen() {
           <Text style={styles.label}>비밀번호 확인 *</Text>
           <View style={styles.passwordContainer}>
             <TextInput
-              style={styles.passwordInput}
+              style={[styles.passwordInput, { fontFamily: showConfirmPassword ? FONT_REGULAR : undefined }]}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               placeholder="비밀번호를 다시 입력하세요"

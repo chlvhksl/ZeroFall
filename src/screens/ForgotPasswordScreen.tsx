@@ -242,7 +242,7 @@ export default function ForgotPasswordScreen() {
                 { borderColor: newPassword ? '#5FCCC4' : '#D0D0D0' }
               ]}>
                 <TextInput
-                  style={styles.passwordInput}
+                  style={[styles.passwordInput, { fontFamily: showNewPassword ? FONT_REGULAR : undefined }]}
                   placeholder="새 비밀번호 (6자 이상)"
                   placeholderTextColor="#999"
                   value={newPassword}
@@ -268,7 +268,7 @@ export default function ForgotPasswordScreen() {
                 { borderColor: confirmPassword ? '#5FCCC4' : '#D0D0D0' }
               ]}>
                 <TextInput
-                  style={styles.passwordInput}
+                  style={[styles.passwordInput, { fontFamily: showConfirmPassword ? FONT_REGULAR : undefined }]}
                   placeholder="비밀번호 확인"
                   placeholderTextColor="#999"
                   value={confirmPassword}

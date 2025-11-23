@@ -795,7 +795,7 @@ export default function SiteSelectScreen() {
               {pendingSite ? `"${pendingSite.name}" 현장의 비밀번호를 입력하세요.` : ''}
             </Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { fontFamily: undefined }]}
               value={passwordInput}
               onChangeText={setPasswordInput}
               placeholder="비밀번호"

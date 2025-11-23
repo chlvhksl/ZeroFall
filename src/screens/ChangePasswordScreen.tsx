@@ -169,7 +169,7 @@ export default function ChangePasswordScreen() {
                   {
                     borderColor:
                       currentPassword.length > 0 ? '#78C4B4' : '#D0D0D0',
-                    fontFamily: FONT_REGULAR,
+                    fontFamily: showCurrentPassword ? FONT_REGULAR : undefined,
                   },
                 ]}
                 placeholder="현재 비밀번호를 입력하세요"
@@ -201,7 +201,7 @@ export default function ChangePasswordScreen() {
                   styles.input,
                   {
                     borderColor: newPassword.length > 0 ? '#78C4B4' : '#D0D0D0',
-                    fontFamily: FONT_REGULAR,
+                    fontFamily: showNewPassword ? FONT_REGULAR : undefined,
                   },
                 ]}
                 placeholder="새 비밀번호를 입력하세요 (최소 6자)"
@@ -234,7 +234,7 @@ export default function ChangePasswordScreen() {
                   {
                     borderColor:
                       confirmPassword.length > 0 ? '#78C4B4' : '#D0D0D0',
-                    fontFamily: FONT_REGULAR,
+                    fontFamily: showConfirmPassword ? FONT_REGULAR : undefined,
                   },
                 ]}
                 placeholder="새 비밀번호를 다시 입력하세요"
