@@ -11,14 +11,14 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-    Alert,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore
@@ -248,7 +248,7 @@ export default function SettingsScreen() {
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: insets.top + 20 },
+          { paddingTop: insets.top - 36},
         ]}>
         <Text style={styles.title}>환경설정</Text>
 
@@ -340,32 +340,32 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: 10,
   },
   title: {
     fontSize: 28,
     fontFamily: FONT_EXTRABOLD,
     color: '#333',
-    marginBottom: 30,
+    marginBottom: 32,
   },
   section: {
-    marginBottom: 30,
+    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 18,
     fontFamily: FONT_BOLD,
     color: '#666',
-    marginBottom: 12,
+    marginBottom: 4,
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
-    paddingVertical: 16,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 12,
-    marginBottom: 8,
+    marginBottom: 4,
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   bottomSpacer: {
-    height: 20,
+    height: 4,
   },
 });
 

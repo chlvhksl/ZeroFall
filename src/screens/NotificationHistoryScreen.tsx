@@ -50,7 +50,7 @@ export default function NotificationHistoryScreen() {
     const fetchInitial = async () => {
       try {
         const { data, error } = await supabase
-          .from<NotificationRow>('notification_history')
+          .from('notification_history')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(30);

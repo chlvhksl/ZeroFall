@@ -564,7 +564,16 @@ export default function SiteSelectScreen() {
       >
         {/* 헤더 */}
         <View style={styles.header}>
-          <Text style={styles.title}>현장 선택</Text>
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>현장 선택</Text>
+            <TouchableOpacity
+              style={styles.addButtonHeader}
+              onPress={() => router.push('/add-site')}
+            >
+              <Ionicons name="add" size={20} color="#FFF" />
+              <Text style={styles.addButtonHeaderText}>현장 추가</Text>
+            </TouchableOpacity>
+          </View>
           <Text style={styles.subtitle}>
             관리할 현장을 선택해주세요
           </Text>
@@ -766,15 +775,7 @@ export default function SiteSelectScreen() {
               선택한 현장 나가기 ({selectedSitesForLeave.size})
             </Text>
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => router.push('/add-site')}
-          >
-            <Ionicons name="add-circle" size={24} color="#FFF" />
-            <Text style={styles.addButtonText}>현장 추가</Text>
-          </TouchableOpacity>
-        )}
+        ) : null}
       </View>
 
       {/* Android 비밀번호 입력 모달 */}
@@ -903,23 +904,45 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 100, // 하단 버튼 공간 확보
+    paddingBottom: 40, // 하단 여백
   },
   header: {
     marginBottom: 30,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   title: {
     fontSize: 36,
     fontWeight: 'bold',
     color: '#000',
     fontFamily: FONT_EXTRABOLD,
-    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
     color: '#666',
     fontFamily: FONT_REGULAR,
     marginBottom: 16,
+  },
+  addButtonHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#78C4B4',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#000',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    gap: 4,
+  },
+  addButtonHeaderText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFF',
+    fontFamily: FONT_BOLD,
   },
   searchContainer: {
     flexDirection: 'row',

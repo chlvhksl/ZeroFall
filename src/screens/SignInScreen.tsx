@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
@@ -153,7 +153,9 @@ export default function SignInScreen() {
               <TextInput
                 style={[
                   styles.passwordInput,
-                  { fontFamily: showPassword ? FONT_REGULAR : undefined },
+                  Platform.OS === 'ios' || showPassword
+                    ? { fontFamily: FONT_REGULAR }
+                    : null,
                 ]}
                 placeholder="비밀번호"
                 placeholderTextColor="#999"

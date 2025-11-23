@@ -29,7 +29,13 @@
         "backgroundColor": "#FFFFFF"
       },
       "package": "com.zerofall",
-      "versionCode": 5
+      "versionCode": 5,
+      "permissions": [
+        "ACCESS_WIFI_STATE",
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro"
@@ -43,6 +49,12 @@
           "icon": "./assets/app_logo.png",
           "color": "#ffffff",
           "defaultChannel": "default"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "앱이 WiFi 네트워크를 확인하기 위해 위치 권한이 필요합니다."
         }
       ]
     ],

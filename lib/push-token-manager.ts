@@ -168,11 +168,11 @@ export class PushTokenManager {
       const newTokenResult = await registerForPushNotificationsAsync();
 
       if (!newTokenResult.success || !newTokenResult.token) {
-        console.error('❌ 토큰 발급 실패:', newTokenResult.error);
+        console.error('❌ 토큰 발급 실패:', newTokenResult.errorMessage);
         return {
           success: false,
           action: 'failed',
-          message: newTokenResult.error || '토큰 발급 실패',
+          message: newTokenResult.errorMessage || '토큰 발급 실패',
         };
       }
 
