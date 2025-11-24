@@ -30,7 +30,6 @@ type GoriStatus = {
   right_sensor?: boolean;
   status?: string;
   created_at?: string; // 또는 timestamp
-  timestamp?: string;
   updated_at?: string;
   worker_name?: string | null;
   [key: string]: any;
@@ -271,8 +270,8 @@ export default function HookMonitorLocal() {
 
   const fetchLatest = async (targetId?: string): Promise<GoriStatus | null> => {
     const id = targetId || deviceId;
-    // created_at 우선, 없으면 timestamp 기준
-    const tryFields = ['created_at', 'timestamp'];
+    // created_at 우선, 없으면 updated_at 기준
+    const tryFields = ['created_at', 'updated_at'];
     for (const field of tryFields) {
       const { data, error } = await supabase
         .from('gori_status')
@@ -287,8 +286,7 @@ export default function HookMonitorLocal() {
         // 최근 이벤트 시각 업데이트(행의 시간 또는 지금)
         const t =
           (data as any).updated_at ||
-          data.created_at ||
-          (data as any).timestamp;
+          data.created_at;
         const ts = t ? new Date(String(t)).getTime() : Date.now();
         setLastEventAt(ts);
         evaluateForAlert(data, id);
@@ -401,16 +399,25 @@ export default function HookMonitorLocal() {
         if (sharedLast) setLast(sharedLast);
         sharedManualStopped = false; // 화면 진입 시 자동 시작 허용
         await startSubscribe(idToUse, false);
-        // 등록된 기기 존재 여부 점검(1개만 조회)
+        // 등록된 기기 존재 여부 점검 - 현장별로 확인
         try {
-          const { data } = await supabase
-            .from('gori_status')
-            .select('device_id,worker_name')
-            .not('worker_name', 'is', null)
-            .limit(1)
-            .maybeSingle();
-          setAnyRegistered(!!data?.device_id);
-        } catch {
+          const site = await getSelectedSite();
+          if (site) {
+            const { data } = await supabase
+              .from('gori_status')
+              .select('device_id,worker_name,site_id')
+              .not('worker_name', 'is', null)
+              .neq('worker_name', '')
+              .or(`site_id.eq.${site.id},site_id.is.null`)
+              .limit(1)
+              .maybeSingle();
+            setAnyRegistered(!!data?.device_id);
+            console.log('📊 [HookMonitorLocal] 등록된 기기 존재 여부:', !!data?.device_id);
+          } else {
+            setAnyRegistered(false);
+          }
+        } catch (error) {
+          console.error('❌ [HookMonitorLocal] 등록된 기기 확인 실패:', error);
           setAnyRegistered(false);
         }
       } catch {}
@@ -461,10 +468,56 @@ export default function HookMonitorLocal() {
         return;
       }
 
+      console.log('🔍 [HookMonitorLocal] 기기 목록 로드 시작, 현장 ID:', selectedSiteId);
+
+      // 1단계: 등록된 기기(worker_name이 있는 기기) 목록 먼저 조회
+      // 이렇게 하면 최근 데이터가 없어도 등록된 기기는 항상 표시됨
+      // DISTINCT ON을 사용하거나 모든 데이터를 가져온 후 중복 제거
+      const registeredQuery = supabase
+        .from('gori_status')
+        .select('device_id, worker_name, site_id, updated_at')
+        .not('worker_name', 'is', null)
+        .neq('worker_name', '')
+        .or(`site_id.eq.${selectedSiteId},site_id.is.null`)
+        .order('updated_at', { ascending: false })
+        .limit(1000);
+
+      const { data: registeredData, error: registeredError } = await registeredQuery;
+      
+      if (registeredError) {
+        console.error('❌ [HookMonitorLocal] 등록된 기기 조회 실패:', registeredError);
+      } else {
+        console.log('✅ [HookMonitorLocal] 등록된 기기 조회 성공:', registeredData?.length || 0, '개');
+      }
+      
+      // 등록된 기기 목록 추출 (중복 제거 - device_id 기준으로 가장 최신 것만)
+      const registeredDeviceMap = new Map<string, { device_id: string; worker_name: string; site_id: any }>();
+      (registeredData || []).forEach((row: any) => {
+        // 현장 필터링: site_id가 NULL이 아니면 선택한 현장과 일치해야 함
+        if (row.site_id && row.site_id !== selectedSiteId) {
+          return;
+        }
+        if (row.device_id && row.worker_name && String(row.worker_name).trim().length > 0) {
+          // 이미 있는 기기면 더 최신 것만 유지
+          const existing = registeredDeviceMap.get(row.device_id);
+          if (!existing) {
+            registeredDeviceMap.set(row.device_id, {
+              device_id: row.device_id,
+              worker_name: row.worker_name,
+              site_id: row.site_id,
+            });
+          }
+        }
+      });
+      
+      const registeredDeviceIds = Array.from(registeredDeviceMap.keys());
+      console.log('📋 [HookMonitorLocal] 등록된 기기 목록:', registeredDeviceIds.length, '개', registeredDeviceIds);
+
+      // 2단계: 등록된 기기들의 최신 상태 데이터 조회
       let query = supabase
         .from('gori_status')
         .select(
-          'device_id, worker_name, left_sensor, right_sensor, status, updated_at, created_at, timestamp, site_id',
+          'device_id, worker_name, left_sensor, right_sensor, status, updated_at, created_at, site_id',
         )
         .order('updated_at', { ascending: false })
         .limit(1000);
@@ -475,7 +528,10 @@ export default function HookMonitorLocal() {
 
       const { data, error } = await query;
       if (error) throw error;
+      
       const byDevice: Record<string, GoriStatus & { __ts?: number }> = {};
+      
+      // 등록된 기기들의 최신 상태 데이터로 채우기
       (data || []).forEach((row: any) => {
         // 등록된 작업자만 표시
         if (!row.worker_name || String(row.worker_name).trim().length === 0)
@@ -485,31 +541,84 @@ export default function HookMonitorLocal() {
           return;
         }
         const key = row.device_id;
-        const tRaw = row.updated_at || row.created_at || row.timestamp;
+        const tRaw = row.updated_at || row.created_at;
         const ts = tRaw ? new Date(String(tRaw)).getTime() : 0;
         const prev = byDevice[key];
         if (!prev || ts >= (prev.__ts || 0)) {
           byDevice[key] = { ...(row as GoriStatus), __ts: ts };
         }
       });
+
+      // 3단계: 등록은 되어있지만 최신 데이터가 없는 기기도 포함
+      // (마지막 알려진 상태가 없으면 기본값으로 표시)
+      registeredDeviceIds.forEach(deviceId => {
+        if (!byDevice[deviceId]) {
+          // 등록은 되어있지만 최신 상태 데이터가 없는 경우
+          // 마지막 알려진 상태를 찾거나 기본값으로 생성
+          const lastKnown = sharedAllDevices.find(d => d.device_id === deviceId);
+          if (lastKnown) {
+            // 이전에 로드했던 데이터가 있으면 그것 사용
+            byDevice[deviceId] = { ...lastKnown, __ts: 0 };
+            console.log('📌 [HookMonitorLocal] 이전 데이터 사용:', deviceId, lastKnown.worker_name);
+          } else {
+            // 완전히 새로운 등록이면 기본값으로 생성
+            const registeredInfo = registeredDeviceMap.get(deviceId);
+            byDevice[deviceId] = {
+              device_id: deviceId,
+              worker_name: registeredInfo?.worker_name || deviceId,
+              left_sensor: false,
+              right_sensor: false,
+              status: null,
+              __ts: 0,
+            } as GoriStatus & { __ts?: number };
+            console.log('🆕 [HookMonitorLocal] 새 등록 기기 추가:', deviceId, registeredInfo?.worker_name);
+          }
+        }
+      });
+
       const list = Object.values(byDevice).sort(
-        (a: any, b: any) => (b.__ts || 0) - (a.__ts || 0),
+        (a: any, b: any) => {
+          // 최신 데이터가 있는 것 우선 정렬, 그 다음 등록된 순서
+          if ((b.__ts || 0) > 0 && (a.__ts || 0) === 0) return 1;
+          if ((a.__ts || 0) > 0 && (b.__ts || 0) === 0) return -1;
+          return (b.__ts || 0) - (a.__ts || 0);
+        },
       );
       sharedAllDevices = list as Array<GoriStatus>;
+      console.log('✅ [HookMonitorLocal] 최종 기기 목록:', sharedAllDevices.length, '개');
+      sharedAllDevices.forEach(d => {
+        console.log('  -', d.device_id, d.worker_name, 'updated_at:', (d as any).updated_at);
+      });
       setAllDevices(sharedAllDevices);
+      // 등록된 기기 존재 여부 업데이트
+      setAnyRegistered(sharedAllDevices.length > 0);
       // 초기 로드 시점에도 각 기기에 대해 미체결 알림 로직 연결
       sharedAllDevices.forEach(r => evaluateForAlert(r, r.device_id));
-    } catch {}
+    } catch (error) {
+      console.error('❌ [HookMonitorLocal] 기기 목록 로드 실패:', error);
+    }
   };
 
   // 전체 기기 실시간 구독
   useEffect(() => {
     if (!selectedSiteId) {
       // 현장이 선택되지 않았으면 구독하지 않음
+      console.log('⚠️ [HookMonitorLocal] 현장이 선택되지 않아 기기 목록을 로드하지 않음');
       return;
     }
 
+    console.log('🔄 [HookMonitorLocal] 기기 목록 로드 시작 (useEffect), 현장:', selectedSiteId);
     loadAllDevicesLatest();
+    
+    // 주기적으로 다시 로드 (30초마다) - 등록된 기기가 누락되는 경우 대비
+    const interval = setInterval(() => {
+      console.log('🔄 [HookMonitorLocal] 주기적 기기 목록 갱신');
+      loadAllDevicesLatest();
+    }, 30000);
+    
+    return () => {
+      clearInterval(interval);
+    };
     const ch = supabase
       .channel('gori-status-all-devices')
       .on(
@@ -536,21 +645,21 @@ export default function HookMonitorLocal() {
           setAllDevices(prev => {
             const tRaw =
               (row as any).updated_at ||
-              (row as any).created_at ||
-              (row as any).timestamp;
+              (row as any).created_at;
             const ts = tRaw ? new Date(String(tRaw)).getTime() : Date.now();
             const map: Record<string, any> = {};
+            // 기존 목록 유지 (등록된 기기는 제거하지 않음)
             prev.forEach((r: any) => {
               map[r.device_id] = r;
             });
-            if (!hasWorker) {
-              delete map[row.device_id];
-            } else {
+            
+            if (hasWorker && row.device_id) {
+              // 작업자가 등록된 기기는 항상 업데이트
               const ex: any = map[row.device_id];
               const exTs = ex
                 ? new Date(
                     String(
-                      ex.updated_at || ex.created_at || (ex as any).timestamp,
+                      ex.updated_at || ex.created_at,
                     ),
                   ).getTime()
                 : -1;
@@ -558,13 +667,30 @@ export default function HookMonitorLocal() {
                 map[row.device_id] = row;
               }
             }
+            // 작업자가 없는 기기는 제거하지 않음 (등록된 기기는 유지)
+            // 단, worker_name이 null로 변경된 경우에만 제거
+            if (!hasWorker && map[row.device_id]) {
+              const existing = map[row.device_id];
+              // 기존에 worker_name이 있었는데 이제 없어진 경우만 제거
+              if (existing.worker_name && String(existing.worker_name).trim().length > 0) {
+                // 등록된 기기는 유지 (worker_name이 null로 변경되어도 마지막 상태 유지)
+                // 제거하지 않음
+              } else {
+                // 처음부터 worker_name이 없었던 기기는 제거
+                delete map[row.device_id];
+              }
+            }
+            
             const list = Object.values(map).sort((a: any, b: any) => {
               const aTs = new Date(
-                String(a.updated_at || a.created_at || (a as any).timestamp),
+                String(a.updated_at || a.created_at),
               ).getTime();
               const bTs = new Date(
-                String(b.updated_at || b.created_at || (b as any).timestamp),
+                String(b.updated_at || b.created_at),
               ).getTime();
+              // 최신 데이터가 있는 것 우선 정렬
+              if (bTs > 0 && aTs === 0) return 1;
+              if (aTs > 0 && bTs === 0) return -1;
               return bTs - aTs;
             }) as Array<GoriStatus>;
             sharedAllDevices = list;
@@ -677,6 +803,14 @@ export default function HookMonitorLocal() {
             ) : (
               filteredDevices.map(item => {
                 const label = getStatusLabel(item);
+                // 최신 데이터가 있는지 확인 (updated_at이 최근 2분 이내인지)
+                const updatedAt = (item as any)?.updated_at ||
+                  (item as any)?.created_at;
+                const updateTime = updatedAt ? new Date(String(updatedAt)).getTime() : 0;
+                const now = Date.now();
+                const isRecent = updateTime > 0 && (now - updateTime) < 120000; // 2분 이내
+                const isConnected = isRecent || updateTime > 0;
+                
                 return (
                   <View
                     key={item.device_id}
@@ -688,14 +822,14 @@ export default function HookMonitorLocal() {
                       </Text>
                       <View style={styles.headerRight}>
                         <View
-                          style={[styles.dot, { backgroundColor: '#22c55e' }]}
+                          style={[styles.dot, { 
+                            backgroundColor: isConnected ? '#22c55e' : '#999' 
+                          }]}
                         />
                         <Text style={styles.timestampInline}>
-                          {formatKoreaTime(
-                            (item as any)?.updated_at ||
-                              (item as any)?.created_at ||
-                              (item as any)?.timestamp,
-                          )}
+                          {isConnected 
+                            ? formatKoreaTime(updatedAt)
+                            : '연결 끊김'}
                         </Text>
                       </View>
                     </View>
