@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import { LocalDeviceProvider } from '../src/context/LocalDeviceContext';
 import { useFonts } from 'expo-font'; 
 import * as SplashScreen from 'expo-splash-screen';
-import { Alert } from 'react-native'; 
+import { Alert, Platform, StatusBar } from 'react-native'; 
 import { setupNotificationListeners } from '../lib/notifications';
 
 SplashScreen.preventAutoHideAsync();
@@ -44,6 +44,12 @@ export default function Layout() {
 
   return (
     <LocalDeviceProvider>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="#EDF6EF"
+        translucent={false}
+        hidden={false}
+      />
       <Stack
         screenOptions={{
           headerShown: false,

@@ -12,15 +12,16 @@
       "image": "./assets/splash.png"
     },
     "icon": "./assets/app_logo.png",
-    "assetBundlePatterns": ["**/*"],
-    "packagerOpts": {
-      "config": "metro.config.js"
-    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.zerofall",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -56,7 +57,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "앱이 WiFi 네트워크를 확인하기 위해 위치 권한이 필요합니다."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "notification": {
       "icon": "./assets/app_logo.png",
