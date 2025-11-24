@@ -15,17 +15,14 @@ import { useTranslation } from 'react-i18next';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
 import { supabase } from '../../lib/supabase'; // Supabase 임포트
-
-// 사용할 폰트 이름 정의
-const FONT_REGULAR = 'NanumSquare-Regular';
-const FONT_BOLD = 'NanumSquare-Bold';
-const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 // ⭐️ 이 파일이 Expo Router에서 '/signup' 경로로 인식됩니다.
 export default function SignUpScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const fonts = useFontByLanguage();
 
   const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -132,7 +129,7 @@ export default function SignUpScreen() {
               styles.input,
               {
                 borderColor: lastName.length > 0 ? '#78C4B4' : '#D0D0D0',
-                fontFamily: FONT_REGULAR,
+                fontFamily: fonts.regular,
               },
             ]}
             placeholder={t('signup.lastName')}
@@ -143,13 +140,13 @@ export default function SignUpScreen() {
           />
 
           {/* 이름 */}
-          <Text style={styles.inputLabel}>{t('signup.firstName')}</Text>
+          <Text style={[styles.inputLabel, { fontFamily: fonts.regular }]}>{t('signup.firstName')}</Text>
           <TextInput
             style={[
               styles.input,
               {
                 borderColor: firstName.length > 0 ? '#78C4B4' : '#D0D0D0',
-                fontFamily: FONT_REGULAR,
+                fontFamily: fonts.regular,
               },
             ]}
             placeholder={t('signup.firstName')}
@@ -160,13 +157,13 @@ export default function SignUpScreen() {
           />
 
           {/* 소속 */}
-          <Text style={styles.inputLabel}>{t('signup.affiliation')}</Text>
+          <Text style={[styles.inputLabel, { fontFamily: fonts.regular }]}>{t('signup.affiliation')}</Text>
           <TextInput
             style={[
               styles.input,
               {
                 borderColor: affiliation.length > 0 ? '#78C4B4' : '#D0D0D0',
-                fontFamily: FONT_REGULAR,
+                fontFamily: fonts.regular,
               },
             ]}
             placeholder={t('signup.affiliationPlaceholder')}
@@ -177,13 +174,13 @@ export default function SignUpScreen() {
           />
 
           {/* 이메일 주소 */}
-          <Text style={styles.inputLabel}>{t('signup.email')}</Text>
+          <Text style={[styles.inputLabel, { fontFamily: fonts.regular }]}>{t('signup.email')}</Text>
           <TextInput
             style={[
               styles.input,
               {
                 borderColor: email.length > 0 ? '#78C4B4' : '#D0D0D0',
-                fontFamily: FONT_REGULAR,
+                fontFamily: fonts.regular,
               },
             ]}
             placeholder="example@email.com"
@@ -195,7 +192,7 @@ export default function SignUpScreen() {
           />
 
           {/* 비밀번호 */}
-          <Text style={styles.inputLabel}>{t('signup.password')} {t('signup.passwordMinLength')}</Text>
+          <Text style={[styles.inputLabel, { fontFamily: fonts.regular }]}>{t('signup.password')} {t('signup.passwordMinLength')}</Text>
           <View
             style={[
               styles.passwordContainer,
@@ -212,7 +209,7 @@ export default function SignUpScreen() {
             <TextInput
               style={[
                 styles.passwordInput,
-                { fontFamily: showPassword ? FONT_REGULAR : undefined },
+                { fontFamily: showPassword ? fonts.regular : undefined },
               ]}
               placeholder={t('signup.password')}
               placeholderTextColor="#999"
@@ -234,7 +231,7 @@ export default function SignUpScreen() {
           </View>
 
           {/* 비밀번호 확인 */}
-          <Text style={styles.inputLabel}>{t('signup.confirmPassword')}</Text>
+          <Text style={[styles.inputLabel, { fontFamily: fonts.regular }]}>{t('signup.confirmPassword')}</Text>
           <View
             style={[
               styles.passwordContainer,
@@ -251,7 +248,7 @@ export default function SignUpScreen() {
             <TextInput
               style={[
                 styles.passwordInput,
-                { fontFamily: showConfirmPassword ? FONT_REGULAR : undefined },
+                { fontFamily: showConfirmPassword ? fonts.regular : undefined },
               ]}
               placeholder={t('signup.confirmPassword')}
               placeholderTextColor="#999"
@@ -289,10 +286,10 @@ export default function SignUpScreen() {
           {/* 하단 로그인 링크 */}
           <View style={styles.footer}>
             <View style={styles.signInLinkContainer}>
-              <Text style={styles.footerText}>{t('signup.alreadyHaveAccount')}</Text>
+              <Text style={[styles.footerText, { fontFamily: fonts.regular }]}>{t('signup.alreadyHaveAccount')}</Text>
               {/* ⭐️ [핵심] 로그인 페이지로 push하여 뒤로가기 버튼이 생기게 함 */}
               <TouchableOpacity onPress={goToSignIn}>
-                <Text style={styles.signInText}>{t('signup.signInLink')}</Text>
+                <Text style={[styles.signInText, { fontFamily: fonts.bold }]}>{t('signup.signInLink')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -330,22 +327,19 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 8,
     alignSelf: 'flex-start',
-    fontFamily: FONT_EXTRABOLD,
-  },
+      },
   subtitle: {
     fontSize: 16,
     color: '#555',
     marginBottom: 30,
     alignSelf: 'flex-start',
-    fontFamily: FONT_REGULAR,
-  },
+      },
   inputLabel: {
     alignSelf: 'flex-start',
     fontSize: 14,
     color: '#555',
     marginBottom: 8,
-    fontFamily: FONT_REGULAR,
-    width: '100%',
+        width: '100%',
   },
   input: {
     backgroundColor: '#fff',
@@ -397,8 +391,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '700',
-    fontFamily: FONT_BOLD,
-  },
+      },
   footer: {
     width: '100%',
     alignItems: 'center',
@@ -412,13 +405,11 @@ const styles = StyleSheet.create({
   footerText: {
     color: '#666',
     fontSize: 14,
-    fontFamily: FONT_REGULAR,
-    marginRight: 5,
+        marginRight: 5,
   },
   signInText: {
     color: '#78C4B4',
     fontSize: 14,
     fontWeight: '700',
-    fontFamily: FONT_BOLD,
-  },
+      },
 });

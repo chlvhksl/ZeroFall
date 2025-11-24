@@ -22,6 +22,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
 import {
     AccessibleSite,
     clearSelectedSite,
@@ -40,15 +41,13 @@ import { supabase } from '../../lib/supabase';
 // 이미지 import
 import LogoutImage from '../../assets/logout.png';
 
-// 폰트 설정
-const FONT_REGULAR = 'NanumSquare-Regular';
-const FONT_BOLD = 'NanumSquare-Bold';
-const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
+// 폰트는 useFontByLanguage 훅으로 동적으로 가져옵니다
 
 export default function SiteSelectScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const fonts = useFontByLanguage();
   const [loading, setLoading] = useState(true);
   const [sites, setSites] = useState<AccessibleSite[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
@@ -519,7 +518,7 @@ export default function SiteSelectScreen() {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>현장 목록을 불러오는 중...</Text>
+          <Text style={[styles.loadingText, { fontFamily: fonts.regular }]}>{t('siteSelect.loading')}</Text>
         </View>
       </View>
     );
@@ -579,10 +578,10 @@ export default function SiteSelectScreen() {
               onPress={() => router.push('/add-site')}
             >
               <Ionicons name="add" size={20} color="#FFF" />
-              <Text style={styles.addButtonHeaderText}>{t('siteSelect.addSite')}</Text>
+              <Text style={[styles.addButtonHeaderText, { fontFamily: fonts.bold }]}>{t('siteSelect.addSite')}</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { fontFamily: fonts.regular }]}>
             {t('siteSelect.subtitle')}
           </Text>
         </View>
@@ -882,7 +881,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_BOLD,
   },
   actionModeButtonTextActive: {
     color: '#FF3B30',
@@ -905,8 +903,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#666',
-    fontFamily: FONT_REGULAR,
-  },
+      },
   scrollView: {
     flex: 1,
   },
@@ -927,12 +924,10 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_EXTRABOLD,
   },
   subtitle: {
     fontSize: 16,
     color: '#666',
-    fontFamily: FONT_REGULAR,
     marginBottom: 16,
   },
   addButtonHeader: {
@@ -950,8 +945,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#FFF',
-    fontFamily: FONT_BOLD,
-  },
+      },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -970,8 +964,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: '#000',
-    fontFamily: FONT_REGULAR,
-    padding: 0,
+        padding: 0,
   },
   clearButton: {
     marginLeft: 8,
@@ -1050,8 +1043,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_BOLD,
-    marginRight: 8,
+        marginRight: 8,
   },
   defaultBadge: {
     backgroundColor: '#FFD700',
@@ -1064,8 +1056,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_BOLD,
-  },
+      },
   roleBadge: {
     backgroundColor: '#E0E0E0',
     paddingHorizontal: 8,
@@ -1076,13 +1067,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     color: '#666',
-    fontFamily: FONT_BOLD,
-  },
+      },
   siteDescription: {
     fontSize: 14,
     color: '#666',
-    fontFamily: FONT_REGULAR,
-    marginTop: 4,
+        marginTop: 4,
   },
   deleteButton: {
     width: 44,
@@ -1125,8 +1114,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#FFF',
-    fontFamily: FONT_BOLD,
-  },
+      },
   leaveSelectedButton: {
     backgroundColor: '#FF9500',
     borderRadius: 12,
@@ -1146,8 +1134,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#FFF',
-    fontFamily: FONT_BOLD,
-  },
+      },
   infoContainer: {
     backgroundColor: '#FFF',
     borderRadius: 12,
@@ -1158,8 +1145,7 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     color: '#666',
-    fontFamily: FONT_REGULAR,
-    marginBottom: 8,
+        marginBottom: 8,
     lineHeight: 20,
   },
   emptyContainer: {
@@ -1175,22 +1161,19 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_BOLD,
-    marginBottom: 12,
+        marginBottom: 12,
   },
   emptyText: {
     fontSize: 16,
     color: '#666',
-    fontFamily: FONT_REGULAR,
-    textAlign: 'center',
+        textAlign: 'center',
     marginBottom: 8,
     lineHeight: 24,
   },
   emptySubtext: {
     fontSize: 14,
     color: '#999',
-    fontFamily: FONT_REGULAR,
-    textAlign: 'center',
+        textAlign: 'center',
     lineHeight: 20,
   },
   footer: {
@@ -1219,8 +1202,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#FFF',
-    fontFamily: FONT_BOLD,
-    marginLeft: 8,
+        marginLeft: 8,
   },
   modalOverlay: {
     flex: 1,
@@ -1239,14 +1221,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_BOLD,
-    marginBottom: 8,
+        marginBottom: 8,
   },
   modalSubtitle: {
     fontSize: 14,
     color: '#666',
-    fontFamily: FONT_REGULAR,
-    marginBottom: 20,
+        marginBottom: 20,
   },
   modalInput: {
     borderWidth: 2,
@@ -1254,8 +1234,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    fontFamily: FONT_REGULAR,
-    backgroundColor: '#FFF',
+        backgroundColor: '#FFF',
     color: '#000',
     marginBottom: 20,
   },
@@ -1285,13 +1264,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_BOLD,
-  },
+      },
   modalButtonConfirmText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFF',
-    fontFamily: FONT_BOLD,
-  },
+      },
 });
 

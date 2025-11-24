@@ -26,14 +26,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 
-// 폰트 설정
-const FONT_REGULAR = 'NanumSquare-Regular';
-const FONT_BOLD = 'NanumSquare-Bold';
-const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
 
 export default function EditProfileScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const fonts = useFontByLanguage();
   const insets = useSafeAreaInsets();
 
   const [lastName, setLastName] = useState('');
@@ -158,19 +156,19 @@ export default function EditProfileScreen() {
             >
               <Ionicons name="arrow-back" size={24} color="#000" />
             </TouchableOpacity>
-            <Text style={styles.title}>{t('editProfile.title')}</Text>
+            <Text style={[styles.title, { fontFamily: fonts.extraBold }]}>{t('editProfile.title')}</Text>
             <View style={styles.placeholder} />
           </View>
 
           {/* 성 */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>{t('editProfile.lastName')}</Text>
+            <Text style={[styles.inputLabel, { fontFamily: fonts.regular }]}>{t('editProfile.lastName')}</Text>
             <TextInput
               style={[
                 styles.input,
                 {
                   borderColor: lastName.length > 0 ? '#78C4B4' : '#D0D0D0',
-                  fontFamily: FONT_REGULAR,
+                  fontFamily: fonts.regular,
                 },
               ]}
               placeholder={t('editProfile.lastNamePlaceholder')}
@@ -183,13 +181,13 @@ export default function EditProfileScreen() {
 
           {/* 이름 */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>{t('editProfile.firstName')}</Text>
+            <Text style={[styles.inputLabel, { fontFamily: fonts.regular }]}>{t('editProfile.firstName')}</Text>
             <TextInput
               style={[
                 styles.input,
                 {
                   borderColor: firstName.length > 0 ? '#78C4B4' : '#D0D0D0',
-                  fontFamily: FONT_REGULAR,
+                  fontFamily: fonts.regular,
                 },
               ]}
               placeholder={t('editProfile.firstNamePlaceholder')}
@@ -202,13 +200,13 @@ export default function EditProfileScreen() {
 
           {/* 소속 */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>{t('editProfile.affiliation')}</Text>
+            <Text style={[styles.inputLabel, { fontFamily: fonts.regular }]}>{t('editProfile.affiliation')}</Text>
             <TextInput
               style={[
                 styles.input,
                 {
                   borderColor: affiliation.length > 0 ? '#78C4B4' : '#D0D0D0',
-                  fontFamily: FONT_REGULAR,
+                  fontFamily: fonts.regular,
                 },
               ]}
               placeholder={t('editProfile.affiliationPlaceholder')}
@@ -271,8 +269,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_EXTRABOLD,
-  },
+      },
   placeholder: {
     width: 40,
   },
@@ -282,8 +279,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     color: '#000',
-    fontFamily: FONT_BOLD,
-    marginBottom: 8,
+        marginBottom: 8,
   },
   input: {
     backgroundColor: '#FFF',
@@ -311,8 +307,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_BOLD,
-  },
+      },
   submitButtonTextDisabled: {
     color: '#666',
   },

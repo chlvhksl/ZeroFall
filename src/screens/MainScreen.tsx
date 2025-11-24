@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { getSelectedSite } from '../../lib/siteManagement';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
 import HookMonitorLocal from './HookMonitorLocal';
 import NotificationHistoryScreen from './NotificationHistoryScreen';
 import SettingsScreen from './SettingsScreen';
@@ -21,11 +22,6 @@ import SettingsScreen from './SettingsScreen';
 import DashboardImage from '../../assets/dashboard.png';
 import LogoutImage from '../../assets/logout.png';
 
-// 폰트 설정
-const FONT_REGULAR = 'NanumSquare-Regular';
-const FONT_BOLD = 'NanumSquare-Bold';
-const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
-
 // 탭 타입 정의
 type TabType = 'dashboard' | 'notification' | 'settings';
 
@@ -33,6 +29,7 @@ export default function MainScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const fonts = useFontByLanguage();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [adminInfo, setAdminInfo] = useState({ affiliation: '', name: '' });
   const [currentSite, setCurrentSite] = useState<string | null>(null);
@@ -149,7 +146,7 @@ export default function MainScreen() {
 
       {/* 타이틀 및 관리자 정보 */}
       <View style={styles.titleContainer}>
-        <Text style={styles.title}>ZeroFall</Text>
+        <Text style={[styles.title, { fontFamily: fonts.extraBold }]}>ZeroFall</Text>
         <View style={styles.infoContainer}>
           {currentSite && (
             <TouchableOpacity
@@ -160,12 +157,9 @@ export default function MainScreen() {
               }}
               activeOpacity={0.7}
             >
-              <Text style={styles.siteBadgeText}>{t('main.site')}: {currentSite}</Text>
+              <Text style={[styles.siteBadgeText, { fontFamily: fonts.bold }]}>{t('main.site')}: {currentSite}</Text>
             </TouchableOpacity>
           )}
-          <Text style={styles.adminInfo}>
-            {adminInfo.affiliation}-{adminInfo.name}
-          </Text>
         </View>
       </View>
       <View style={styles.divider} />
@@ -200,7 +194,7 @@ export default function MainScreen() {
           <Text
             style={[
               styles.tabText,
-              activeTab === 'dashboard' && styles.activeTabText,
+              { fontFamily: activeTab === 'dashboard' ? fonts.bold : fonts.regular },
             ]}
           >
             {t('main.dashboard')}
@@ -222,7 +216,7 @@ export default function MainScreen() {
           <Text
             style={[
               styles.tabText,
-              activeTab === 'notification' && styles.activeTabText,
+              { fontFamily: activeTab === 'notification' ? fonts.bold : fonts.regular },
             ]}
           >
             {t('main.notificationHistory')}
@@ -244,7 +238,7 @@ export default function MainScreen() {
           <Text
             style={[
               styles.tabText,
-              activeTab === 'settings' && styles.activeTabText,
+              { fontFamily: activeTab === 'settings' ? fonts.bold : fonts.regular },
             ]}
           >
             {t('main.settings')}
@@ -298,8 +292,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_EXTRABOLD,
-  },
+      },
   infoContainer: {
     alignItems: 'flex-end',
     gap: 4,
@@ -316,13 +309,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#FFF',
-    fontFamily: FONT_BOLD,
-  },
+      },
   adminInfo: {
     fontSize: 24,
     color: '#000',
-    fontFamily: FONT_REGULAR,
-  },
+      },
   divider: {
     height: 1,
     backgroundColor: '#000',
@@ -347,14 +338,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_BOLD,
-    marginBottom: 10,
+        marginBottom: 10,
   },
   contentSubText: {
     fontSize: 14,
     color: '#666',
-    fontFamily: FONT_REGULAR,
-    textAlign: 'center',
+        textAlign: 'center',
     marginTop: 20,
   },
   buttonContainer: {
@@ -374,8 +363,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_BOLD,
-  },
+      },
 
   // 하단 탭 네비게이션
   bottomTabContainer: {
@@ -418,11 +406,10 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 14,
     color: '#000',
-    fontFamily: FONT_REGULAR,
     zIndex: 1,
   },
   activeTabText: {
-    fontFamily: FONT_BOLD,
+    // fontFamily는 인라인으로 적용
   },
   tabDivider: {
     width: 2,

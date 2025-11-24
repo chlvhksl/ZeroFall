@@ -14,16 +14,13 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
 import { supabase } from '../../lib/supabase';
-
-// ⭐️ 사용할 폰트 이름 정의
-const FONT_REGULAR = 'NanumSquare-Regular';
-const FONT_BOLD = 'NanumSquare-Bold';
-const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 export default function ForgotPasswordScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const fonts = useFontByLanguage();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'email' | 'code' | 'newPassword'>('email');
@@ -163,7 +160,7 @@ export default function ForgotPasswordScreen() {
           </TouchableOpacity>
 
           {/* 제목 */}
-          <Text style={styles.title}>
+          <Text style={[styles.title, { fontFamily: fonts.extraBold }]}>
             {step === 'email' ? t('forgotPassword.title') : t('forgotPassword.resetPassword')}
           </Text>
           
@@ -171,7 +168,7 @@ export default function ForgotPasswordScreen() {
           {step === 'email' && (
             <>
               {/* 안내 문구 */}
-              <Text style={styles.description}>
+              <Text style={[styles.description, { fontFamily: fonts.regular }]}>
                 {t('forgotPassword.subtitle')}
               </Text>
 
@@ -196,7 +193,7 @@ export default function ForgotPasswordScreen() {
                 onPress={handleSendResetEmail}
                 disabled={loading}
               >
-                <Text style={styles.submitButtonText}>
+                <Text style={[styles.submitButtonText, { fontFamily: fonts.bold }]}>
                   {loading ? t('common.loading') : t('forgotPassword.sendCode')}
                 </Text>
               </TouchableOpacity>
@@ -207,7 +204,7 @@ export default function ForgotPasswordScreen() {
           {step === 'code' && (
             <>
               {/* 안내 문구 */}
-              <Text style={styles.description}>
+              <Text style={[styles.description, { fontFamily: fonts.regular }]}>
                 {t('forgotPassword.codeSentMessage', { email })}
               </Text>
 
@@ -215,7 +212,7 @@ export default function ForgotPasswordScreen() {
               <TextInput
                 style={[
                   styles.input,
-                  { borderColor: verificationCode ? '#5FCCC4' : '#D0D0D0' }
+                  { borderColor: verificationCode ? '#5FCCC4' : '#D0D0D0', fontFamily: fonts.regular }
                 ]}
                 placeholder={t('forgotPassword.codePlaceholder')}
                 placeholderTextColor="#999"
@@ -232,7 +229,7 @@ export default function ForgotPasswordScreen() {
                 { borderColor: newPassword ? '#5FCCC4' : '#D0D0D0' }
               ]}>
                 <TextInput
-                  style={[styles.passwordInput, { fontFamily: showNewPassword ? FONT_REGULAR : undefined }]}
+                  style={[styles.passwordInput, { fontFamily: showNewPassword ? fonts.regular : undefined }]}
                   placeholder={t('forgotPassword.newPasswordPlaceholder')}
                   placeholderTextColor="#999"
                   value={newPassword}
@@ -258,7 +255,7 @@ export default function ForgotPasswordScreen() {
                 { borderColor: confirmPassword ? '#5FCCC4' : '#D0D0D0' }
               ]}>
                 <TextInput
-                  style={[styles.passwordInput, { fontFamily: showConfirmPassword ? FONT_REGULAR : undefined }]}
+                  style={[styles.passwordInput, { fontFamily: showConfirmPassword ? fonts.regular : undefined }]}
                   placeholder={t('forgotPassword.confirmPasswordPlaceholder')}
                   placeholderTextColor="#999"
                   value={confirmPassword}
@@ -284,7 +281,7 @@ export default function ForgotPasswordScreen() {
                 onPress={handleVerifyAndResetPassword}
                 disabled={loading}
               >
-                <Text style={styles.submitButtonText}>
+                <Text style={[styles.submitButtonText, { fontFamily: fonts.bold }]}>
                   {loading ? t('common.loading') : t('forgotPassword.changePassword')}
                 </Text>
               </TouchableOpacity>
@@ -299,7 +296,7 @@ export default function ForgotPasswordScreen() {
                   setConfirmPassword('');
                 }}
               >
-                <Text style={styles.resendButtonText}>{t('forgotPassword.resendCode')}</Text>
+                <Text style={[styles.resendButtonText, { fontFamily: fonts.regular }]}>{t('forgotPassword.resendCode')}</Text>
               </TouchableOpacity>
             </>
           )}

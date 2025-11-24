@@ -23,10 +23,7 @@ import { supabase } from '../../lib/supabase';
 import { formatKoreaTime } from '../../lib/utils';
 import { useLocalDevice } from '../context/LocalDeviceContext';
 
-// 폰트 설정
-const FONT_REGULAR = 'NanumSquare-Regular';
-const FONT_BOLD = 'NanumSquare-Bold';
-const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
 
 type NotificationRow = {
   id: number;
@@ -40,6 +37,7 @@ type NotificationRow = {
 export default function NotificationHistoryScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const fonts = useFontByLanguage();
   const { status: localConnStatus } = useLocalDevice();
 
   const [loading, setLoading] = useState(true);
@@ -158,7 +156,7 @@ export default function NotificationHistoryScreen() {
     >
       {/* 헤더 */}
       <View style={styles.header}>
-        <Text style={styles.title}>🔔 {t('notification.title')}</Text>
+        <Text style={[styles.title, { fontFamily: fonts.extraBold }]}>🔔 {t('notification.title')}</Text>
       </View>
 
       {/* 원격(Supabase) 알림 내역 – Realtime 상태 배지는 숨김 */}
@@ -166,7 +164,7 @@ export default function NotificationHistoryScreen() {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator />
-          <Text style={styles.loadingText}>알림을 불러오는 중…</Text>
+          <Text style={[styles.loadingText, { fontFamily: fonts.regular }]}>{t('notification.loading')}</Text>
         </View>
       ) : items.length > 0 ? (
         // 보이는 수준에서도 초단위 중복 제거
@@ -203,7 +201,7 @@ export default function NotificationHistoryScreen() {
           ))
       ) : (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>{t('notification.noNotifications')}</Text>
+          <Text style={[styles.emptyText, { fontFamily: fonts.regular }]}>{t('notification.noNotifications')}</Text>
         </View>
       )}
     </ScrollView>
@@ -226,8 +224,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_EXTRABOLD,
-    marginBottom: 12,
+        marginBottom: 12,
   },
   connectionBadge: {
     flexDirection: 'row',
@@ -248,8 +245,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    fontFamily: FONT_BOLD,
-  },
+      },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -260,8 +256,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#666',
-    fontFamily: FONT_REGULAR,
-  },
+      },
   statusItem: {
     backgroundColor: '#fff',
     padding: 12,
@@ -273,8 +268,7 @@ const styles = StyleSheet.create({
   deviceName: {
     fontSize: 14,
     color: '#999',
-    fontFamily: FONT_REGULAR,
-    marginBottom: 4,
+        marginBottom: 4,
   },
   statusItemHeader: {
     flexDirection: 'row',
@@ -291,19 +285,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
-    fontFamily: FONT_BOLD,
-    flex: 1,
+        flex: 1,
   },
   statusItemTime: {
     fontSize: 12,
     color: '#666',
-    fontFamily: FONT_REGULAR,
-  },
+      },
   statusItemDetail: {
     fontSize: 14,
     color: '#666',
-    fontFamily: FONT_REGULAR,
-    marginLeft: 16,
+        marginLeft: 16,
   },
   emptyContainer: {
     backgroundColor: '#fff',
@@ -316,7 +307,6 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: '#999',
-    fontFamily: FONT_REGULAR,
-    textAlign: 'center',
+        textAlign: 'center',
   },
 });

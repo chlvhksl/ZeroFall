@@ -17,14 +17,11 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
 import { supabase } from '../../lib/supabase';
 import { formatKoreaTime } from '../../lib/utils';
-
-// 폰트 설정
-const FONT_REGULAR = 'NanumSquare-Regular';
-const FONT_BOLD = 'NanumSquare-Bold';
-const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 interface HookStatus {
   id: number;
@@ -36,7 +33,9 @@ interface HookStatus {
 }
 
 export default function HookMonitorScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const fonts = useFontByLanguage();
   const [currentStatus, setCurrentStatus] = useState<HookStatus | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -140,7 +139,7 @@ export default function HookMonitorScreen() {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#78C4B4" />
-          <Text style={styles.loadingText}>데이터 로딩 중...</Text>
+          <Text style={[styles.loadingText, { fontFamily: fonts.regular }]}>{t('dashboard.loading')}</Text>
         </View>
       </View>
     );
@@ -253,8 +252,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#666',
-    fontFamily: FONT_REGULAR,
-  },
+      },
   connectionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -275,8 +273,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    fontFamily: FONT_BOLD,
-  },
+      },
   statusCard: {
     backgroundColor: '#fff',
     padding: 24,
@@ -289,8 +286,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#666',
-    fontFamily: FONT_BOLD,
-    marginBottom: 16,
+        marginBottom: 16,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -310,8 +306,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
-    fontFamily: FONT_EXTRABOLD,
-  },
+      },
   sensorRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -325,8 +320,7 @@ const styles = StyleSheet.create({
   sensorLabel: {
     fontSize: 14,
     color: '#666',
-    fontFamily: FONT_REGULAR,
-    marginBottom: 8,
+        marginBottom: 8,
   },
   sensorBadge: {
     paddingHorizontal: 16,
@@ -341,15 +335,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
-    fontFamily: FONT_BOLD,
-  },
+      },
   timestamp: {
     fontSize: 12,
     color: '#999',
     textAlign: 'center',
     marginTop: 12,
-    fontFamily: FONT_REGULAR,
-  },
+      },
   noDataCard: {
     backgroundColor: '#fff',
     padding: 40,
@@ -363,15 +355,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
-    fontFamily: FONT_BOLD,
-    marginBottom: 12,
+        marginBottom: 12,
     textAlign: 'center',
   },
   noDataSubText: {
     fontSize: 14,
     color: '#666',
-    fontFamily: FONT_REGULAR,
-    textAlign: 'center',
+        textAlign: 'center',
     lineHeight: 20,
   },
   infoCard: {
@@ -384,8 +374,7 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     color: '#333',
-    fontFamily: FONT_REGULAR,
-    textAlign: 'center',
+        textAlign: 'center',
     lineHeight: 20,
   },
 });

@@ -9,32 +9,30 @@
 
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
 import { useTranslation } from 'react-i18next';
+import {
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 
-// 폰트 설정
-const FONT_REGULAR = 'NanumSquare-Regular';
-const FONT_BOLD = 'NanumSquare-Bold';
-const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
 
 export default function ChangePasswordScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const fonts = useFontByLanguage();
   const insets = useSafeAreaInsets();
 
   const [currentPassword, setCurrentPassword] = useState('');
@@ -157,7 +155,7 @@ export default function ChangePasswordScreen() {
             >
               <Ionicons name="arrow-back" size={24} color="#000" />
             </TouchableOpacity>
-            <Text style={styles.title}>{t('changePassword.title')}</Text>
+            <Text style={[styles.title, { fontFamily: fonts.extraBold }]}>{t('changePassword.title')}</Text>
             <View style={styles.placeholder} />
           </View>
 
@@ -171,7 +169,7 @@ export default function ChangePasswordScreen() {
                   {
                     borderColor:
                       currentPassword.length > 0 ? '#78C4B4' : '#D0D0D0',
-                    fontFamily: showCurrentPassword ? FONT_REGULAR : undefined,
+                    fontFamily: showCurrentPassword ? fonts.regular : undefined,
                   },
                 ]}
                 placeholder={t('changePassword.currentPasswordPlaceholder')}
@@ -196,14 +194,14 @@ export default function ChangePasswordScreen() {
 
           {/* 새 비밀번호 */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>{t('changePassword.newPassword')}</Text>
+            <Text style={[styles.inputLabel, { fontFamily: fonts.regular }]}>{t('changePassword.newPassword')}</Text>
             <View style={styles.passwordContainer}>
               <TextInput
                 style={[
                   styles.input,
                   {
                     borderColor: newPassword.length > 0 ? '#78C4B4' : '#D0D0D0',
-                    fontFamily: showNewPassword ? FONT_REGULAR : undefined,
+                    fontFamily: showNewPassword ? fonts.regular : undefined,
                   },
                 ]}
                 placeholder={t('changePassword.newPasswordPlaceholder')}
@@ -228,7 +226,7 @@ export default function ChangePasswordScreen() {
 
           {/* 비밀번호 확인 */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>{t('changePassword.confirmPassword')}</Text>
+            <Text style={[styles.inputLabel, { fontFamily: fonts.regular }]}>{t('changePassword.confirmPassword')}</Text>
             <View style={styles.passwordContainer}>
               <TextInput
                 style={[
@@ -236,7 +234,7 @@ export default function ChangePasswordScreen() {
                   {
                     borderColor:
                       confirmPassword.length > 0 ? '#78C4B4' : '#D0D0D0',
-                    fontFamily: showConfirmPassword ? FONT_REGULAR : undefined,
+                    fontFamily: showConfirmPassword ? fonts.regular : undefined,
                   },
                 ]}
                 placeholder={t('changePassword.confirmPasswordPlaceholder')}
@@ -277,10 +275,11 @@ export default function ChangePasswordScreen() {
             <Text
               style={[
                 styles.submitButtonText,
+                { fontFamily: fonts.bold },
                 (!isFormValid || loading) && styles.submitButtonTextDisabled,
               ]}
             >
-              {loading ? '변경 중...' : '비밀번호 변경'}
+              {loading ? t('common.changing') : t('changePassword.change')}
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -317,8 +316,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_EXTRABOLD,
-  },
+      },
   placeholder: {
     width: 40,
   },
@@ -328,8 +326,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     color: '#000',
-    fontFamily: FONT_BOLD,
-    marginBottom: 8,
+        marginBottom: 8,
   },
   passwordContainer: {
     position: 'relative',
@@ -354,8 +351,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 14,
     color: '#ef4444',
-    fontFamily: FONT_REGULAR,
-    marginTop: 4,
+        marginTop: 4,
   },
   submitButton: {
     backgroundColor: '#78C4B4',
@@ -374,8 +370,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_BOLD,
-  },
+      },
   submitButtonTextDisabled: {
     color: '#666',
   },

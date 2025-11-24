@@ -21,14 +21,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { createSite } from '../../lib/siteManagement';
 
-// 폰트 설정
-const FONT_REGULAR = 'NanumSquare-Regular';
-const FONT_BOLD = 'NanumSquare-Bold';
-const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
 
 export default function AddSiteScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const fonts = useFontByLanguage();
   const insets = useSafeAreaInsets();
   const [companyName, setCompanyName] = useState('');
   const [siteName, setSiteName] = useState('');
@@ -128,22 +126,22 @@ export default function AddSiteScreen() {
           >
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.title}>{t('addSite.title')}</Text>
+          <Text style={[styles.title, { fontFamily: fonts.extraBold }]}>{t('addSite.title')}</Text>
           <View style={styles.placeholder} />
         </View>
 
         {/* 안내 문구 */}
         <View style={styles.infoBox}>
-          <Text style={styles.infoText}>
-            💡 새로운 현장을 추가하면 자동으로 해당 현장의 관리자 권한을 받게 됩니다.
+          <Text style={[styles.infoText, { fontFamily: fonts.regular }]}>
+            {t('addSite.infoText')}
           </Text>
         </View>
 
         {/* 기업명 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.label}>{t('addSite.companyName')} *</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bold }]}>{t('addSite.companyName')} *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { fontFamily: fonts.regular }]}
             value={companyName}
             onChangeText={setCompanyName}
             placeholder={t('addSite.companyNamePlaceholder')}
@@ -151,33 +149,33 @@ export default function AddSiteScreen() {
             maxLength={30}
             autoFocus
           />
-          <Text style={styles.helperText}>
-            {companyName.length}/30자
+          <Text style={[styles.helperText, { fontFamily: fonts.regular }]}>
+            {t('addSite.characterCounter', { current: companyName.length, max: 30 })}
           </Text>
         </View>
 
         {/* 현장명 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.label}>{t('addSite.siteName')} *</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bold }]}>{t('addSite.siteName')} *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { fontFamily: fonts.regular }]}
             value={siteName}
             onChangeText={setSiteName}
             placeholder={t('addSite.siteNamePlaceholder')}
             placeholderTextColor="#999"
             maxLength={30}
           />
-          <Text style={styles.helperText}>
-            {siteName.length}/30자
+          <Text style={[styles.helperText, { fontFamily: fonts.regular }]}>
+            {t('addSite.characterCounter', { current: siteName.length, max: 30 })}
           </Text>
         </View>
 
         {/* 비밀번호 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.label}>{t('addSite.password')} *</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bold }]}>{t('addSite.password')} *</Text>
           <View style={styles.passwordContainer}>
             <TextInput
-              style={[styles.passwordInput, { fontFamily: showPassword ? FONT_REGULAR : undefined }]}
+              style={[styles.passwordInput, { fontFamily: showPassword ? fonts.regular : undefined }]}
               value={password}
               onChangeText={setPassword}
               placeholder={t('addSite.passwordPlaceholder')}
@@ -196,17 +194,17 @@ export default function AddSiteScreen() {
               />
             </TouchableOpacity>
           </View>
-          <Text style={styles.helperText}>
-            {password.length}/50자 (최소 4자)
+          <Text style={[styles.helperText, { fontFamily: fonts.regular }]}>
+            {t('addSite.passwordCharacterCounter', { current: password.length, max: 50, min: 4 })}
           </Text>
         </View>
 
         {/* 비밀번호 확인 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.label}>{t('addSite.confirmPassword')} *</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bold }]}>{t('addSite.confirmPassword')} *</Text>
           <View style={styles.passwordContainer}>
             <TextInput
-              style={[styles.passwordInput, { fontFamily: showConfirmPassword ? FONT_REGULAR : undefined }]}
+              style={[styles.passwordInput, { fontFamily: showConfirmPassword ? fonts.regular : undefined }]}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               placeholder={t('addSite.confirmPasswordPlaceholder')}
@@ -229,9 +227,9 @@ export default function AddSiteScreen() {
 
         {/* 현장 설명 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.label}>{t('addSite.description')} (선택사항)</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bold }]}>{t('addSite.description')} {t('addSite.optional')}</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
+            style={[styles.input, styles.textArea, { fontFamily: fonts.regular }]}
             value={description}
             onChangeText={setDescription}
             placeholder={t('addSite.descriptionPlaceholder')}
@@ -241,8 +239,8 @@ export default function AddSiteScreen() {
             maxLength={200}
             textAlignVertical="top"
           />
-          <Text style={styles.helperText}>
-            {description.length}/200자
+          <Text style={[styles.helperText, { fontFamily: fonts.regular }]}>
+            {t('addSite.characterCounter', { current: description.length, max: 200 })}
           </Text>
         </View>
 
@@ -255,7 +253,7 @@ export default function AddSiteScreen() {
           onPress={handleCreateSite}
           disabled={!companyName.trim() || !siteName.trim() || !password.trim() || !confirmPassword.trim() || loading}
         >
-          <Text style={styles.createButtonText}>
+          <Text style={[styles.createButtonText, { fontFamily: fonts.bold }]}>
             {loading ? t('common.loading') : t('addSite.create')}
           </Text>
         </TouchableOpacity>
@@ -292,8 +290,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_EXTRABOLD,
-  },
+      },
   placeholder: {
     width: 40,
   },
@@ -308,8 +305,7 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     color: '#666',
-    fontFamily: FONT_REGULAR,
-    lineHeight: 20,
+        lineHeight: 20,
   },
   inputSection: {
     marginBottom: 24,
@@ -318,8 +314,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_BOLD,
-    marginBottom: 8,
+        marginBottom: 8,
   },
   input: {
     backgroundColor: '#FFF',
@@ -329,8 +324,7 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     color: '#000',
-    fontFamily: FONT_REGULAR,
-  },
+      },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -344,8 +338,7 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     color: '#000',
-    fontFamily: FONT_REGULAR,
-  },
+      },
   eyeButton: {
     padding: 16,
     justifyContent: 'center',
@@ -358,8 +351,7 @@ const styles = StyleSheet.create({
   helperText: {
     fontSize: 12,
     color: '#666',
-    fontFamily: FONT_REGULAR,
-    marginTop: 4,
+        marginTop: 4,
     textAlign: 'right',
   },
   createButton: {
@@ -379,7 +371,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#FFF',
-    fontFamily: FONT_BOLD,
-  },
+      },
 });
 

@@ -16,18 +16,15 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
-
-// 폰트 설정
-const FONT_REGULAR = 'NanumSquare-Regular';
-const FONT_BOLD = 'NanumSquare-Bold';
-const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 export default function GuideScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const fonts = useFontByLanguage();
 
   const guideSections = [
     {
@@ -103,9 +100,9 @@ export default function GuideScreen() {
 
         {/* 소개 섹션 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('guide.intro')}</Text>
+          <Text style={[styles.sectionTitle, { fontFamily: fonts.bold }]}>{t('guide.intro')}</Text>
           <View style={styles.introContent}>
-            <Text style={styles.introText}>
+            <Text style={[styles.introText, { fontFamily: fonts.regular }]}>
               {t('guide.introText')}
             </Text>
           </View>
@@ -116,7 +113,7 @@ export default function GuideScreen() {
           <View key={index} style={styles.section}>
             <View style={styles.sectionHeader}>
               <Ionicons name={section.icon as any} size={24} color="#78C4B4" style={styles.sectionIcon} />
-              <Text style={styles.sectionTitle}>{section.title}</Text>
+              <Text style={[styles.sectionTitle, { fontFamily: fonts.bold }]}>{section.title}</Text>
             </View>
             {section.content.map((item, itemIndex) => {
               // 객체 형태인지 문자열인지 확인
@@ -135,7 +132,7 @@ export default function GuideScreen() {
                 return (
                   <View key={itemIndex} style={styles.contentItem}>
                     <View style={styles.bullet} />
-                    <Text style={styles.contentText}>{item}</Text>
+                    <Text style={[styles.contentText, { fontFamily: fonts.regular }]}>{item}</Text>
                   </View>
                 );
               }
@@ -146,16 +143,16 @@ export default function GuideScreen() {
 
         {/* 주의사항 섹션 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('guide.caution')}</Text>
+          <Text style={[styles.sectionTitle, { fontFamily: fonts.bold }]}>{t('guide.caution')}</Text>
           <View style={styles.contentItem}>
             <View style={styles.bullet} />
-            <Text style={styles.contentText}>
+            <Text style={[styles.contentText, { fontFamily: fonts.regular }]}>
               {t('guide.caution1')}
             </Text>
           </View>
           <View style={styles.contentItem}>
             <View style={styles.bullet} />
-            <Text style={styles.contentText}>
+            <Text style={[styles.contentText, { fontFamily: fonts.regular }]}>
               {t('guide.caution2')}
             </Text>
           </View>
@@ -205,8 +202,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontFamily: FONT_EXTRABOLD,
-    color: '#000',
+        color: '#000',
     fontWeight: 'bold',
   },
   section: {
@@ -222,8 +218,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontFamily: FONT_BOLD,
-    color: '#000',
+        color: '#000',
     fontWeight: 'bold',
   },
   introContent: {
@@ -237,8 +232,7 @@ const styles = StyleSheet.create({
   },
   introText: {
     fontSize: 14,
-    fontFamily: FONT_REGULAR,
-    color: '#666',
+        color: '#666',
     lineHeight: 22,
   },
   contentItem: {
@@ -263,8 +257,7 @@ const styles = StyleSheet.create({
   contentText: {
     flex: 1,
     fontSize: 14,
-    fontFamily: FONT_REGULAR,
-    color: '#666',
+        color: '#666',
     lineHeight: 22,
   },
   statusItem: {

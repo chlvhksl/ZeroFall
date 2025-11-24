@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
-import { LocalDeviceProvider } from '../src/context/LocalDeviceContext';
-import { useFonts } from 'expo-font'; 
 import * as SplashScreen from 'expo-splash-screen';
-import { Alert, Platform, StatusBar } from 'react-native'; 
-import { setupNotificationListeners } from '../lib/notifications';
+import React, { useEffect } from 'react';
+import { Alert, StatusBar } from 'react-native';
 import { initializeI18n } from '../lib/i18n-safe';
+import { setupNotificationListeners } from '../lib/notifications';
+import { LocalDeviceProvider } from '../src/context/LocalDeviceContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -16,9 +16,14 @@ export default function Layout() {
   // 1단계: 폰트 파일을 읽어서 메모리에 로드합니다.
   // ⭐️ [최종 수정] 경로를 '../assets/fonts/'로 변경합니다. (app 폴더에서 한 단계 위로 이동)
   const [fontsLoaded] = useFonts({
+    // 한국어/영어 폰트
     'NanumSquare-Regular': require('../assets/fonts/NanumSquareR.otf'), 
     'NanumSquare-Bold': require('../assets/fonts/NanumSquareB.otf'),
     'NanumSquare-ExtraBold': require('../assets/fonts/NanumSquareEB.otf'),
+    // 일본어 폰트
+    'NotoSansCJKjp-R': require('../assets/fonts/jp/NotoSansCJKjp-R.otf'),
+    'NotoSansCJKjp-B': require('../assets/fonts/jp/NotoSansCJKjp-B.otf'),
+    'NotoSansCJKjp-EB': require('../assets/fonts/jp/NotoSansCJKjp-EB.otf'),
   });
 
   const [isReady, setIsReady] = React.useState(false);

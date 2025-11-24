@@ -5,10 +5,15 @@
 
 import i18n from './i18n-safe';
 
-// 폰트 상수
+// 한국어/영어 폰트 상수
 const FONT_REGULAR = 'NanumSquare-Regular';
 const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
+
+// 일본어 폰트 상수
+const FONT_JP_REGULAR = 'NotoSansCJKjp-R';
+const FONT_JP_BOLD = 'NotoSansCJKjp-B';
+const FONT_JP_EXTRABOLD = 'NotoSansCJKjp-EB';
 
 export interface Fonts {
   regular: string;
@@ -33,6 +38,15 @@ export function getFontByLanguage(): Fonts {
 
     const language = i18n.language || 'ko';
 
+    // 일본어는 NotoSansCJKjp 폰트 사용
+    if (language === 'jp') {
+      return {
+        regular: FONT_JP_REGULAR,
+        bold: FONT_JP_BOLD,
+        extraBold: FONT_JP_EXTRABOLD,
+      };
+    }
+
     // 한국어와 영어는 Nanum 폰트 사용
     if (language === 'ko' || language === 'en') {
       return {
@@ -42,7 +56,7 @@ export function getFontByLanguage(): Fonts {
       };
     }
 
-    // 기타 언어도 Nanum 폰트 사용 (필요시 수정)
+    // 기본값: Nanum 폰트
     return {
       regular: FONT_REGULAR,
       bold: FONT_BOLD,

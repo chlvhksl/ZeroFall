@@ -11,14 +11,14 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  Alert,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore
@@ -26,13 +26,9 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { useTranslation } from 'react-i18next';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
 import { getCurrentLanguage } from '../../lib/i18n-safe';
 import { supabase } from '../../lib/supabase';
-
-// 폰트 설정
-const FONT_REGULAR = 'NanumSquare-Regular';
-const FONT_BOLD = 'NanumSquare-Bold';
-const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 interface AccountInfo {
   name: string;
@@ -44,6 +40,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
+  const fonts = useFontByLanguage();
   const [accountInfo, setAccountInfo] = useState<AccountInfo>({
     name: '',
     affiliation: '',
@@ -237,7 +234,7 @@ export default function SettingsScreen() {
     children: React.ReactNode,
   ) => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={[styles.sectionTitle, { fontFamily: fonts.bold }]}>{title}</Text>
       {children}
     </View>
   );
@@ -254,8 +251,8 @@ export default function SettingsScreen() {
       disabled={!onPress}
       activeOpacity={onPress ? 0.7 : 1}>
       <View style={styles.itemContent}>
-        <Text style={styles.itemLabel}>{label}</Text>
-        {value && <Text style={styles.itemValue}>{value}</Text>}
+        <Text style={[styles.itemLabel, { fontFamily: fonts.regular }]}>{label}</Text>
+        {value && <Text style={[styles.itemValue, { fontFamily: fonts.regular }]}>{value}</Text>}
       </View>
       {onPress && showArrow && (
         <Ionicons name="chevron-forward" size={20} color="#999" />
@@ -271,7 +268,7 @@ export default function SettingsScreen() {
           styles.scrollContent,
           { paddingTop: insets.top - 36},
         ]}>
-        <Text style={styles.title}>{t('settings.title')}</Text>
+        <Text style={[styles.title, { fontFamily: fonts.extraBold }]}>{t('settings.title')}</Text>
 
         {/* 계정 정보 */}
         {renderSection(
@@ -282,8 +279,8 @@ export default function SettingsScreen() {
               onPress={handleEditProfile}
               activeOpacity={0.7}>
               <View style={styles.itemContent}>
-                <Text style={styles.itemLabel}>{t('settings.name')}</Text>
-                <Text style={styles.itemValue}>{accountInfo.name}</Text>
+                <Text style={[styles.itemLabel, { fontFamily: fonts.regular }]}>{t('settings.name')}</Text>
+                <Text style={[styles.itemValue, { fontFamily: fonts.regular }]}>{accountInfo.name}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#999" />
             </TouchableOpacity>
@@ -292,8 +289,8 @@ export default function SettingsScreen() {
               onPress={handleEditProfile}
               activeOpacity={0.7}>
               <View style={styles.itemContent}>
-                <Text style={styles.itemLabel}>{t('settings.affiliation')}</Text>
-                <Text style={styles.itemValue}>{accountInfo.affiliation}</Text>
+                <Text style={[styles.itemLabel, { fontFamily: fonts.regular }]}>{t('settings.affiliation')}</Text>
+                <Text style={[styles.itemValue, { fontFamily: fonts.regular }]}>{accountInfo.affiliation}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#999" />
             </TouchableOpacity>
@@ -322,7 +319,7 @@ export default function SettingsScreen() {
               <>
                 {renderItem(
                   t('settings.language'),
-                  currentLanguage === 'ko' ? '한국어' : 'English',
+                  currentLanguage === 'ko' ? '한국어' : currentLanguage === 'en' ? 'English' : '日本語',
                   () => {
                     console.log('➡️ [SettingsScreen] 라우팅: /language-select (언어 변경)');
                     router.push('/language-select');
@@ -378,7 +375,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    fontFamily: FONT_EXTRABOLD,
     color: '#000',
     marginBottom: 12,
   },
@@ -387,7 +383,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: FONT_BOLD,
     color: '#666',
     marginBottom: 4,
   },
@@ -408,13 +403,11 @@ const styles = StyleSheet.create({
   },
   itemLabel: {
     fontSize: 16,
-    fontFamily: FONT_REGULAR,
     color: '#333',
     marginBottom: 4,
   },
   itemValue: {
     fontSize: 14,
-    fontFamily: FONT_REGULAR,
     color: '#999',
   },
   bottomSpacer: {

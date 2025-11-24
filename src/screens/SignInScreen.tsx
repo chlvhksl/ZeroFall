@@ -17,17 +17,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { getCurrentLanguage, isI18nReady, initializeI18n } from '../../lib/i18n-safe';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
 import { PushTokenManager } from '../../lib/push-token-manager';
 import { supabase } from '../../lib/supabase';
-
-// ⭐️ 사용할 폰트 이름 정의 (app/_layout.tsx에서 로드된 이름과 일치해야 함)
-const FONT_REGULAR = 'NanumSquare-Regular';
-const FONT_BOLD = 'NanumSquare-Bold';
-const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 export default function SignInScreen() {
   const router = useRouter();
   const { t, i18n, ready } = useTranslation();
+  const fonts = useFontByLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -183,8 +180,8 @@ export default function SignInScreen() {
             onPress={handleLanguageChange}
           >
             <Ionicons name="language-outline" size={24} color="#78C4B4" />
-            <Text style={styles.languageText}>
-              {currentLanguage === 'ko' ? '한국어' : 'English'}
+            <Text style={[styles.languageText, { fontFamily: fonts.bold }]}>
+              {currentLanguage === 'ko' ? '한국어' : currentLanguage === 'en' ? 'English' : '日本語'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -192,7 +189,7 @@ export default function SignInScreen() {
           {/* 로그인 폼 컨테이너 - 중앙 정렬 */}
           <View style={styles.formContainer}>
             {/* 제목 - ⭐️ 굵은 폰트 적용 */}
-            <Text style={styles.title}>{safeT('signin.title', 'ZeroFall에 로그인')}</Text>
+            <Text style={[styles.title, { fontFamily: fonts.extraBold }]}>{safeT('signin.title', 'ZeroFall에 로그인')}</Text>
 
             {/* 아이디 입력 필드 - ⭐️ 일반 폰트 적용 */}
             <TextInput
@@ -200,7 +197,7 @@ export default function SignInScreen() {
                 styles.input,
                 {
                   borderColor: email ? '#5FCCC4' : '#D0D0D0',
-                  fontFamily: FONT_REGULAR,
+                  fontFamily: fonts.regular,
                 },
               ]}
               placeholder={safeT('signin.emailPlaceholder', '아이디')}
@@ -222,7 +219,7 @@ export default function SignInScreen() {
                 style={[
                   styles.passwordInput,
                   Platform.OS === 'ios' || showPassword
-                    ? { fontFamily: FONT_REGULAR }
+                    ? { fontFamily: fonts.regular }
                     : null,
                 ]}
                 placeholder={safeT('signin.passwordPlaceholder', '비밀번호')}
@@ -259,7 +256,14 @@ export default function SignInScreen() {
                 size={22}
                 color="#5FCCC4"
               />
-              <Text style={styles.rememberText}>{safeT('signin.rememberMe', '로그인 유지')}</Text>
+              <Text 
+                style={[styles.rememberText, { fontFamily: fonts.regular }]}
+                numberOfLines={2}
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.8}
+              >
+                {safeT('signin.rememberMe', '로그인 유지')}
+              </Text>
             </TouchableOpacity>
 
             {/* 로그인 버튼 - ⭐️ 굵은 폰트 적용 */}
@@ -271,7 +275,7 @@ export default function SignInScreen() {
               onPress={handleSignIn}
               disabled={loading}
             >
-              <Text style={styles.loginButtonText}>
+              <Text style={[styles.loginButtonText, { fontFamily: fonts.bold }]}>
                 {loading ? safeT('signin.processing', '처리 중...') : safeT('signin.loginButton', '로그인')}
               </Text>
             </TouchableOpacity>
@@ -280,11 +284,25 @@ export default function SignInScreen() {
             <View style={styles.footer}>
               <View style={styles.signUpLinkContainer}>
                 {/* ⭐️ 일반 폰트 적용 */}
-                <Text style={styles.footerText}>{safeT('signup.noAccount', '계정이 없으신가요?')}</Text>
+                <Text 
+                  style={[styles.footerText, { fontFamily: fonts.regular }]}
+                  numberOfLines={2}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.8}
+                >
+                  {safeT('signup.noAccount', '계정이 없으신가요?')}
+                </Text>
                 <Link href="/signup" asChild>
                   <TouchableOpacity>
                     {/* ⭐️ 굵은 폰트 적용 */}
-                    <Text style={styles.signUpText}>{safeT('signin.signUpLink', '회원가입하기')}</Text>
+                    <Text 
+                      style={[styles.signUpText, { fontFamily: fonts.bold }]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit={true}
+                      minimumFontScale={0.8}
+                    >
+                      {safeT('signin.signUpLink', '회원가입하기')}
+                    </Text>
                   </TouchableOpacity>
                 </Link>
               </View>
@@ -294,7 +312,12 @@ export default function SignInScreen() {
                 style={styles.forgotPasswordButton}
                 onPress={handleFindCredential}
               >
-                <Text style={styles.forgotPasswordText}>
+                <Text 
+                  style={[styles.forgotPasswordText, { fontFamily: fonts.regular }]}
+                  numberOfLines={2}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.8}
+                >
                   {safeT('signin.forgotPassword', '비밀번호를 잊으셨나요?')}
                 </Text>
               </TouchableOpacity>
@@ -338,7 +361,6 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontSize: 14,
     color: '#78C4B4',
-    fontFamily: FONT_BOLD,
   },
   scrollContent: {
     flexGrow: 1,
@@ -357,7 +379,6 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 40,
     textAlign: 'center',
-    fontFamily: FONT_EXTRABOLD,
   },
 
   // --- 아이디/비밀번호 입력 스타일 ---
@@ -398,12 +419,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     marginBottom: 12,
+    flexWrap: 'wrap',
   },
   rememberText: {
     marginLeft: 8,
     color: '#333',
     fontSize: 14,
-    fontFamily: FONT_REGULAR,
+    flex: 1,
+    flexShrink: 1,
   },
 
   // --- 로그인 버튼 스타일 ---
@@ -424,7 +447,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '700',
-    fontFamily: FONT_BOLD,
   },
 
   // --- 하단 링크 및 찾기 버튼 스타일 ---
@@ -437,18 +459,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 25,
+    flexWrap: 'wrap',
+    paddingHorizontal: 10,
   },
   footerText: {
     color: '#666',
     fontSize: 14,
-    fontFamily: FONT_REGULAR,
+    flexShrink: 1,
   },
   signUpText: {
     color: '#78C4B4',
     fontSize: 14,
     fontWeight: '700',
     marginLeft: 5,
-    fontFamily: FONT_BOLD,
+    flexShrink: 1,
   },
   forgotPasswordButton: {
     alignItems: 'center',
@@ -459,7 +483,6 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 14,
     fontWeight: '400',
-    fontFamily: FONT_REGULAR,
     textDecorationLine: 'underline',
   },
   loadingContainer: {
@@ -470,6 +493,5 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: '#666',
-    fontFamily: FONT_REGULAR,
   },
 });

@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../lib/i18n-safe';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getSelectedSite } from '../../lib/siteManagement';
 import { supabase } from '../../lib/supabase';
@@ -29,6 +30,7 @@ export default function RegisterDeviceScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const fonts = useFontByLanguage();
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [query, setQuery] = useState('');
@@ -329,13 +331,13 @@ export default function RegisterDeviceScreen() {
           onPress={() => setSelectedId(item.device_id)}
           style={{ flex: 1 }}
         >
-          <Text style={styles.cardTitle}>
+          <Text style={[styles.cardTitle, { fontFamily: fonts.bold }]}>
             {item.device_id} {online ? '✅' : '❌'}
           </Text>
-          <Text style={styles.cardText}>
+          <Text style={[styles.cardText, { fontFamily: fonts.regular }]}>
             {t('device.worker')}: {item.worker_name || t('device.unregistered')}   |   {t('device.status')}: {getTranslatedStatus(item.status, item.left_sensor, item.right_sensor)}
           </Text>
-          <Text style={styles.cardSub}>
+          <Text style={[styles.cardSub, { fontFamily: fonts.regular }]}>
             {t('device.updated')}: {new Date(item.updated_at || item.created_at || '').toLocaleString(i18n.language === 'ko' ? 'ko-KR' : 'en-US')}
           </Text>
         </TouchableOpacity>
@@ -366,29 +368,29 @@ export default function RegisterDeviceScreen() {
           >
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.title}>{t('device.registerWorker')}</Text>
+          <Text style={[styles.title, { fontFamily: fonts.bold }]}>{t('device.registerWorker')}</Text>
         </View>
 
         {/* 와이파이 안내 메시지 */}
         <View style={styles.infoBox}>
         <View style={styles.infoRow}>
           <Ionicons name="information-circle-outline" size={20} color="#007AFF" />
-          <Text style={styles.infoText}>
+          <Text style={[styles.infoText, { fontFamily: fonts.regular }]}>
             {t('device.registerInfo')}
             {Platform.OS === 'android' && (
               <>
                 {'\n'}
-                <Text style={styles.infoBold}>{t('device.currentWiFi')}</Text> {manualSSID || t('device.inputRequired')}
+                <Text style={[styles.infoBold, { fontFamily: fonts.bold }]}>{t('device.currentWiFi')}</Text> {manualSSID || t('device.inputRequired')}
                 {'\n'}
-                <Text style={styles.infoBold}>{t('device.filtering')}</Text> {manualSSID ? t('device.filteringActive') : t('device.filteringWaiting')}
+                <Text style={[styles.infoBold, { fontFamily: fonts.bold }]}>{t('device.filtering')}</Text> {manualSSID ? t('device.filteringActive') : t('device.filteringWaiting')}
                 {!manualSSID && (
                   <>
                     {'\n'}
-                    <Text style={styles.infoWarning}>
+                    <Text style={[styles.infoWarning, { fontFamily: fonts.regular }]}>
                       {t('device.wifiNameWarning')}
                     </Text>
                     {'\n'}
-                    <Text style={styles.infoLink} onPress={() => {
+                    <Text style={[styles.infoLink, { fontFamily: fonts.regular }]} onPress={() => {
                       if (Platform.OS === 'android') {
                         Linking.openSettings();
                       }
@@ -410,7 +412,7 @@ export default function RegisterDeviceScreen() {
             value={manualSSID}
             onChangeText={setManualSSID}
             placeholder={t('device.manualWifiPlaceholder')}
-            style={styles.input}
+            style={[styles.input, { fontFamily: fonts.regular }]}
             autoCapitalize="none"
           />
           {manualSSID.trim() && (
@@ -432,7 +434,7 @@ export default function RegisterDeviceScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder={t('device.searchPlaceholder')}
-          style={styles.input}
+          style={[styles.input, { fontFamily: fonts.regular }]}
           autoCapitalize="none"
         />
       </View>
@@ -442,7 +444,7 @@ export default function RegisterDeviceScreen() {
           value={selectedId}
           onChangeText={() => {}}
           placeholder={t('device.selectDevice')}
-          style={[styles.input, { backgroundColor: '#F2F2F2', color: '#666' }]}
+          style={[styles.input, { backgroundColor: '#F2F2F2', color: '#666', fontFamily: fonts.regular }]}
           autoCapitalize="none"
           editable={false}
         />
@@ -452,26 +454,26 @@ export default function RegisterDeviceScreen() {
           value={workerName}
           onChangeText={setWorkerName}
           placeholder={t('device.enterWorkerName')}
-          style={styles.input}
+          style={[styles.input, { fontFamily: fonts.regular }]}
           autoCapitalize="none"
         />
       </View>
       <View style={styles.buttonRow}>
         <TouchableOpacity style={[styles.btn, styles.primary]} onPress={handleRegister}>
-          <Text style={styles.btnText}>{t('device.register')}</Text>
+          <Text style={[styles.btnText, { fontFamily: fonts.bold }]}>{t('device.register')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.btn, styles.secondary]} onPress={() => router.back()}>
-          <Text style={styles.btnText}>{t('common.cancel')}</Text>
+          <Text style={[styles.btnText, { fontFamily: fonts.bold }]}>{t('common.cancel')}</Text>
         </TouchableOpacity>
       </View>
 
       {/* 등록 대기중 섹션 */}
-      <Text style={styles.sectionTitle}>
+      <Text style={[styles.sectionTitle, { fontFamily: fonts.bold }]}>
         {t('device.waitingDevices')} {pending.length > 0 && `(${pending.length})`}
       </Text>
       {pending.length === 0 ? (
         <View style={styles.emptyBox}>
-          <Text style={styles.emptyText}>
+          <Text style={[styles.emptyText, { fontFamily: fonts.regular }]}>
             {t('device.noWaitingDevices')}{'\n'}
             {t('device.waitingDevicesInfo')}
           </Text>
@@ -491,13 +493,13 @@ export default function RegisterDeviceScreen() {
                   selected && styles.cardSelected,
                 ]}
               >
-                <Text style={styles.cardTitle}>
+                <Text style={[styles.cardTitle, { fontFamily: fonts.bold }]}>
                   {item.device_id} {online ? '✅' : '❌'}
                 </Text>
-                <Text style={styles.cardText}>
+                <Text style={[styles.cardText, { fontFamily: fonts.regular }]}>
                   {t('device.status')}: {getTranslatedStatus(item.status, item.left_sensor, item.right_sensor)}
                 </Text>
-                <Text style={styles.cardSub}>
+                <Text style={[styles.cardSub, { fontFamily: fonts.regular }]}>
                   {t('device.updated')}: {new Date(item.updated_at || item.created_at || '').toLocaleString(i18n.language === 'ko' ? 'ko-KR' : 'en-US')}
                 </Text>
               </TouchableOpacity>
@@ -506,7 +508,7 @@ export default function RegisterDeviceScreen() {
         </View>
       )}
 
-        <Text style={styles.sectionTitle}>{t('device.allDevices')}</Text>
+        <Text style={[styles.sectionTitle, { fontFamily: fonts.bold }]}>{t('device.allDevices')}</Text>
         {filtered.map((item) => renderItem({ item }))}
       </ScrollView>
     </View>
@@ -538,8 +540,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     // fontWeight: 'bold', // 폰트 파일 자체에 굵기 포함
-    fontFamily: 'NanumSquare-Bold',
-    color: '#000',
+        color: '#000',
     flex: 1,
   },
   row: {
@@ -551,8 +552,7 @@ const styles = StyleSheet.create({
     borderColor: '#000',
     borderRadius: 8,
     padding: 12,
-    fontFamily: 'NanumSquare-Regular',
-  },
+      },
   buttonRow: {
     flexDirection: 'row',
     gap: 10,
@@ -575,8 +575,7 @@ const styles = StyleSheet.create({
   btnText: {
     fontSize: 16,
     // fontWeight: 'bold',
-    fontFamily: 'NanumSquare-Bold',
-    color: '#000',
+        color: '#000',
   },
   card: {
     backgroundColor: '#fff',
@@ -595,8 +594,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     // fontWeight: 'bold',
-    fontFamily: 'NanumSquare-Bold',
-    color: '#000',
+        color: '#000',
     marginBottom: 6,
   },
   emptyBox: {
@@ -609,8 +607,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: '#000',
-    fontFamily: 'NanumSquare-Regular',
-    textAlign: 'center',
+        textAlign: 'center',
     lineHeight: 20,
   },
   infoBox: {
@@ -629,23 +626,19 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     color: '#000',
-    fontFamily: 'NanumSquare-Regular',
-    fontSize: 13,
+        fontSize: 13,
     lineHeight: 18,
   },
   infoBold: {
-    fontFamily: 'NanumSquare-Bold',
-    fontWeight: 'bold',
+        fontWeight: 'bold',
   },
   infoLink: {
-    fontFamily: 'NanumSquare-Bold',
-    color: '#007AFF',
+        color: '#007AFF',
     textDecorationLine: 'underline',
     marginTop: 4,
   },
   infoWarning: {
-    fontFamily: 'NanumSquare-Regular',
-    color: '#FF6B00',
+        color: '#FF6B00',
     fontSize: 12,
     marginTop: 4,
   },
@@ -658,20 +651,17 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     // fontWeight: 'bold',
-    fontFamily: 'NanumSquare-Bold',
-    color: '#000',
+        color: '#000',
     marginBottom: 4,
   },
   cardText: {
     color: '#000',
     marginBottom: 2,
-    fontFamily: 'NanumSquare-Regular',
-  },
+      },
   cardSub: {
     color: '#333',
     fontSize: 12,
-    fontFamily: 'NanumSquare-Regular',
-  },
+      },
   unregisterButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -687,8 +677,7 @@ const styles = StyleSheet.create({
   unregisterButtonText: {
     color: '#FF3B30',
     fontSize: 14,
-    fontFamily: 'NanumSquare-Bold',
-    marginLeft: 4,
+        marginLeft: 4,
   },
   debugBox: {
     backgroundColor: '#FFF3CD',
@@ -701,8 +690,7 @@ const styles = StyleSheet.create({
   debugText: {
     color: '#856404',
     fontSize: 11,
-    fontFamily: 'NanumSquare-Regular',
-  },
+      },
 });
 
 

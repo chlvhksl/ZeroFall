@@ -13,21 +13,26 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { changeLanguage, getCurrentLanguage } from '../../lib/i18n-safe';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
 
-// 폰트 설정
-const FONT_REGULAR = 'NanumSquare-Regular';
-const FONT_BOLD = 'NanumSquare-Bold';
-const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
+// 각 언어별 폰트 상수
+const FONT_JP_REGULAR = 'NotoSansCJKjp-R';
+const FONT_JP_BOLD = 'NotoSansCJKjp-B';
+const FONT_JP_EXTRABOLD = 'NotoSansCJKjp-EB';
+const FONT_KO_EN_REGULAR = 'NanumSquare-Regular';
+const FONT_KO_EN_BOLD = 'NanumSquare-Bold';
 
 const LANGUAGES = [
   { code: 'ko', name: '한국어' },
   { code: 'en', name: 'English' },
+  { code: 'jp', name: '日本語' },
 ];
 
 export default function LanguageSelectScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
+  const fonts = useFontByLanguage();
   const [currentLanguage, setCurrentLanguage] = useState<string>(getCurrentLanguage());
 
   // 언어 변경 감지
@@ -43,7 +48,7 @@ export default function LanguageSelectScreen() {
     };
   }, [i18n]);
 
-  const handleLanguageSelect = async (languageCode: 'ko' | 'en') => {
+  const handleLanguageSelect = async (languageCode: 'ko' | 'en' | 'jp') => {
     const success = await changeLanguage(languageCode);
     if (success) {
       setCurrentLanguage(languageCode);
@@ -61,7 +66,7 @@ export default function LanguageSelectScreen() {
         >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.title}>{t('settings.language')}</Text>
+        <Text style={[styles.title, { fontFamily: fonts.bold }]}>{t('settings.language')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -69,10 +74,18 @@ export default function LanguageSelectScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
-        <Text style={styles.subtitle}>{t('settings.selectLanguage')}</Text>
+        <Text style={[styles.subtitle, { fontFamily: fonts.regular }]}>{t('settings.selectLanguage')}</Text>
 
         {LANGUAGES.map((language) => {
           const isSelected = currentLanguage === language.code;
+          // 각 언어에 맞는 폰트 직접 지정
+          let languageFont: string;
+          if (language.code === 'jp') {
+            languageFont = isSelected ? FONT_JP_BOLD : FONT_JP_REGULAR;
+          } else {
+            languageFont = isSelected ? FONT_KO_EN_BOLD : FONT_KO_EN_REGULAR;
+          }
+          
           return (
             <TouchableOpacity
               key={language.code}
@@ -80,13 +93,17 @@ export default function LanguageSelectScreen() {
                 styles.languageOption,
                 isSelected && styles.languageOptionSelected,
               ]}
-              onPress={() => handleLanguageSelect(language.code as 'ko' | 'en')}
+              onPress={() => handleLanguageSelect(language.code as 'ko' | 'en' | 'jp')}
             >
               <Text
                 style={[
                   styles.languageOptionText,
                   isSelected && styles.languageOptionTextSelected,
+                  { fontFamily: languageFont },
                 ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.7}
               >
                 {language.name}
               </Text>
@@ -121,7 +138,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontFamily: FONT_BOLD,
     color: '#000',
     flex: 1,
     textAlign: 'center',
@@ -137,7 +153,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: FONT_REGULAR,
     color: '#666',
     marginBottom: 16,
   },
@@ -160,11 +175,9 @@ const styles = StyleSheet.create({
   },
   languageOptionText: {
     fontSize: 16,
-    fontFamily: FONT_REGULAR,
     color: '#333',
   },
   languageOptionTextSelected: {
-    fontFamily: FONT_BOLD,
     color: '#78C4B4',
   },
 });

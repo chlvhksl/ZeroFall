@@ -11,6 +11,7 @@ import { initReactI18next } from 'react-i18next';
 // 언어 리소스
 import ko from '../locales/ko.json';
 import en from '../locales/en.json';
+import jp from '../locales/jp.json';
 
 const resources = {
   ko: {
@@ -18,6 +19,9 @@ const resources = {
   },
   en: {
     translation: en,
+  },
+  jp: {
+    translation: jp,
   },
 };
 
@@ -55,12 +59,14 @@ export async function initializeI18n(): Promise<void> {
       }
 
       let language = 'ko';
-      if (savedLanguage && ['ko', 'en'].includes(savedLanguage)) {
+      if (savedLanguage && ['ko', 'en', 'jp'].includes(savedLanguage)) {
         language = savedLanguage;
       } else {
         // 시스템 언어 감지
         const defaultLanguage = Localization.getLocales()[0]?.languageCode || 'ko';
-        language = ['ko', 'en'].includes(defaultLanguage) ? defaultLanguage : 'ko';
+        // 'ja'는 일본어 코드
+        const normalizedLang = defaultLanguage === 'ja' ? 'jp' : defaultLanguage;
+        language = ['ko', 'en', 'jp'].includes(normalizedLang) ? normalizedLang : 'ko';
       }
 
       // i18n 초기화
@@ -106,7 +112,7 @@ export function isI18nReady(): boolean {
  * 안전하게 언어를 변경합니다.
  * 초기화가 완료된 후에만 작동합니다.
  */
-export async function changeLanguage(language: 'ko' | 'en'): Promise<boolean> {
+export async function changeLanguage(language: 'ko' | 'en' | 'jp'): Promise<boolean> {
   try {
     // 초기화가 완료되지 않았으면 대기
     if (!isInitialized) {
@@ -114,7 +120,7 @@ export async function changeLanguage(language: 'ko' | 'en'): Promise<boolean> {
     }
 
     // 유효한 언어인지 확인
-    if (!['ko', 'en'].includes(language)) {
+    if (!['ko', 'en', 'jp'].includes(language)) {
       console.error('❌ 유효하지 않은 언어:', language);
       return false;
     }

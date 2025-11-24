@@ -17,13 +17,9 @@ import i18n from '../../lib/i18n-safe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { sendRemotePush } from '../../lib/notifications';
 import { getCurrentSiteRole, getSelectedSite } from '../../lib/siteManagement';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
 import { supabase } from '../../lib/supabase';
 import { formatKoreaTime } from '../../lib/utils';
-
-// 폰트 설정
-const FONT_REGULAR = 'NanumSquare-Regular';
-const FONT_BOLD = 'NanumSquare-Bold';
-const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 type GoriStatus = {
   id?: number;
@@ -72,6 +68,7 @@ export default function HookMonitorLocal() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const fonts = useFontByLanguage();
   const [deviceId, setDeviceId] = useState('r4-F412FA6D7118');
   const [workerName, setWorkerName] = useState('');
   const [connection, setConnection] = useState<'disconnected' | 'subscribed'>(
@@ -775,7 +772,7 @@ export default function HookMonitorLocal() {
       contentContainerStyle={[styles.container, { paddingTop: 8 }]}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.title}>☁️ {t('dashboard.title')}</Text>
+      <Text style={[styles.title, { fontFamily: fonts.extraBold }]}>☁️ {t('dashboard.title')}</Text>
 
       {/* 검색창 */}
       <View style={styles.searchContainer}>
@@ -842,8 +839,8 @@ export default function HookMonitorLocal() {
             </Text>
             {filteredDevices.length === 0 ? (
               <View style={styles.infoBox}>
-                <Text style={styles.infoText}>
-                  검색 결과가 없습니다. 다른 검색어를 입력해주세요.
+                <Text style={[styles.infoText, { fontFamily: fonts.regular }]}>
+                  {t('dashboard.noSearchResults')}
                 </Text>
               </View>
             ) : (
@@ -872,7 +869,7 @@ export default function HookMonitorLocal() {
                             backgroundColor: isConnected ? '#22c55e' : '#999' 
                           }]}
                         />
-                        <Text style={styles.timestampInline}>
+                        <Text style={[styles.timestampInline, { fontFamily: fonts.regular }]}>
                           {isConnected 
                             ? formatKoreaTime(updatedAt, i18n.language === 'ko' ? 'ko-KR' : 'en-US')
                             : t('device.disconnected')}
@@ -904,7 +901,7 @@ export default function HookMonitorLocal() {
                             ? '🚨'
                             : '❓'}
                         </Text>
-                        <Text style={styles.statusTextSmall}>
+                        <Text style={[styles.statusTextSmall, { fontFamily: fonts.bold }]}>
                           {label === '이중체결' ? t('dashboard.status.doubleFastened')
                             : label === '단일체결' ? t('dashboard.status.singleFastened')
                             : label === '미체결' ? t('dashboard.status.unfastened')
@@ -913,14 +910,14 @@ export default function HookMonitorLocal() {
                       </View>
                       <View style={styles.sideSensors}>
                         <View style={styles.sensorItemInline}>
-                          <Text style={styles.sensorLabel}>{t('device.left')}</Text>
+                          <Text style={[styles.sensorLabel, { fontFamily: fonts.regular }]}>{t('device.left')}</Text>
                           <Text style={styles.sensorValue}>
                             {item?.left_sensor ? '✓' : '✗'}
                           </Text>
                         </View>
                         <View style={styles.sensorItemInline}>
-                          <Text style={styles.sensorLabel}>{t('device.right')}</Text>
-                          <Text style={styles.sensorValue}>
+                          <Text style={[styles.sensorLabel, { fontFamily: fonts.regular }]}>{t('device.right')}</Text>
+                          <Text style={[styles.sensorValue, { fontFamily: fonts.bold }]}>
                             {item?.right_sensor ? '✓' : '✗'}
                           </Text>
                         </View>
@@ -952,8 +949,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 20,
     color: '#000',
-    fontFamily: FONT_EXTRABOLD,
-  },
+      },
   row: {
     marginBottom: 12,
   },
@@ -961,16 +957,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#000',
     marginBottom: 6,
-    fontFamily: FONT_BOLD,
-  },
+      },
   input: {
     backgroundColor: '#fff',
     borderWidth: 2,
     borderColor: '#000',
     borderRadius: 8,
     padding: 12,
-    fontFamily: FONT_REGULAR,
-  },
+      },
   inputDisabled: {
     backgroundColor: '#F2F2F2',
     color: '#666',
@@ -998,8 +992,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_BOLD,
-  },
+      },
   statusBox: {
     backgroundColor: '#fff',
     borderWidth: 2,
@@ -1021,8 +1014,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     color: '#000',
-    fontFamily: FONT_REGULAR,
-  },
+      },
   // 카드 스타일(테스트 화면과 유사)
   currentStatusCard: {
     backgroundColor: '#fff',
@@ -1041,8 +1033,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_BOLD,
-  },
+      },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1056,8 +1047,7 @@ const styles = StyleSheet.create({
   timestampInline: {
     fontSize: 12,
     color: '#999',
-    fontFamily: FONT_REGULAR,
-  },
+      },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1085,8 +1075,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
-    fontFamily: FONT_EXTRABOLD,
-  },
+      },
   sideSensors: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1103,14 +1092,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 4,
-    fontFamily: FONT_REGULAR,
-  },
+      },
   sensorValue: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: FONT_BOLD,
-  },
+      },
   searchContainer: {
     marginBottom: 16,
   },
@@ -1130,8 +1117,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    fontFamily: FONT_REGULAR,
-    color: '#000',
+        color: '#000',
     paddingVertical: 0,
   },
   clearButton: {
