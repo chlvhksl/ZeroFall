@@ -250,7 +250,7 @@ export default function SettingsScreen() {
           styles.scrollContent,
           { paddingTop: insets.top - 36},
         ]}>
-        <Text style={styles.title}>환경설정</Text>
+        <Text style={styles.title}>⚙️ 환경설정</Text>
 
         {/* 계정 정보 */}
         {renderSection(
@@ -299,6 +299,7 @@ export default function SettingsScreen() {
         {renderSection(
           '앱 정보',
           <>
+            {renderItem('앱 사용 가이드', undefined, () => router.push('/guide'))}
             {renderItem(
               '앱 버전',
               Constants.expoConfig?.version || '1.0.0',
@@ -333,7 +334,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#EDF6EF',
   },
   scrollView: {
     flex: 1,
@@ -343,10 +344,11 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
+    fontWeight: 'bold',
     fontFamily: FONT_EXTRABOLD,
-    color: '#333',
-    marginBottom: 32,
+    color: '#000',
+    marginBottom: 12,
   },
   section: {
     marginBottom: 8,

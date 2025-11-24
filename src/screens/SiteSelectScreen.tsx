@@ -6,33 +6,33 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
 import {
-    AccessibleSite,
-    clearSelectedSite,
-    clearVerifiedSites,
-    deleteSite,
-    getAccessibleSites,
-    getDefaultSite,
-    getSelectedSite,
-    isSiteVerified,
-    leaveSite,
-    saveSelectedSite,
-    validateSitePassword,
+  AccessibleSite,
+  clearSelectedSite,
+  clearVerifiedSites,
+  deleteSite,
+  getAccessibleSites,
+  getDefaultSite,
+  getSelectedSite,
+  isSiteVerified,
+  leaveSite,
+  saveSelectedSite,
+  validateSitePassword,
 } from '../../lib/siteManagement';
 import { supabase } from '../../lib/supabase';
 
