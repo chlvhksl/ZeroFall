@@ -58,7 +58,8 @@
           "locationAlwaysAndWhenInUsePermission": "앱이 WiFi 네트워크를 확인하기 위해 위치 권한이 필요합니다."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-localization"
     ],
     "notification": {
       "icon": "./assets/app_logo.png",

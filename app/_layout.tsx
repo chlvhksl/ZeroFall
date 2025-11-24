@@ -5,13 +5,15 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { Alert, Platform, StatusBar } from 'react-native'; 
 import { setupNotificationListeners } from '../lib/notifications';
+import { initializeI18n } from '../lib/i18n-safe';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function Layout() {
   const [fontError, setFontError] = React.useState<Error | null>(null);
+  const [i18nReady, setI18nReady] = React.useState(false);
 
-  // 2. 폰트 파일을 읽어서 메모리에 로드합니다.
+  // 1단계: 폰트 파일을 읽어서 메모리에 로드합니다.
   // ⭐️ [최종 수정] 경로를 '../assets/fonts/'로 변경합니다. (app 폴더에서 한 단계 위로 이동)
   const [fontsLoaded] = useFonts({
     'NanumSquare-Regular': require('../assets/fonts/NanumSquareR.otf'), 
@@ -29,13 +31,48 @@ export default function Layout() {
         return; 
     }
 
-    // 폰트 로드가 완료되면 이 코드가 실행됩니다.
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
-      setIsReady(true);
-      // 앱 전역 알림 리스너 초기화(포그라운드 수신 즉시 알림 내역에 반영)
-      setupNotificationListeners();
-    }
+    // 순차적 초기화: 폰트 → i18n → 알림
+    const initializeApp = async () => {
+      try {
+        // 1단계: 폰트 로드 완료 대기
+        if (!fontsLoaded) {
+          return;
+        }
+
+        // 2단계: 네이티브 모듈이 준비될 때까지 짧은 지연
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // 3단계: i18n 초기화
+        try {
+          await initializeI18n();
+          setI18nReady(true);
+        } catch (error) {
+          console.error('i18n 초기화 실패 (앱은 계속 실행):', error);
+          setI18nReady(true); // 에러가 나도 앱은 계속 실행
+        }
+
+        // 4단계: 추가 지연 (안정성 확보)
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // 5단계: 알림 리스너 초기화
+        try {
+          setupNotificationListeners();
+        } catch (error) {
+          console.error('알림 리스너 초기화 실패 (앱은 계속 실행):', error);
+        }
+
+        // 6단계: 모든 초기화 완료
+        SplashScreen.hideAsync();
+        setIsReady(true);
+      } catch (error) {
+        console.error('앱 초기화 중 오류 발생:', error);
+        // 에러가 발생해도 앱은 실행되도록
+        SplashScreen.hideAsync();
+        setIsReady(true);
+      }
+    };
+
+    initializeApp();
   }, [fontsLoaded, fontError]);
 
   if (!isReady) {

@@ -15,6 +15,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +27,7 @@ const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 export default function AddSiteScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [companyName, setCompanyName] = useState('');
@@ -39,37 +41,37 @@ export default function AddSiteScreen() {
 
   const handleCreateSite = async () => {
     if (!companyName.trim()) {
-      Alert.alert('입력 오류', '기업명을 입력해주세요.');
+      Alert.alert(t('common.error'), t('addSite.companyNameRequired'));
       return;
     }
 
     if (!siteName.trim()) {
-      Alert.alert('입력 오류', '현장명을 입력해주세요.');
+      Alert.alert(t('common.error'), t('addSite.siteNameRequired'));
       return;
     }
 
     if (companyName.trim().length < 1) {
-      Alert.alert('입력 오류', '기업명은 최소 1자 이상이어야 합니다.');
+      Alert.alert(t('common.error'), t('addSite.companyNameMinLength'));
       return;
     }
 
     if (siteName.trim().length < 1) {
-      Alert.alert('입력 오류', '현장명은 최소 1자 이상이어야 합니다.');
+      Alert.alert(t('common.error'), t('addSite.siteNameMinLength'));
       return;
     }
 
     if (!password.trim()) {
-      Alert.alert('입력 오류', '비밀번호를 입력해주세요.');
+      Alert.alert(t('common.error'), t('addSite.passwordRequired'));
       return;
     }
 
     if (password.trim().length < 4) {
-      Alert.alert('입력 오류', '비밀번호는 최소 4자 이상이어야 합니다.');
+      Alert.alert(t('common.error'), t('addSite.passwordMinLength'));
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('입력 오류', '비밀번호가 일치하지 않습니다.');
+      Alert.alert(t('common.error'), t('addSite.passwordMismatch'));
       return;
     }
 
@@ -83,13 +85,14 @@ export default function AddSiteScreen() {
       );
       
       Alert.alert(
-        '현장 추가 완료',
-        `"${newSite.name}" 현장이 추가되었습니다.\n이제 이 현장의 관리자 권한을 갖게 됩니다.`,
+        t('addSite.createSuccess'),
+        t('addSite.createSuccessMessage', { name: newSite.name }),
         [
           {
-            text: '확인',
+            text: t('common.confirm'),
             onPress: () => {
               // 현장 선택 화면으로 돌아가고 목록 새로고침
+              console.log('➡️ [AddSiteScreen] 라우팅: /site-select (현장 추가 완료)');
               router.replace('/site-select');
             },
           },
@@ -97,7 +100,7 @@ export default function AddSiteScreen() {
       );
     } catch (error: any) {
       console.error('❌ [AddSiteScreen] 현장 추가 실패:', error);
-      Alert.alert('오류', error.message || '현장 추가 중 오류가 발생했습니다.');
+      Alert.alert(t('common.error'), error.message || t('addSite.createError'));
     } finally {
       setLoading(false);
     }
@@ -125,7 +128,7 @@ export default function AddSiteScreen() {
           >
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.title}>현장 추가</Text>
+          <Text style={styles.title}>{t('addSite.title')}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -138,12 +141,12 @@ export default function AddSiteScreen() {
 
         {/* 기업명 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.label}>기업명 *</Text>
+          <Text style={styles.label}>{t('addSite.companyName')} *</Text>
           <TextInput
             style={styles.input}
             value={companyName}
             onChangeText={setCompanyName}
-            placeholder="예: 현대, 효성 등"
+            placeholder={t('addSite.companyNamePlaceholder')}
             placeholderTextColor="#999"
             maxLength={30}
             autoFocus
@@ -155,12 +158,12 @@ export default function AddSiteScreen() {
 
         {/* 현장명 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.label}>현장명 *</Text>
+          <Text style={styles.label}>{t('addSite.siteName')} *</Text>
           <TextInput
             style={styles.input}
             value={siteName}
             onChangeText={setSiteName}
-            placeholder="예: 평택, 북경남 등"
+            placeholder={t('addSite.siteNamePlaceholder')}
             placeholderTextColor="#999"
             maxLength={30}
           />
@@ -171,13 +174,13 @@ export default function AddSiteScreen() {
 
         {/* 비밀번호 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.label}>비밀번호 *</Text>
+          <Text style={styles.label}>{t('addSite.password')} *</Text>
           <View style={styles.passwordContainer}>
             <TextInput
               style={[styles.passwordInput, { fontFamily: showPassword ? FONT_REGULAR : undefined }]}
               value={password}
               onChangeText={setPassword}
-              placeholder="현장 접근 비밀번호 (최소 4자)"
+              placeholder={t('addSite.passwordPlaceholder')}
               placeholderTextColor="#999"
               secureTextEntry={!showPassword}
               maxLength={50}
@@ -200,13 +203,13 @@ export default function AddSiteScreen() {
 
         {/* 비밀번호 확인 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.label}>비밀번호 확인 *</Text>
+          <Text style={styles.label}>{t('addSite.confirmPassword')} *</Text>
           <View style={styles.passwordContainer}>
             <TextInput
               style={[styles.passwordInput, { fontFamily: showConfirmPassword ? FONT_REGULAR : undefined }]}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              placeholder="비밀번호를 다시 입력하세요"
+              placeholder={t('addSite.confirmPasswordPlaceholder')}
               placeholderTextColor="#999"
               secureTextEntry={!showConfirmPassword}
               maxLength={50}
@@ -226,12 +229,12 @@ export default function AddSiteScreen() {
 
         {/* 현장 설명 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.label}>현장 설명 (선택사항)</Text>
+          <Text style={styles.label}>{t('addSite.description')} (선택사항)</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={description}
             onChangeText={setDescription}
-            placeholder="현장에 대한 설명을 입력하세요"
+            placeholder={t('addSite.descriptionPlaceholder')}
             placeholderTextColor="#999"
             multiline
             numberOfLines={4}
@@ -253,7 +256,7 @@ export default function AddSiteScreen() {
           disabled={!companyName.trim() || !siteName.trim() || !password.trim() || !confirmPassword.trim() || loading}
         >
           <Text style={styles.createButtonText}>
-            {loading ? '추가 중...' : '현장 추가'}
+            {loading ? t('common.loading') : t('addSite.create')}
           </Text>
         </TouchableOpacity>
       </ScrollView>

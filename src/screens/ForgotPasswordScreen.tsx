@@ -11,6 +11,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
@@ -21,6 +22,7 @@ const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 export default function ForgotPasswordScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,14 +36,14 @@ export default function ForgotPasswordScreen() {
   // 1단계: 비밀번호 재설정 이메일 전송
   const handleSendResetEmail = async () => {
     if (!email) {
-      Alert.alert('입력 오류', '이메일을 입력해주세요.');
+      Alert.alert(t('common.error'), t('forgotPassword.emailRequired'));
       return;
     }
 
     // 이메일 형식 검증
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert('입력 오류', '올바른 이메일 형식을 입력해주세요.');
+      Alert.alert(t('common.error'), t('forgotPassword.invalidEmail'));
       return;
     }
 
@@ -55,16 +57,10 @@ export default function ForgotPasswordScreen() {
     setLoading(false);
 
     if (error) {
-      Alert.alert(
-        '전송 실패', 
-        '이메일 전송에 실패했습니다. 가입된 이메일인지 확인해주세요.'
-      );
+      Alert.alert(t('common.error'), t('forgotPassword.sendError'));
       console.log('비밀번호 재설정 이메일 전송 실패:', error.message);
     } else {
-      Alert.alert(
-        '전송 완료',
-        '인증 코드를 이메일로 전송했습니다.\n이메일을 확인하고 6자리 코드를 입력해주세요.'
-      );
+      Alert.alert(t('common.success'), t('forgotPassword.sendSuccess'));
       setStep('code');
     }
   };
@@ -72,17 +68,17 @@ export default function ForgotPasswordScreen() {
   // 2단계: 인증 코드 확인 및 비밀번호 변경
   const handleVerifyAndResetPassword = async () => {
     if (!verificationCode || !newPassword || !confirmPassword) {
-      Alert.alert('입력 오류', '모든 필드를 입력해주세요.');
+      Alert.alert(t('common.error'), t('forgotPassword.allFieldsRequired'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('입력 오류', '비밀번호가 일치하지 않습니다.');
+      Alert.alert(t('common.error'), t('forgotPassword.passwordMismatch'));
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert('입력 오류', '비밀번호는 최소 6자 이상이어야 합니다.');
+      Alert.alert(t('common.error'), t('forgotPassword.passwordTooShort'));
       return;
     }
 
@@ -97,10 +93,7 @@ export default function ForgotPasswordScreen() {
 
     if (verifyError) {
       setLoading(false);
-      Alert.alert(
-        '인증 실패',
-        '인증 코드가 올바르지 않거나 만료되었습니다.'
-      );
+      Alert.alert(t('common.error'), t('forgotPassword.verifyError'));
       console.log('OTP 인증 실패:', verifyError.message);
       return;
     }
@@ -112,10 +105,7 @@ export default function ForgotPasswordScreen() {
 
     if (updateError) {
       setLoading(false);
-      Alert.alert(
-        '변경 실패',
-        '비밀번호 변경에 실패했습니다. 다시 시도해주세요.'
-      );
+      Alert.alert(t('common.error'), t('forgotPassword.changeError'));
       console.log('비밀번호 업데이트 실패:', updateError.message);
       return;
     }
@@ -139,7 +129,10 @@ export default function ForgotPasswordScreen() {
       [
         {
           text: '확인',
-          onPress: () => router.replace('/signin'),
+          onPress: () => {
+            console.log('➡️ [ForgotPasswordScreen] 라우팅: /signin (비밀번호 변경 완료)');
+            router.replace('/signin');
+          },
         }
       ]
     );
@@ -171,7 +164,7 @@ export default function ForgotPasswordScreen() {
 
           {/* 제목 */}
           <Text style={styles.title}>
-            {step === 'email' ? '비밀번호 찾기' : '비밀번호 재설정'}
+            {step === 'email' ? t('forgotPassword.title') : t('forgotPassword.resetPassword')}
           </Text>
           
           {/* 1단계: 이메일 입력 */}
@@ -179,8 +172,7 @@ export default function ForgotPasswordScreen() {
             <>
               {/* 안내 문구 */}
               <Text style={styles.description}>
-                가입하신 이메일 주소를 입력하시면{'\n'}
-                인증 코드를 보내드립니다.
+                {t('forgotPassword.subtitle')}
               </Text>
 
               {/* 이메일 입력 필드 */}
@@ -189,7 +181,7 @@ export default function ForgotPasswordScreen() {
                   styles.input,
                   { borderColor: email ? '#5FCCC4' : '#D0D0D0' }
                 ]}
-                placeholder="이메일"
+                placeholder={t('forgotPassword.email')}
                 placeholderTextColor="#999"
                 value={email}
                 onChangeText={setEmail}
@@ -205,7 +197,7 @@ export default function ForgotPasswordScreen() {
                 disabled={loading}
               >
                 <Text style={styles.submitButtonText}>
-                  {loading ? '전송 중...' : '인증 코드 전송'}
+                  {loading ? t('common.loading') : t('forgotPassword.sendCode')}
                 </Text>
               </TouchableOpacity>
             </>
@@ -216,9 +208,7 @@ export default function ForgotPasswordScreen() {
             <>
               {/* 안내 문구 */}
               <Text style={styles.description}>
-                {email}로 전송된{'\n'}
-                6자리 인증 코드를 입력하고{'\n'}
-                새 비밀번호를 설정해주세요.
+                {t('forgotPassword.codeSentMessage', { email })}
               </Text>
 
               {/* 인증 코드 입력 필드 */}
@@ -227,7 +217,7 @@ export default function ForgotPasswordScreen() {
                   styles.input,
                   { borderColor: verificationCode ? '#5FCCC4' : '#D0D0D0' }
                 ]}
-                placeholder="인증 코드 (6자리)"
+                placeholder={t('forgotPassword.codePlaceholder')}
                 placeholderTextColor="#999"
                 value={verificationCode}
                 onChangeText={setVerificationCode}
@@ -243,7 +233,7 @@ export default function ForgotPasswordScreen() {
               ]}>
                 <TextInput
                   style={[styles.passwordInput, { fontFamily: showNewPassword ? FONT_REGULAR : undefined }]}
-                  placeholder="새 비밀번호 (6자 이상)"
+                  placeholder={t('forgotPassword.newPasswordPlaceholder')}
                   placeholderTextColor="#999"
                   value={newPassword}
                   onChangeText={setNewPassword}
@@ -269,7 +259,7 @@ export default function ForgotPasswordScreen() {
               ]}>
                 <TextInput
                   style={[styles.passwordInput, { fontFamily: showConfirmPassword ? FONT_REGULAR : undefined }]}
-                  placeholder="비밀번호 확인"
+                  placeholder={t('forgotPassword.confirmPasswordPlaceholder')}
                   placeholderTextColor="#999"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -295,7 +285,7 @@ export default function ForgotPasswordScreen() {
                 disabled={loading}
               >
                 <Text style={styles.submitButtonText}>
-                  {loading ? '변경 중...' : '비밀번호 변경'}
+                  {loading ? t('common.loading') : t('forgotPassword.changePassword')}
                 </Text>
               </TouchableOpacity>
 
@@ -309,7 +299,7 @@ export default function ForgotPasswordScreen() {
                   setConfirmPassword('');
                 }}
               >
-                <Text style={styles.resendButtonText}>인증 코드 다시 받기</Text>
+                <Text style={styles.resendButtonText}>{t('forgotPassword.resendCode')}</Text>
               </TouchableOpacity>
             </>
           )}
@@ -319,7 +309,7 @@ export default function ForgotPasswordScreen() {
             style={styles.backToLoginButton}
             onPress={() => router.back()}
           >
-            <Text style={styles.backToLoginText}>로그인 화면으로 돌아가기</Text>
+            <Text style={styles.backToLoginText}>{t('forgotPassword.backToSignIn')}</Text>
           </TouchableOpacity>
 
         </ScrollView>

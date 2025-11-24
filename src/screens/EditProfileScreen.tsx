@@ -20,6 +20,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
@@ -31,6 +32,7 @@ const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 export default function EditProfileScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -58,7 +60,7 @@ export default function EditProfileScreen() {
       }
     } catch (error) {
       console.error('프로필 로드 실패:', error);
-      Alert.alert('오류', '프로필 정보를 불러올 수 없습니다.');
+      Alert.alert(t('common.error'), t('editProfile.loadError'));
     } finally {
       setLoading(false);
     }
@@ -67,12 +69,12 @@ export default function EditProfileScreen() {
   const handleSave = async () => {
     // 입력 검증
     if (!lastName.trim() || !firstName.trim()) {
-      Alert.alert('입력 오류', '성과 이름을 모두 입력해주세요.');
+      Alert.alert(t('common.error'), t('editProfile.nameRequired'));
       return;
     }
 
     if (!affiliation.trim()) {
-      Alert.alert('입력 오류', '소속을 입력해주세요.');
+      Alert.alert(t('common.error'), t('editProfile.affiliationRequired'));
       return;
     }
 
@@ -84,7 +86,7 @@ export default function EditProfileScreen() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        Alert.alert('오류', '로그인이 필요합니다.');
+        Alert.alert(t('common.error'), t('editProfile.loginRequired'));
         setSaving(false);
         return;
       }
@@ -117,9 +119,9 @@ export default function EditProfileScreen() {
         // Auth는 업데이트되었으므로 계속 진행
       }
 
-      Alert.alert('저장 완료', '개인정보가 성공적으로 변경되었습니다.', [
+      Alert.alert(t('common.success'), t('editProfile.saveSuccess'), [
         {
-          text: '확인',
+          text: t('common.confirm'),
           onPress: () => {
             router.back();
           },
@@ -127,7 +129,7 @@ export default function EditProfileScreen() {
       ]);
     } catch (error: any) {
       console.error('프로필 저장 실패:', error);
-      Alert.alert('오류', '개인정보 변경에 실패했습니다.\n다시 시도해주세요.');
+      Alert.alert(t('common.error'), t('editProfile.saveError'));
     } finally {
       setSaving(false);
     }
@@ -156,13 +158,13 @@ export default function EditProfileScreen() {
             >
               <Ionicons name="arrow-back" size={24} color="#000" />
             </TouchableOpacity>
-            <Text style={styles.title}>개인정보 수정</Text>
+            <Text style={styles.title}>{t('editProfile.title')}</Text>
             <View style={styles.placeholder} />
           </View>
 
           {/* 성 */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>성</Text>
+            <Text style={styles.inputLabel}>{t('editProfile.lastName')}</Text>
             <TextInput
               style={[
                 styles.input,
@@ -171,7 +173,7 @@ export default function EditProfileScreen() {
                   fontFamily: FONT_REGULAR,
                 },
               ]}
-              placeholder="성을 입력하세요"
+              placeholder={t('editProfile.lastNamePlaceholder')}
               placeholderTextColor="#999"
               value={lastName}
               onChangeText={setLastName}
@@ -181,7 +183,7 @@ export default function EditProfileScreen() {
 
           {/* 이름 */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>이름</Text>
+            <Text style={styles.inputLabel}>{t('editProfile.firstName')}</Text>
             <TextInput
               style={[
                 styles.input,
@@ -190,7 +192,7 @@ export default function EditProfileScreen() {
                   fontFamily: FONT_REGULAR,
                 },
               ]}
-              placeholder="이름을 입력하세요"
+              placeholder={t('editProfile.firstNamePlaceholder')}
               placeholderTextColor="#999"
               value={firstName}
               onChangeText={setFirstName}
@@ -200,7 +202,7 @@ export default function EditProfileScreen() {
 
           {/* 소속 */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>소속</Text>
+            <Text style={styles.inputLabel}>{t('editProfile.affiliation')}</Text>
             <TextInput
               style={[
                 styles.input,
@@ -209,7 +211,7 @@ export default function EditProfileScreen() {
                   fontFamily: FONT_REGULAR,
                 },
               ]}
-              placeholder="소속을 입력하세요"
+              placeholder={t('editProfile.affiliationPlaceholder')}
               placeholderTextColor="#999"
               value={affiliation}
               onChangeText={setAffiliation}
@@ -232,7 +234,7 @@ export default function EditProfileScreen() {
                 (!isFormValid || saving) && styles.submitButtonTextDisabled,
               ]}
             >
-              {saving ? '저장 중...' : '저장'}
+              {saving ? t('common.loading') : t('editProfile.save')}
             </Text>
           </TouchableOpacity>
         </ScrollView>

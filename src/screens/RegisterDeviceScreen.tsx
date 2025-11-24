@@ -1,6 +1,8 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../lib/i18n-safe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getSelectedSite } from '../../lib/siteManagement';
 import { supabase } from '../../lib/supabase';
@@ -24,6 +26,7 @@ const PENDING_WINDOW_MS = 120000; // 최근 2분 내 업데이트 + 미등록을
 const REFRESH_MS = 5000; // 목록 주기적 갱신(5초)
 
 export default function RegisterDeviceScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -52,7 +55,7 @@ export default function RegisterDeviceScreen() {
       if (error) throw error;
       setRows(data || []);
     } catch (e: any) {
-      Alert.alert('오류', e?.message || '목록을 불러오지 못했습니다.');
+      Alert.alert(t('common.error'), e?.message || t('device.loadError'));
     } finally {
       setLoading(false);
     }
@@ -215,7 +218,7 @@ export default function RegisterDeviceScreen() {
     const id = selectedId.trim();
     const name = workerName.trim();
     if (!id || !name) {
-      Alert.alert('입력 필요', 'device_id와 작업자 이름을 모두 입력해 주세요.');
+      Alert.alert(t('common.error'), t('device.deviceIdWorkerNameRequired'));
       return;
     }
     try {
@@ -231,29 +234,29 @@ export default function RegisterDeviceScreen() {
           site_id: siteId // 현재 현장 ID 저장
         }, { onConflict: 'device_id' });
       if (error) throw error;
-      Alert.alert('완료', '작업자 이름이 등록되었습니다.', [
+      Alert.alert(t('common.success'), t('device.registerSuccess'), [
         {
-          text: '대시보드로 이동',
+          text: t('device.goToDashboard'),
           onPress: () => router.back(),
         },
-        { text: '확인' },
+        { text: t('common.confirm') },
       ]);
       setWorkerName('');
       setSelectedId('');
       await load();
     } catch (e: any) {
-      Alert.alert('등록 실패', e?.message || '등록에 실패했습니다.');
+      Alert.alert(t('common.error'), e?.message || t('device.registerError'));
     }
   };
 
   const handleUnregister = async (deviceId: string) => {
     Alert.alert(
-      '등록 해제',
-      `'${deviceId}' 기기의 등록을 해제하시겠습니까?\n등록 대기중 목록으로 이동합니다.`,
+      t('device.unregister'),
+      t('device.unregisterConfirm', { deviceId }),
       [
-        { text: '취소', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: '해제',
+          text: t('device.unregister'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -264,10 +267,10 @@ export default function RegisterDeviceScreen() {
               
               if (error) throw error;
               
-              Alert.alert('완료', '등록이 해제되었습니다.');
+              Alert.alert(t('common.success'), t('device.unregisterSuccess'));
               await load();
             } catch (e: any) {
-              Alert.alert('해제 실패', e?.message || '등록 해제에 실패했습니다.');
+              Alert.alert(t('common.error'), e?.message || t('device.unregisterError'));
             }
           },
         },
@@ -278,6 +281,38 @@ export default function RegisterDeviceScreen() {
   const isOnline = (r: Row) => {
     const t = new Date(r.updated_at || r.created_at || 0).getTime();
     return Date.now() - t < STALE_MS;
+  };
+
+  // 상태 값을 번역하는 함수
+  const getTranslatedStatus = (status: string | null | undefined, leftSensor?: boolean | null, rightSensor?: boolean | null): string => {
+    if (!status) {
+      // status가 없으면 센서 값으로 판단
+      const left = Boolean(leftSensor);
+      const right = Boolean(rightSensor);
+      if (left && right) return t('dashboard.status.doubleFastened');
+      if (left || right) return t('dashboard.status.singleFastened');
+      return t('dashboard.status.unfastened');
+    }
+
+    const s = String(status).trim().toLowerCase();
+    
+    // 한국어 상태 값 확인
+    if (s.includes('이중') || s === 'double' || s === 'both' || s === 'locked' || s === 'secure' || s === 'fully' || s === 'ok') {
+      return t('dashboard.status.doubleFastened');
+    }
+    if (s.includes('단일') || s === 'single' || s === 'one' || s === 'partial' || s === 'partially' || s === 'half') {
+      return t('dashboard.status.singleFastened');
+    }
+    if (s.includes('미') || s === 'none' || s === 'unhooked' || s === 'open' || s === 'danger' || s === 'alert') {
+      return t('dashboard.status.unfastened');
+    }
+
+    // 센서 값으로 판단
+    const left = Boolean(leftSensor);
+    const right = Boolean(rightSensor);
+    if (left && right) return t('dashboard.status.doubleFastened');
+    if (left || right) return t('dashboard.status.singleFastened');
+    return t('dashboard.status.unfastened');
   };
 
   const renderItem = ({ item }: { item: Row }) => {
@@ -298,10 +333,10 @@ export default function RegisterDeviceScreen() {
             {item.device_id} {online ? '✅' : '❌'}
           </Text>
           <Text style={styles.cardText}>
-            작업자: {item.worker_name || '(미등록)'}   |   상태: {item.status || '-'}
+            {t('device.worker')}: {item.worker_name || t('device.unregistered')}   |   {t('device.status')}: {getTranslatedStatus(item.status, item.left_sensor, item.right_sensor)}
           </Text>
           <Text style={styles.cardSub}>
-            업데이트: {new Date(item.updated_at || item.created_at || '').toLocaleString('ko-KR')}
+            {t('device.updated')}: {new Date(item.updated_at || item.created_at || '').toLocaleString(i18n.language === 'ko' ? 'ko-KR' : 'en-US')}
           </Text>
         </TouchableOpacity>
         {!unregistered && (
@@ -310,7 +345,7 @@ export default function RegisterDeviceScreen() {
             style={styles.unregisterButton}
           >
             <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-            <Text style={styles.unregisterButtonText}>등록 해제</Text>
+            <Text style={styles.unregisterButtonText}>{t('device.unregister')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -331,7 +366,7 @@ export default function RegisterDeviceScreen() {
           >
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.title}>작업자 등록/변경</Text>
+          <Text style={styles.title}>{t('device.registerWorker')}</Text>
         </View>
 
         {/* 와이파이 안내 메시지 */}
@@ -339,20 +374,18 @@ export default function RegisterDeviceScreen() {
         <View style={styles.infoRow}>
           <Ionicons name="information-circle-outline" size={20} color="#007AFF" />
           <Text style={styles.infoText}>
-            <Text style={styles.infoBold}>아두이노 등록 시:</Text> 아두이노와 같은 와이파이에 연결되어 있어야 등록 대기중인 기기를 확인할 수 있습니다.{'\n'}
-            <Text style={styles.infoBold}>등록 후:</Text> 다른 와이파이에서도 아두이노 상태를 확인할 수 있습니다.
+            {t('device.registerInfo')}
             {Platform.OS === 'android' && (
               <>
                 {'\n'}
-                <Text style={styles.infoBold}>현재 WiFi:</Text> {manualSSID || '(입력 필요)'}
+                <Text style={styles.infoBold}>{t('device.currentWiFi')}</Text> {manualSSID || t('device.inputRequired')}
                 {'\n'}
-                <Text style={styles.infoBold}>필터링:</Text> {manualSSID ? '활성화 (정확히 일치하는 기기만 표시)' : '대기 중'}
+                <Text style={styles.infoBold}>{t('device.filtering')}</Text> {manualSSID ? t('device.filteringActive') : t('device.filteringWaiting')}
                 {!manualSSID && (
                   <>
                     {'\n'}
                     <Text style={styles.infoWarning}>
-                      💡 WiFi 이름을 정확히 입력해주세요.{'\n'}
-                      (대소문자 구분 없음, 입력한 이름과 정확히 일치하는 기기만 표시됩니다)
+                      {t('device.wifiNameWarning')}
                     </Text>
                     {'\n'}
                     <Text style={styles.infoLink} onPress={() => {
@@ -360,7 +393,7 @@ export default function RegisterDeviceScreen() {
                         Linking.openSettings();
                       }
                     }}>
-                      📱 WiFi 설정에서 SSID 확인하기
+                      {t('device.checkWifiSettings')}
                     </Text>
                   </>
                 )}
@@ -376,7 +409,7 @@ export default function RegisterDeviceScreen() {
           <TextInput
             value={manualSSID}
             onChangeText={setManualSSID}
-            placeholder="WiFi 이름(SSID)을 직접 입력하세요"
+            placeholder={t('device.manualWifiPlaceholder')}
             style={styles.input}
             autoCapitalize="none"
           />
@@ -398,7 +431,7 @@ export default function RegisterDeviceScreen() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="기기 또는 이름 검색"
+          placeholder={t('device.searchPlaceholder')}
           style={styles.input}
           autoCapitalize="none"
         />
@@ -408,7 +441,7 @@ export default function RegisterDeviceScreen() {
         <TextInput
           value={selectedId}
           onChangeText={() => {}}
-          placeholder="선택된 기기"
+          placeholder={t('device.selectDevice')}
           style={[styles.input, { backgroundColor: '#F2F2F2', color: '#666' }]}
           autoCapitalize="none"
           editable={false}
@@ -418,29 +451,29 @@ export default function RegisterDeviceScreen() {
         <TextInput
           value={workerName}
           onChangeText={setWorkerName}
-          placeholder="작업자 이름 입력"
+          placeholder={t('device.enterWorkerName')}
           style={styles.input}
           autoCapitalize="none"
         />
       </View>
       <View style={styles.buttonRow}>
         <TouchableOpacity style={[styles.btn, styles.primary]} onPress={handleRegister}>
-          <Text style={styles.btnText}>등록/변경</Text>
+          <Text style={styles.btnText}>{t('device.register')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.btn, styles.secondary]} onPress={() => router.back()}>
-          <Text style={styles.btnText}>취소</Text>
+          <Text style={styles.btnText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
       </View>
 
       {/* 등록 대기중 섹션 */}
       <Text style={styles.sectionTitle}>
-        등록 대기중 (최근 2분) {pending.length > 0 && `(${pending.length}개)`}
+        {t('device.waitingDevices')} {pending.length > 0 && `(${pending.length})`}
       </Text>
       {pending.length === 0 ? (
         <View style={styles.emptyBox}>
           <Text style={styles.emptyText}>
-            현재 대기중 기기가 없습니다.{'\n'}
-            아두이노가 같은 와이파이에 연결되어 있고, 최근 2분 내에 데이터를 전송했는지 확인해주세요.
+            {t('device.noWaitingDevices')}{'\n'}
+            {t('device.waitingDevicesInfo')}
           </Text>
         </View>
       ) : (
@@ -462,10 +495,10 @@ export default function RegisterDeviceScreen() {
                   {item.device_id} {online ? '✅' : '❌'}
                 </Text>
                 <Text style={styles.cardText}>
-                  상태: {item.status || '-'}
+                  {t('device.status')}: {getTranslatedStatus(item.status, item.left_sensor, item.right_sensor)}
                 </Text>
                 <Text style={styles.cardSub}>
-                  업데이트: {new Date(item.updated_at || item.created_at || '').toLocaleString('ko-KR')}
+                  {t('device.updated')}: {new Date(item.updated_at || item.created_at || '').toLocaleString(i18n.language === 'ko' ? 'ko-KR' : 'en-US')}
                 </Text>
               </TouchableOpacity>
             );
@@ -473,7 +506,7 @@ export default function RegisterDeviceScreen() {
         </View>
       )}
 
-        <Text style={styles.sectionTitle}>전체 기기</Text>
+        <Text style={styles.sectionTitle}>{t('device.allDevices')}</Text>
         {filtered.map((item) => renderItem({ item }))}
       </ScrollView>
     </View>

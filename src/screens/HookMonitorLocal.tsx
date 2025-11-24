@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../lib/i18n-safe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { sendRemotePush } from '../../lib/notifications';
 import { getCurrentSiteRole, getSelectedSite } from '../../lib/siteManagement';
@@ -67,6 +69,7 @@ async function saveAlertFiredFlag(id: string, fired: boolean) {
 }
 
 export default function HookMonitorLocal() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [deviceId, setDeviceId] = useState('r4-F412FA6D7118');
@@ -132,11 +135,11 @@ export default function HookMonitorLocal() {
           const rr = Boolean(latest?.right_sensor);
           if (!ll && !rr && !alertFiredByDevice[id]) {
             const displayName = String(latest?.worker_name || workerName || id);
-            const title = `🚨 ${displayName} 안전고리 미체결 경고!`;
-            const body = '작업자의 안전고리가 5초 이상 분리되었습니다.';
+            const title = i18n.t('notification.alertTitle', { name: displayName });
+            const body = i18n.t('notification.alertBody');
             await sendRemotePush(title, body, {
               device_id: id,
-              status: '미체결',
+              status: i18n.t('notification.status.unfastened'),
             });
             await saveAlertFiredFlag(id, true); // 같은 연속 구간에서는 한 번만
           }
@@ -300,7 +303,7 @@ export default function HookMonitorLocal() {
     const raw = (deviceId || '').trim();
     const worker = (workerName || '').trim();
     if (!raw || !worker) {
-      Alert.alert('입력 필요', '장비 ID와 작업자 이름을 모두 입력해 주세요.');
+      Alert.alert(t('common.error'), t('hookMonitor.deviceIdRequired'));
       return;
     }
     // 이름을 입력해둔 상태라면 device_id로 해석
@@ -332,14 +335,14 @@ export default function HookMonitorLocal() {
         { onConflict: 'device_id' },
       );
     if (error) {
-      Alert.alert('등록 실패', error.message);
+      Alert.alert(t('common.error'), error.message || t('hookMonitor.registerError'));
       return;
     }
     try {
       await AsyncStorage.setItem(STORAGE_KEY_WORKER, worker);
     } catch {}
     await fetchLatest(id);
-    Alert.alert('완료', '작업자 이름이 등록되었습니다.');
+    Alert.alert(t('common.success'), t('hookMonitor.registerSuccess'));
   };
 
   const normalizeStatus = (
@@ -433,31 +436,40 @@ export default function HookMonitorLocal() {
     return () => clearInterval(handle);
   }, []);
 
-  // 선택한 현장 로드 및 권한 확인
+  // 현장 로드 및 권한 확인 함수
+  const loadSelectedSite = useCallback(async () => {
+    const site = await getSelectedSite();
+    if (site) {
+      setSelectedSiteId(site.id);
+      // 현재 현장 권한 확인
+      const role = await getCurrentSiteRole();
+      console.log('🔍 [HookMonitorLocal] 현재 현장 권한:', role, '현장:', site.name);
+      setCurrentSiteRole(role);
+    } else {
+      setSelectedSiteId(null);
+      setCurrentSiteRole(null);
+      console.log('⚠️ [HookMonitorLocal] 선택한 현장이 없습니다.');
+    }
+  }, []);
+
+  // 화면 포커스 시 즉시 현장 로드 (환경설정에서 현장 변경 시 즉시 반영)
+  useFocusEffect(
+    useCallback(() => {
+      loadSelectedSite();
+    }, [loadSelectedSite])
+  );
+
+  // 선택한 현장 로드 및 권한 확인 (주기적 확인)
   useEffect(() => {
-    const loadSelectedSite = async () => {
-      const site = await getSelectedSite();
-      if (site) {
-        setSelectedSiteId(site.id);
-        // 현재 현장 권한 확인
-        const role = await getCurrentSiteRole();
-        console.log('🔍 [HookMonitorLocal] 현재 현장 권한:', role, '현장:', site.name);
-        setCurrentSiteRole(role);
-      } else {
-        setSelectedSiteId(null);
-        setCurrentSiteRole(null);
-        console.log('⚠️ [HookMonitorLocal] 선택한 현장이 없습니다.');
-      }
-    };
     loadSelectedSite();
     
-    // 현장이 변경될 수 있으므로 주기적으로 확인 (2초마다)
+    // 현장이 변경될 수 있으므로 주기적으로 확인 (1분마다)
     const interval = setInterval(() => {
       loadSelectedSite();
-    }, 2000);
+    }, 60000); // 60초 = 1분
     
     return () => clearInterval(interval);
-  }, []);
+  }, [loadSelectedSite]);
 
   // 전체 기기의 최신 상태를 불러와 디바이스별 최신 1건으로 정리
   const loadAllDevicesLatest = async () => {
@@ -616,16 +628,37 @@ export default function HookMonitorLocal() {
       loadAllDevicesLatest();
     }, 30000);
     
-    return () => {
-      clearInterval(interval);
-    };
+    // 실시간 구독 설정
     const ch = supabase
       .channel('gori-status-all-devices')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'gori_status' },
         payload => {
+          console.log('📡 [HookMonitorLocal] 실시간 이벤트 수신:', payload.eventType, payload.new?.device_id);
+          
           const row = (payload as any).new as GoriStatus;
+          
+          // DELETE 이벤트 처리
+          if (payload.eventType === 'DELETE') {
+            const oldRow = (payload as any).old as GoriStatus;
+            if (oldRow?.device_id) {
+              console.log('🗑️ [HookMonitorLocal] 기기 삭제 이벤트:', oldRow.device_id);
+              setAllDevices(prev => {
+                const filtered = prev.filter(item => item.device_id !== oldRow.device_id);
+                sharedAllDevices = filtered;
+                return filtered;
+              });
+            }
+            return;
+          }
+          
+          // INSERT/UPDATE 이벤트 처리
+          if (!row) {
+            console.warn('⚠️ [HookMonitorLocal] payload.new가 없음');
+            return;
+          }
+          
           // 작업자 미등록은 목록에서 제외
           const hasWorker = !!(
             row.worker_name && String(row.worker_name).trim().length > 0
@@ -635,6 +668,7 @@ export default function HookMonitorLocal() {
           const rowSiteId = (row as any).site_id;
           if (rowSiteId && rowSiteId !== selectedSiteId) {
             // 다른 현장의 장비는 무시
+            console.log('🚫 [HookMonitorLocal] 다른 현장의 장비 무시:', rowSiteId, 'vs', selectedSiteId);
             return;
           }
           
@@ -642,6 +676,8 @@ export default function HookMonitorLocal() {
             // 어떤 기기든 상태 이벤트 들어올 때마다 즉시 알림 평가
             evaluateForAlert(row, row.device_id);
           }
+          
+          // 즉시 상태 업데이트
           setAllDevices(prev => {
             const tRaw =
               (row as any).updated_at ||
@@ -654,18 +690,9 @@ export default function HookMonitorLocal() {
             });
             
             if (hasWorker && row.device_id) {
-              // 작업자가 등록된 기기는 항상 업데이트
-              const ex: any = map[row.device_id];
-              const exTs = ex
-                ? new Date(
-                    String(
-                      ex.updated_at || ex.created_at,
-                    ),
-                  ).getTime()
-                : -1;
-              if (!ex || ts >= exTs) {
-                map[row.device_id] = row;
-              }
+              // 작업자가 등록된 기기는 항상 업데이트 (타임스탬프 비교 없이 즉시 업데이트)
+              console.log('✅ [HookMonitorLocal] 기기 상태 즉시 업데이트:', row.device_id, row.left_sensor, row.right_sensor);
+              map[row.device_id] = row;
             }
             // 작업자가 없는 기기는 제거하지 않음 (등록된 기기는 유지)
             // 단, worker_name이 null로 변경된 경우에만 제거
@@ -698,13 +725,29 @@ export default function HookMonitorLocal() {
           });
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ [HookMonitorLocal] 실시간 구독 성공');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ [HookMonitorLocal] 실시간 구독 오류');
+        } else {
+          console.log('🔄 [HookMonitorLocal] 실시간 구독 상태:', status);
+        }
+      });
+    
     allDevicesChannelRef.current = ch;
+    
+    // cleanup 함수: interval과 channel 모두 정리
     return () => {
+      console.log('🧹 [HookMonitorLocal] cleanup: interval 및 channel 정리');
+      clearInterval(interval);
       try {
-        if (allDevicesChannelRef.current)
+        if (allDevicesChannelRef.current) {
           supabase.removeChannel(allDevicesChannelRef.current);
-      } catch {}
+        }
+      } catch (error) {
+        console.error('❌ [HookMonitorLocal] channel 제거 실패:', error);
+      }
       allDevicesChannelRef.current = null;
     };
   }, [selectedSiteId]);
@@ -732,17 +775,17 @@ export default function HookMonitorLocal() {
       contentContainerStyle={[styles.container, { paddingTop: 8 }]}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.title}>☁️ 대시보드</Text>
+      <Text style={styles.title}>☁️ {t('dashboard.title')}</Text>
 
       {/* 검색창 */}
       <View style={styles.searchContainer}>
-        <Text style={styles.label}>장비 검색</Text>
+        <Text style={styles.label}>{t('device.search')}</Text>
         <View style={styles.searchInputContainer}>
           <Ionicons name="search-outline" size={20} color="#666" style={styles.searchIcon} />
           <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="장비명 또는 작업자 이름으로 검색..."
+            placeholder={t('device.searchPlaceholder')}
             placeholderTextColor="#999"
             style={styles.searchInput}
             autoCapitalize="none"
@@ -764,9 +807,12 @@ export default function HookMonitorLocal() {
         <View style={styles.buttonRow}>
           <TouchableOpacity
             style={[styles.btn, styles.primary]}
-            onPress={() => router.push('/register')}
+            onPress={() => {
+              console.log('➡️ [HookMonitorLocal] 라우팅: /register (작업자 등록)');
+              router.push('/register');
+            }}
           >
-            <Text style={styles.btnText}>작업자 등록/변경</Text>
+            <Text style={styles.btnText}>{t('device.registerWorker')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -774,7 +820,7 @@ export default function HookMonitorLocal() {
       {!anyRegistered && (
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
-            등록 대기중입니다. 작업자 등록에서 기기 이름을 등록해 주세요.
+            {t('device.waitingRegistration')}
           </Text>
         </View>
       )}
@@ -792,7 +838,7 @@ export default function HookMonitorLocal() {
         return (
           <View style={{ marginTop: 16 }}>
             <Text style={[styles.label, { marginBottom: 8 }]}>
-              전체 기기 {searchQuery ? `(${filteredDevices.length}개)` : `(${allDevices.length}개)`}
+              {t('device.totalDevices')} {searchQuery ? `(${filteredDevices.length})` : `(${allDevices.length})`}
             </Text>
             {filteredDevices.length === 0 ? (
               <View style={styles.infoBox}>
@@ -828,8 +874,8 @@ export default function HookMonitorLocal() {
                         />
                         <Text style={styles.timestampInline}>
                           {isConnected 
-                            ? formatKoreaTime(updatedAt)
-                            : '연결 끊김'}
+                            ? formatKoreaTime(updatedAt, i18n.language === 'ko' ? 'ko-KR' : 'en-US')
+                            : t('device.disconnected')}
                         </Text>
                       </View>
                     </View>
@@ -839,36 +885,41 @@ export default function HookMonitorLocal() {
                           styles.statusBadge,
                           {
                             backgroundColor:
-                              label === '이중체결'
+                              label === '이중체결' || label === t('dashboard.status.doubleFastened')
                                 ? '#22c55e'
-                                : label === '단일체결'
+                                : label === '단일체결' || label === t('dashboard.status.singleFastened')
                                 ? '#f59e0b'
-                                : label === '미체결'
+                                : label === '미체결' || label === t('dashboard.status.unfastened')
                                 ? '#ef4444'
                                 : '#999',
                           },
                         ]}
                       >
                         <Text style={styles.statusIconSmall}>
-                          {label === '이중체결'
+                          {label === '이중체결' || label === t('dashboard.status.doubleFastened')
                             ? '🔒'
-                            : label === '단일체결'
+                            : label === '단일체결' || label === t('dashboard.status.singleFastened')
                             ? '⚠️'
-                            : label === '미체결'
+                            : label === '미체결' || label === t('dashboard.status.unfastened')
                             ? '🚨'
                             : '❓'}
                         </Text>
-                        <Text style={styles.statusTextSmall}>{label}</Text>
+                        <Text style={styles.statusTextSmall}>
+                          {label === '이중체결' ? t('dashboard.status.doubleFastened')
+                            : label === '단일체결' ? t('dashboard.status.singleFastened')
+                            : label === '미체결' ? t('dashboard.status.unfastened')
+                            : label}
+                        </Text>
                       </View>
                       <View style={styles.sideSensors}>
                         <View style={styles.sensorItemInline}>
-                          <Text style={styles.sensorLabel}>좌측</Text>
+                          <Text style={styles.sensorLabel}>{t('device.left')}</Text>
                           <Text style={styles.sensorValue}>
                             {item?.left_sensor ? '✓' : '✗'}
                           </Text>
                         </View>
                         <View style={styles.sensorItemInline}>
-                          <Text style={styles.sensorLabel}>우측</Text>
+                          <Text style={styles.sensorLabel}>{t('device.right')}</Text>
                           <Text style={styles.sensorValue}>
                             {item?.right_sensor ? '✓' : '✗'}
                           </Text>
@@ -1011,7 +1062,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 8,
+    flexWrap: 'wrap',
   },
   statusBadge: {
     flexDirection: 'row',
@@ -1022,7 +1074,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 2,
     borderColor: '#000',
-    minWidth: '45%',
+    flexShrink: 1,
+    minWidth: 120,
   },
   statusIconSmall: {
     fontSize: 24,
@@ -1037,12 +1090,14 @@ const styles = StyleSheet.create({
   sideSensors: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
-    flex: 1,
+    justifyContent: 'flex-end',
+    flexShrink: 0,
+    gap: 12,
   },
   sensorItemInline: {
     alignItems: 'center',
-    minWidth: 60,
+    minWidth: 50,
+    flexShrink: 0,
   },
   sensorLabel: {
     fontSize: 14,

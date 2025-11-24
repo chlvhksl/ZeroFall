@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -23,6 +24,7 @@ const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 // ⭐️ 이 파일이 Expo Router에서 '/signup' 경로로 인식됩니다.
 export default function SignUpScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   const [lastName, setLastName] = useState('');
@@ -38,10 +40,7 @@ export default function SignUpScreen() {
   // 1. 회원가입 기능 (실제 Supabase 연동)
   const handleSignUp = async () => {
     if (password !== confirmPassword) {
-      Alert.alert(
-        '비밀번호 불일치',
-        '비밀번호와 비밀번호 확인이 일치하지 않습니다.',
-      );
+      Alert.alert(t('common.error'), t('signup.passwordMismatch'));
       return;
     }
 
@@ -63,7 +62,7 @@ export default function SignUpScreen() {
     setLoading(false);
 
     if (error) {
-      Alert.alert('회원가입 실패', error.message);
+      Alert.alert(t('signup.signUpError'), error.message);
     } else {
       if (data?.user) {
         const { error: adminError } = await supabase
@@ -76,18 +75,21 @@ export default function SignUpScreen() {
             push_token: null,
           });
         if (adminError) {
-          Alert.alert('회원가입 실패', adminError.message);
+          Alert.alert(t('signup.signUpError'), adminError.message);
         } else {
-          Alert.alert('회원가입 성공', '회원가입이 완료되었습니다.');
+          Alert.alert(t('common.success'), t('signup.signUpSuccess'));
+          console.log('➡️ [SignUpScreen] 라우팅: /signin (회원가입 성공)');
           router.replace('/signin');
         }
       }
       // 회원가입 성공 후에는 replace를 사용하여 로그인 화면으로 이동 (뒤로가기 방지)
+      console.log('➡️ [SignUpScreen] 라우팅: /signin (회원가입 완료)');
       router.replace('/signin');
     }
   };
 
   const goToSignIn = () => {
+    console.log('➡️ [SignUpScreen] 라우팅: /signin (로그인 화면으로)');
     router.replace('/signin');
   };
 
@@ -118,13 +120,13 @@ export default function SignUpScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.title}>ZeroFall 회원가입</Text>
+          <Text style={styles.title}>{t('signup.title')}</Text>
           <Text style={styles.subtitle}>
-            계정을 만들고 서비스를 이용해보세요.
+            {t('signup.subtitle')}
           </Text>
 
           {/* 성 */}
-          <Text style={styles.inputLabel}>성</Text>
+          <Text style={styles.inputLabel}>{t('signup.lastName')}</Text>
           <TextInput
             style={[
               styles.input,
@@ -133,7 +135,7 @@ export default function SignUpScreen() {
                 fontFamily: FONT_REGULAR,
               },
             ]}
-            placeholder="성"
+            placeholder={t('signup.lastName')}
             placeholderTextColor="#999"
             value={lastName}
             onChangeText={setLastName}
@@ -141,7 +143,7 @@ export default function SignUpScreen() {
           />
 
           {/* 이름 */}
-          <Text style={styles.inputLabel}>이름</Text>
+          <Text style={styles.inputLabel}>{t('signup.firstName')}</Text>
           <TextInput
             style={[
               styles.input,
@@ -150,7 +152,7 @@ export default function SignUpScreen() {
                 fontFamily: FONT_REGULAR,
               },
             ]}
-            placeholder="이름"
+            placeholder={t('signup.firstName')}
             placeholderTextColor="#999"
             value={firstName}
             onChangeText={setFirstName}
@@ -158,7 +160,7 @@ export default function SignUpScreen() {
           />
 
           {/* 소속 */}
-          <Text style={styles.inputLabel}>소속</Text>
+          <Text style={styles.inputLabel}>{t('signup.affiliation')}</Text>
           <TextInput
             style={[
               styles.input,
@@ -167,7 +169,7 @@ export default function SignUpScreen() {
                 fontFamily: FONT_REGULAR,
               },
             ]}
-            placeholder="소속 (회사명, 학교명 등)"
+            placeholder={t('signup.affiliationPlaceholder')}
             placeholderTextColor="#999"
             value={affiliation}
             onChangeText={setAffiliation}
@@ -175,7 +177,7 @@ export default function SignUpScreen() {
           />
 
           {/* 이메일 주소 */}
-          <Text style={styles.inputLabel}>이메일 주소</Text>
+          <Text style={styles.inputLabel}>{t('signup.email')}</Text>
           <TextInput
             style={[
               styles.input,
@@ -193,7 +195,7 @@ export default function SignUpScreen() {
           />
 
           {/* 비밀번호 */}
-          <Text style={styles.inputLabel}>비밀번호 (6자 이상)</Text>
+          <Text style={styles.inputLabel}>{t('signup.password')} {t('signup.passwordMinLength')}</Text>
           <View
             style={[
               styles.passwordContainer,
@@ -212,7 +214,7 @@ export default function SignUpScreen() {
                 styles.passwordInput,
                 { fontFamily: showPassword ? FONT_REGULAR : undefined },
               ]}
-              placeholder="비밀번호"
+              placeholder={t('signup.password')}
               placeholderTextColor="#999"
               value={password}
               onChangeText={setPassword}
@@ -232,7 +234,7 @@ export default function SignUpScreen() {
           </View>
 
           {/* 비밀번호 확인 */}
-          <Text style={styles.inputLabel}>비밀번호 확인</Text>
+          <Text style={styles.inputLabel}>{t('signup.confirmPassword')}</Text>
           <View
             style={[
               styles.passwordContainer,
@@ -251,7 +253,7 @@ export default function SignUpScreen() {
                 styles.passwordInput,
                 { fontFamily: showConfirmPassword ? FONT_REGULAR : undefined },
               ]}
-              placeholder="비밀번호 확인"
+              placeholder={t('signup.confirmPassword')}
               placeholderTextColor="#999"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
@@ -280,17 +282,17 @@ export default function SignUpScreen() {
             disabled={!isFormValid}
           >
             <Text style={styles.signUpButtonText}>
-              {loading ? '가입 처리 중...' : '회원가입'}
+              {loading ? t('common.loading') : t('signup.signUp')}
             </Text>
           </TouchableOpacity>
 
           {/* 하단 로그인 링크 */}
           <View style={styles.footer}>
             <View style={styles.signInLinkContainer}>
-              <Text style={styles.footerText}>이미 계정이 있으신가요?</Text>
+              <Text style={styles.footerText}>{t('signup.alreadyHaveAccount')}</Text>
               {/* ⭐️ [핵심] 로그인 페이지로 push하여 뒤로가기 버튼이 생기게 함 */}
               <TouchableOpacity onPress={goToSignIn}>
-                <Text style={styles.signInText}>로그인하기</Text>
+                <Text style={styles.signInText}>{t('signup.signInLink')}</Text>
               </TouchableOpacity>
             </View>
           </View>

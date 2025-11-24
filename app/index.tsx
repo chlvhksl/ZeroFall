@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { supabase } from '../lib/supabase';
 import {
@@ -20,15 +20,24 @@ const CURRENT_APP_VERSION = `${Constants.expoConfig?.version || '1.0.0'}-${
 
 export default function Index() {
   const router = useRouter();
+  const [isNavigating, setIsNavigating] = React.useState(false);
 
   const checkAuth = useCallback(async () => {
+    // 중복 라우팅 방지
+    if (isNavigating) {
+      console.log('⚠️ [Index] 이미 라우팅 중 - 중복 호출 방지');
+      return;
+    }
+
     try {
+      console.log('🔍 [Index] 인증 확인 시작');
+      
       // 앱 버전 확인 - 버전 또는 빌드 번호가 변경되면 세션 초기화
       const savedVersion = await AsyncStorage.getItem(APP_VERSION_KEY);
 
       // 재설치 감지: savedVersion이 null이면 앱이 재설치된 것
       if (savedVersion === null || savedVersion !== CURRENT_APP_VERSION) {
-        console.log('앱 버전/빌드 변경 또는 재설치 감지 - 세션 초기화', {
+        console.log('📱 [Index] 앱 버전/빌드 변경 또는 재설치 감지 - 세션 초기화', {
           saved: savedVersion,
           current: CURRENT_APP_VERSION,
           isReinstall: savedVersion === null,
@@ -44,6 +53,8 @@ export default function Index() {
 
         // 버전 정보 저장
         await AsyncStorage.setItem(APP_VERSION_KEY, CURRENT_APP_VERSION);
+        console.log('➡️ [Index] 라우팅: /signin (버전 변경)');
+        setIsNavigating(true);
         router.replace('/signin');
         return;
       }
@@ -51,6 +62,7 @@ export default function Index() {
       // 로그인 유지 설정 확인: 기본값은 true (키가 없으면 기존 동작 유지)
       const rememberPref = await AsyncStorage.getItem('@remember_me');
       if (rememberPref === 'false') {
+        console.log('🚫 [Index] 로그인 유지 해제됨 - 세션 초기화');
         // 사용자가 '로그인 유지'를 해제한 경우 - 세션을 유지하지 않음
         const {
           data: { session },
@@ -58,6 +70,8 @@ export default function Index() {
         if (session) {
           await supabase.auth.signOut();
         }
+        console.log('➡️ [Index] 라우팅: /signin (로그인 유지 해제)');
+        setIsNavigating(true);
         router.replace('/signin');
         return;
       }
@@ -68,6 +82,8 @@ export default function Index() {
       } = await supabase.auth.getSession();
 
       if (session) {
+        console.log('✅ [Index] 세션 발견 - 유효성 확인 중');
+        
         // 서버에서 실제 유효한 세션인지 확인
         const {
           data: { user },
@@ -75,8 +91,10 @@ export default function Index() {
         } = await supabase.auth.getUser();
 
         if (error || !user) {
-          console.log('세션이 유효하지 않음 - 로그아웃 처리');
+          console.log('❌ [Index] 세션이 유효하지 않음 - 로그아웃 처리');
           await supabase.auth.signOut();
+          console.log('➡️ [Index] 라우팅: /signin (세션 무효)');
+          setIsNavigating(true);
           router.replace('/signin');
           return;
         }
@@ -84,8 +102,10 @@ export default function Index() {
         // 세션 만료 확인
         const expiresAt = session.expires_at;
         if (expiresAt && expiresAt * 1000 < Date.now()) {
-          console.log('세션 만료 - 로그아웃 처리');
+          console.log('⏰ [Index] 세션 만료 - 로그아웃 처리');
           await supabase.auth.signOut();
+          console.log('➡️ [Index] 라우팅: /signin (세션 만료)');
+          setIsNavigating(true);
           router.replace('/signin');
           return;
         }
@@ -96,6 +116,8 @@ export default function Index() {
         if (!hasSite) {
           // 현장이 선택되지 않았으면 현장 선택 화면으로 이동
           console.log('⚠️ [Index] 현장이 선택되지 않음 - 현장 선택 화면으로 이동');
+          console.log('➡️ [Index] 라우팅: /site-select (현장 없음)');
+          setIsNavigating(true);
           router.replace('/site-select');
         } else {
           // 선택한 현장이 있으면 접근 권한 확인
@@ -106,31 +128,44 @@ export default function Index() {
             
             if (hasAccess) {
               // 접근 권한이 있으면 메인으로 이동
+              console.log('✅ [Index] 세션 유효 + 현장 선택됨 + 접근 권한 있음');
+              console.log('➡️ [Index] 라우팅: /main');
+              setIsNavigating(true);
               router.replace('/main');
             } else {
               // 접근 권한이 없으면 현장 선택 화면으로 이동
               console.log('⚠️ [Index] 현장 접근 권한 없음 - 현장 선택 화면으로 이동');
+              console.log('➡️ [Index] 라우팅: /site-select (접근 권한 없음)');
+              setIsNavigating(true);
               router.replace('/site-select');
             }
           } else {
             // 선택한 현장 정보가 없으면 현장 선택 화면으로 이동
+            console.log('⚠️ [Index] 선택한 현장 정보 없음 - 현장 선택 화면으로 이동');
+            console.log('➡️ [Index] 라우팅: /site-select (현장 정보 없음)');
+            setIsNavigating(true);
             router.replace('/site-select');
           }
         }
       } else {
+        console.log('❌ [Index] 세션 없음 - 로그인 화면으로 이동');
+        console.log('➡️ [Index] 라우팅: /signin (세션 없음)');
+        setIsNavigating(true);
         router.replace('/signin');
       }
     } catch (error) {
-      console.error('인증 확인 에러:', error);
+      console.error('❌ [Index] 인증 확인 에러:', error);
       // 에러 발생 시 안전하게 로그아웃 처리
       try {
         await supabase.auth.signOut();
       } catch (signOutError) {
-        console.error('로그아웃 에러:', signOutError);
+        console.error('❌ [Index] 로그아웃 에러:', signOutError);
       }
+      console.log('➡️ [Index] 라우팅: /signin (에러 발생)');
+      setIsNavigating(true);
       router.replace('/signin');
     }
-  }, [router]);
+  }, [router, isNavigating]);
 
   useEffect(() => {
     checkAuth();

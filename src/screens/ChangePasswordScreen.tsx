@@ -21,6 +21,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +33,7 @@ const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 export default function ChangePasswordScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -46,22 +48,22 @@ export default function ChangePasswordScreen() {
   const handleChangePassword = async () => {
     // 입력 검증
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert('입력 오류', '모든 필드를 입력해주세요.');
+      Alert.alert(t('common.error'), t('changePassword.allFieldsRequired'));
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert('입력 오류', '새 비밀번호는 최소 6자 이상이어야 합니다.');
+      Alert.alert(t('common.error'), t('changePassword.passwordTooShort'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('입력 오류', '새 비밀번호와 확인 비밀번호가 일치하지 않습니다.');
+      Alert.alert(t('common.error'), t('changePassword.passwordMismatch'));
       return;
     }
 
     if (currentPassword === newPassword) {
-      Alert.alert('입력 오류', '현재 비밀번호와 새 비밀번호가 같습니다.');
+      Alert.alert(t('common.error'), t('changePassword.samePassword'));
       return;
     }
 
@@ -74,7 +76,7 @@ export default function ChangePasswordScreen() {
       } = await supabase.auth.getUser();
 
       if (!user || !user.email) {
-        Alert.alert('오류', '로그인 정보를 찾을 수 없습니다.');
+        Alert.alert(t('common.error'), t('changePassword.loginInfoNotFound'));
         setLoading(false);
         return;
       }
@@ -86,7 +88,7 @@ export default function ChangePasswordScreen() {
       });
 
       if (signInError) {
-        Alert.alert('비밀번호 오류', '현재 비밀번호가 올바르지 않습니다.');
+        Alert.alert(t('common.error'), t('changePassword.currentPasswordIncorrect'));
         setLoading(false);
         return;
       }
@@ -111,9 +113,9 @@ export default function ChangePasswordScreen() {
         // Auth 비밀번호는 변경되었으므로 계속 진행
       }
 
-      Alert.alert('변경 완료', '비밀번호가 성공적으로 변경되었습니다.', [
+      Alert.alert(t('common.success'), t('changePassword.changeSuccess'), [
         {
-          text: '확인',
+          text: t('common.confirm'),
           onPress: () => {
             // 입력 필드 초기화
             setCurrentPassword('');
@@ -125,7 +127,7 @@ export default function ChangePasswordScreen() {
       ]);
     } catch (error: any) {
       console.error('비밀번호 변경 실패:', error);
-      Alert.alert('오류', '비밀번호 변경에 실패했습니다.\n다시 시도해주세요.');
+      Alert.alert(t('common.error'), t('changePassword.changeError'));
     } finally {
       setLoading(false);
     }
@@ -155,13 +157,13 @@ export default function ChangePasswordScreen() {
             >
               <Ionicons name="arrow-back" size={24} color="#000" />
             </TouchableOpacity>
-            <Text style={styles.title}>비밀번호 변경</Text>
+            <Text style={styles.title}>{t('changePassword.title')}</Text>
             <View style={styles.placeholder} />
           </View>
 
           {/* 현재 비밀번호 */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>현재 비밀번호</Text>
+            <Text style={styles.inputLabel}>{t('changePassword.currentPassword')}</Text>
             <View style={styles.passwordContainer}>
               <TextInput
                 style={[
@@ -172,7 +174,7 @@ export default function ChangePasswordScreen() {
                     fontFamily: showCurrentPassword ? FONT_REGULAR : undefined,
                   },
                 ]}
-                placeholder="현재 비밀번호를 입력하세요"
+                placeholder={t('changePassword.currentPasswordPlaceholder')}
                 placeholderTextColor="#999"
                 value={currentPassword}
                 onChangeText={setCurrentPassword}
@@ -194,7 +196,7 @@ export default function ChangePasswordScreen() {
 
           {/* 새 비밀번호 */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>새 비밀번호</Text>
+            <Text style={styles.inputLabel}>{t('changePassword.newPassword')}</Text>
             <View style={styles.passwordContainer}>
               <TextInput
                 style={[
@@ -204,7 +206,7 @@ export default function ChangePasswordScreen() {
                     fontFamily: showNewPassword ? FONT_REGULAR : undefined,
                   },
                 ]}
-                placeholder="새 비밀번호를 입력하세요 (최소 6자)"
+                placeholder={t('changePassword.newPasswordPlaceholder')}
                 placeholderTextColor="#999"
                 value={newPassword}
                 onChangeText={setNewPassword}
@@ -226,7 +228,7 @@ export default function ChangePasswordScreen() {
 
           {/* 비밀번호 확인 */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>비밀번호 확인</Text>
+            <Text style={styles.inputLabel}>{t('changePassword.confirmPassword')}</Text>
             <View style={styles.passwordContainer}>
               <TextInput
                 style={[
@@ -237,7 +239,7 @@ export default function ChangePasswordScreen() {
                     fontFamily: showConfirmPassword ? FONT_REGULAR : undefined,
                   },
                 ]}
-                placeholder="새 비밀번호를 다시 입력하세요"
+                placeholder={t('changePassword.confirmPasswordPlaceholder')}
                 placeholderTextColor="#999"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
@@ -258,7 +260,7 @@ export default function ChangePasswordScreen() {
             {confirmPassword.length > 0 &&
               newPassword !== confirmPassword && (
                 <Text style={styles.errorText}>
-                  비밀번호가 일치하지 않습니다.
+                  {t('changePassword.passwordMismatch')}
                 </Text>
               )}
           </View>

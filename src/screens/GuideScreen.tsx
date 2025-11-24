@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
@@ -24,58 +25,59 @@ const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 export default function GuideScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const guideSections = [
     {
-      title: '1. 현장 선택',
+      title: t('guide.section1'),
       icon: 'location-outline',
       content: [
-        '로그인 후 현장을 선택합니다.',
-        '현장을 생성하거나 기존 현장에 참여할 수 있습니다.',
-        '현장별로 장비와 알림이 관리됩니다.',
+        t('guide.section1_1'),
+        t('guide.section1_2'),
+        t('guide.section1_3'),
       ],
     },
     {
-      title: '2. 대시보드',
+      title: t('guide.section2'),
       icon: 'grid-outline',
       content: [
-        '등록된 장비들의 실시간 상태를 확인할 수 있습니다.',
-        { text: '미체결(빨간색): 안전고리가 체결되지 않음', color: '#ef4444', icon: 'alert-circle' },
-        { text: '단일체결(노란색): 한쪽만 체결됨', color: '#f59e0b', icon: 'warning' },
-        { text: '이중체결(초록색): 양쪽 모두 체결됨', color: '#22c55e', icon: 'checkmark-circle' },
-        '관리자는 작업자 등록/변경이 가능합니다.',
+        t('guide.section2_1'),
+        { text: t('guide.section2_2'), color: '#ef4444', icon: 'alert-circle' },
+        { text: t('guide.section2_3'), color: '#f59e0b', icon: 'warning' },
+        { text: t('guide.section2_4'), color: '#22c55e', icon: 'checkmark-circle' },
+        t('guide.section2_5'),
       ],
     },
     {
-      title: '3. 알림 내역',
+      title: t('guide.section3'),
       icon: 'notifications-outline',
       content: [
-        '미체결 상태가 5초 이상 지속되면 알림이 발송됩니다.',
-        '과거 알림 내역을 최대 30개까지 확인할 수 있습니다.',
-        '현장별로 알림이 필터링됩니다.',
+        t('guide.section3_1'),
+        t('guide.section3_2'),
+        t('guide.section3_3'),
       ],
     },
     {
-      title: '4. 장비 등록',
+      title: t('guide.section4'),
       icon: 'hardware-chip-outline',
       content: [
-        'Wi-Fi 네트워크 이름을 입력하여 장비를 검색합니다.',
-        '등록 대기 중인 장비를 선택하여 등록합니다.',
-        '장비 이름과 작업자를 지정할 수 있습니다.',
-        '등록된 장비는 해제할 수 있습니다.',
+        t('guide.section4_1'),
+        t('guide.section4_2'),
+        t('guide.section4_3'),
+        t('guide.section4_4'),
       ],
     },
     {
-      title: '5. 환경설정',
+      title: t('guide.section5'),
       icon: 'settings-outline',
       content: [
-        '계정 정보 확인 및 수정',
-        '비밀번호 변경',
-        '알림 내역 삭제',
-        '캐시 데이터 삭제',
-        '앱 버전 확인',
+        t('guide.section5_1'),
+        t('guide.section5_2'),
+        t('guide.section5_3'),
+        t('guide.section5_4'),
+        t('guide.section5_5'),
       ],
     },
   ];
@@ -90,7 +92,7 @@ export default function GuideScreen() {
           activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.title}>앱 사용 가이드</Text>
+        <Text style={styles.title}>{t('guide.title')}</Text>
         <View style={styles.backButton} />
       </View>
 
@@ -101,10 +103,10 @@ export default function GuideScreen() {
 
         {/* 소개 섹션 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ZeroFall 안전고리 모니터링 시스템</Text>
+          <Text style={styles.sectionTitle}>{t('guide.intro')}</Text>
           <View style={styles.introContent}>
             <Text style={styles.introText}>
-              안전고리의 체결 상태를 실시간으로 모니터링하고, 미체결 시 즉시 알림을 받을 수 있는 시스템입니다.
+              {t('guide.introText')}
             </Text>
           </View>
         </View>
@@ -144,23 +146,23 @@ export default function GuideScreen() {
 
         {/* 주의사항 섹션 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>주의사항</Text>
+          <Text style={styles.sectionTitle}>{t('guide.caution')}</Text>
           <View style={styles.contentItem}>
             <View style={styles.bullet} />
             <Text style={styles.contentText}>
-              미체결 상태가 5초 이상 지속되면 자동으로 알림이 발송됩니다.
+              {t('guide.caution1')}
             </Text>
           </View>
           <View style={styles.contentItem}>
             <View style={styles.bullet} />
             <Text style={styles.contentText}>
-              장비 등록 시 Wi-Fi 네트워크 이름을 정확히 입력해야 합니다.
+              {t('guide.caution2')}
             </Text>
           </View>
           <View style={styles.contentItem}>
             <View style={styles.bullet} />
             <Text style={styles.contentText}>
-              현장별로 장비와 알림이 분리되어 관리됩니다.
+              {t('guide.caution3')}
             </Text>
           </View>
         </View>

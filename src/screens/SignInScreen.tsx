@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -15,6 +15,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { getCurrentLanguage, isI18nReady, initializeI18n } from '../../lib/i18n-safe';
 import { PushTokenManager } from '../../lib/push-token-manager';
 import { supabase } from '../../lib/supabase';
 
@@ -25,16 +27,68 @@ const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 export default function SignInScreen() {
   const router = useRouter();
+  const { t, i18n, ready } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState<string>(getCurrentLanguage());
+
+  // i18n 초기화 확인 및 대기
+  useEffect(() => {
+    const checkI18n = async () => {
+      if (!isI18nReady() && !ready) {
+        try {
+          await initializeI18n();
+        } catch (error) {
+          console.error('i18n 초기화 실패:', error);
+        }
+      }
+    };
+    checkI18n();
+  }, [ready]);
+
+  // 언어 변경 감지
+  useEffect(() => {
+    if (!ready) return;
+    
+    const handleLanguageChange = (lng: string) => {
+      setCurrentLanguage(lng);
+    };
+
+    i18n.on('languageChanged', handleLanguageChange);
+
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, [i18n, ready]);
+
+  // 언어 변경 핸들러
+  const handleLanguageChange = () => {
+    if (!ready) return;
+    console.log('➡️ [SignInScreen] 라우팅: /language-select (언어 변경)');
+    router.push('/language-select');
+  };
+
+  // 안전한 번역 함수 (fallback 포함)
+  const safeT = (key: string, fallback: string = key): string => {
+    if (!ready) return fallback;
+    const translated = t(key);
+    // 번역 키가 그대로 반환되면 fallback 사용
+    if (translated === key && fallback !== key) {
+      return fallback;
+    }
+    return translated;
+  };
 
   // 1. 기존 로그인 기능
   const handleSignIn = async () => {
     if (!email || !password) {
-      Alert.alert('입력 오류', '아이디와 비밀번호를 모두 입력하세요.');
+      Alert.alert(
+        safeT('common.inputError', '입력 오류'),
+        safeT('signin.invalidCredentials', '아이디와 비밀번호를 모두 입력하세요.')
+      );
       return;
     }
 
@@ -51,8 +105,8 @@ export default function SignInScreen() {
       // Supabase 에러가 발생하면, 구체적인 에러 메시지 대신 일반적인 실패 메시지를 사용자에게 보여줍니다.
       // 이렇게 해야 계정이 존재하는지 유추하는 것을 막아 보안에 유리합니다.
       Alert.alert(
-        '로그인 실패',
-        '아이디 또는 비밀번호가 잘못 입력되었습니다.', // 사용자 요청 메시지
+        safeT('signin.loginFailed', '로그인 실패'),
+        safeT('signin.invalidEmailOrPassword', '아이디 또는 비밀번호가 잘못 입력되었습니다.'),
       );
     } else {
       // 로그인할 때마다 푸시 토큰 확인 및 발급
@@ -82,26 +136,27 @@ export default function SignInScreen() {
 
           if (tokenResult.action === 'updated') {
             Alert.alert(
-              '푸시 알림 설정 완료 🔔',
-              '새로운 푸시 토큰이 발급되어 저장되었습니다.\n이제 알림을 받을 수 있습니다.',
+              safeT('signin.pushNotificationSuccessTitle', '푸시 알림 설정 완료 🔔'),
+              safeT('signin.pushNotificationSuccessMessage', '새로운 푸시 토큰이 발급되어 저장되었습니다.\n이제 알림을 받을 수 있습니다.'),
             );
           }
         } else {
           console.error('❌ 토큰 관리 실패:', tokenResult.message);
           Alert.alert(
-            '푸시 알림 설정 실패',
-            `${tokenResult.message}\n\n알림을 받지 못할 수 있습니다.`,
+            safeT('signin.pushNotificationFailureTitle', '푸시 알림 설정 실패'),
+            `${tokenResult.message}\n\n${safeT('signin.pushNotificationFailureMessage', '알림을 받지 못할 수 있습니다.')}`,
           );
         }
 
         // 🎉 토큰 관리 완료 - 현장 선택 화면으로 이동
-        console.log('🚀 로그인 완료 - 현장 선택 화면으로 이동');
+        console.log('✅ [SignInScreen] 로그인 성공 - 토큰 관리 완료');
+        console.log('➡️ [SignInScreen] 라우팅: /site-select');
         router.replace('/site-select');
       } catch (error) {
         console.error('❌ 로그인 후 처리 실패:', error);
         Alert.alert(
-          '오류',
-          '로그인 후 처리 중 오류가 발생했습니다.\n다시 시도해주세요.',
+          safeT('signin.postLoginErrorTitle', '오류'),
+          safeT('signin.postLoginErrorMessage', '로그인 후 처리 중 오류가 발생했습니다.\n다시 시도해주세요.'),
         );
       }
     }
@@ -111,6 +166,7 @@ export default function SignInScreen() {
   const handleFindCredential = () => {
     // 비밀번호 찾기 화면으로 이동
     console.log('비밀번호 찾기 버튼 클릭됨');
+    console.log('➡️ [SignInScreen] 라우팅: /forgot-password (비밀번호 찾기)');
     router.push('/forgot-password');
   };
 
@@ -120,11 +176,23 @@ export default function SignInScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
+        {/* 언어 변경 버튼 - 상단 우측 */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.languageButton}
+            onPress={handleLanguageChange}
+          >
+            <Ionicons name="language-outline" size={24} color="#78C4B4" />
+            <Text style={styles.languageText}>
+              {currentLanguage === 'ko' ? '한국어' : 'English'}
+            </Text>
+          </TouchableOpacity>
+        </View>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* 로그인 폼 컨테이너 - 중앙 정렬 */}
           <View style={styles.formContainer}>
             {/* 제목 - ⭐️ 굵은 폰트 적용 */}
-            <Text style={styles.title}>ZeroFall에 로그인</Text>
+            <Text style={styles.title}>{safeT('signin.title', 'ZeroFall에 로그인')}</Text>
 
             {/* 아이디 입력 필드 - ⭐️ 일반 폰트 적용 */}
             <TextInput
@@ -135,7 +203,7 @@ export default function SignInScreen() {
                   fontFamily: FONT_REGULAR,
                 },
               ]}
-              placeholder="아이디"
+              placeholder={safeT('signin.emailPlaceholder', '아이디')}
               placeholderTextColor="#999"
               value={email}
               onChangeText={setEmail}
@@ -157,7 +225,7 @@ export default function SignInScreen() {
                     ? { fontFamily: FONT_REGULAR }
                     : null,
                 ]}
-                placeholder="비밀번호"
+                placeholder={safeT('signin.passwordPlaceholder', '비밀번호')}
                 placeholderTextColor="#999"
                 value={password}
                 onChangeText={setPassword}
@@ -191,7 +259,7 @@ export default function SignInScreen() {
                 size={22}
                 color="#5FCCC4"
               />
-              <Text style={styles.rememberText}>로그인 유지</Text>
+              <Text style={styles.rememberText}>{safeT('signin.rememberMe', '로그인 유지')}</Text>
             </TouchableOpacity>
 
             {/* 로그인 버튼 - ⭐️ 굵은 폰트 적용 */}
@@ -204,7 +272,7 @@ export default function SignInScreen() {
               disabled={loading}
             >
               <Text style={styles.loginButtonText}>
-                {loading ? '처리 중...' : '로그인'}
+                {loading ? safeT('signin.processing', '처리 중...') : safeT('signin.loginButton', '로그인')}
               </Text>
             </TouchableOpacity>
 
@@ -212,11 +280,11 @@ export default function SignInScreen() {
             <View style={styles.footer}>
               <View style={styles.signUpLinkContainer}>
                 {/* ⭐️ 일반 폰트 적용 */}
-                <Text style={styles.footerText}>계정이 없으신가요?</Text>
+                <Text style={styles.footerText}>{safeT('signup.noAccount', '계정이 없으신가요?')}</Text>
                 <Link href="/signup" asChild>
                   <TouchableOpacity>
                     {/* ⭐️ 굵은 폰트 적용 */}
-                    <Text style={styles.signUpText}>회원가입하기</Text>
+                    <Text style={styles.signUpText}>{safeT('signin.signUpLink', '회원가입하기')}</Text>
                   </TouchableOpacity>
                 </Link>
               </View>
@@ -227,7 +295,7 @@ export default function SignInScreen() {
                 onPress={handleFindCredential}
               >
                 <Text style={styles.forgotPasswordText}>
-                  비밀번호를 잊으셨나요?
+                  {safeT('signin.forgotPassword', '비밀번호를 잊으셨나요?')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -245,6 +313,32 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
+  },
+  header: {
+    width: '100%',
+    alignItems: 'flex-end',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 5,
+  },
+  languageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  languageText: {
+    marginLeft: 6,
+    fontSize: 14,
+    color: '#78C4B4',
+    fontFamily: FONT_BOLD,
   },
   scrollContent: {
     flexGrow: 1,
@@ -367,5 +461,15 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     fontFamily: FONT_REGULAR,
     textDecorationLine: 'underline',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+    fontFamily: FONT_REGULAR,
   },
 });

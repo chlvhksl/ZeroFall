@@ -15,6 +15,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { addNotificationHistoryListener } from '../../lib/notifications';
 import { getSelectedSite } from '../../lib/siteManagement';
@@ -37,6 +38,7 @@ type NotificationRow = {
 };
 
 export default function NotificationHistoryScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { status: localConnStatus } = useLocalDevice();
 
@@ -156,7 +158,7 @@ export default function NotificationHistoryScreen() {
     >
       {/* 헤더 */}
       <View style={styles.header}>
-        <Text style={styles.title}>🔔 알림 내역</Text>
+        <Text style={styles.title}>🔔 {t('notification.title')}</Text>
       </View>
 
       {/* 원격(Supabase) 알림 내역 – Realtime 상태 배지는 숨김 */}
@@ -201,7 +203,7 @@ export default function NotificationHistoryScreen() {
           ))
       ) : (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>알림 내역이 없습니다</Text>
+          <Text style={styles.emptyText}>{t('notification.noNotifications')}</Text>
         </View>
       )}
     </ScrollView>

@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { getSelectedSite } from '../../lib/siteManagement';
@@ -30,6 +31,7 @@ type TabType = 'dashboard' | 'notification' | 'settings';
 
 export default function MainScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [adminInfo, setAdminInfo] = useState({ affiliation: '', name: '' });
@@ -42,11 +44,18 @@ export default function MainScreen() {
     loadCurrentSite();
   }, []);
 
-  // 화면 포커스 시 현재 현장 다시 로드 (환경설정에서 현장 변경 시 반영)
+  // 화면 포커스 시 현재 현장 즉시 로드 (환경설정에서 현장 변경 시 즉시 반영)
+  useFocusEffect(
+    useCallback(() => {
+      loadCurrentSite();
+    }, [])
+  );
+
+  // 주기적으로 현재 현장 확인 (1분마다)
   useEffect(() => {
     const interval = setInterval(() => {
       loadCurrentSite();
-    }, 2000); // 2초마다 체크
+    }, 60000); // 60초 = 1분
 
     return () => clearInterval(interval);
   }, []);
@@ -95,24 +104,25 @@ export default function MainScreen() {
 
   // 로그아웃 처리
   const handleLogout = () => {
-    Alert.alert('로그아웃', '로그아웃을 하시겠습니까?', [
+    Alert.alert(t('main.logout'), t('main.logoutConfirm'), [
       {
-        text: '취소',
+        text: t('common.cancel'),
         style: 'cancel',
       },
       {
-        text: '네',
+        text: t('common.confirm'),
         onPress: async () => {
           try {
             const { error } = await supabase.auth.signOut();
             if (error) {
-              Alert.alert('오류', '로그아웃 중 오류가 발생했습니다.');
+              Alert.alert(t('common.error'), t('main.logoutError'));
             } else {
+              console.log('➡️ [MainScreen] 라우팅: /signin (로그아웃)');
               router.replace('/signin');
             }
           } catch (error) {
             console.error('로그아웃 에러:', error);
-            Alert.alert('오류', '로그아웃 중 오류가 발생했습니다.');
+            Alert.alert(t('common.error'), t('main.logoutError'));
           }
         },
       },
@@ -144,10 +154,13 @@ export default function MainScreen() {
           {currentSite && (
             <TouchableOpacity
               style={styles.siteBadge}
-              onPress={() => router.push('/site-select')}
+              onPress={() => {
+                console.log('➡️ [MainScreen] 라우팅: /site-select (현장 선택 버튼)');
+                router.push('/site-select');
+              }}
               activeOpacity={0.7}
             >
-              <Text style={styles.siteBadgeText}>현장: {currentSite}</Text>
+              <Text style={styles.siteBadgeText}>{t('main.site')}: {currentSite}</Text>
             </TouchableOpacity>
           )}
           <Text style={styles.adminInfo}>
@@ -190,7 +203,7 @@ export default function MainScreen() {
               activeTab === 'dashboard' && styles.activeTabText,
             ]}
           >
-            대시보드
+            {t('main.dashboard')}
           </Text>
         </TouchableOpacity>
 
@@ -212,7 +225,7 @@ export default function MainScreen() {
               activeTab === 'notification' && styles.activeTabText,
             ]}
           >
-            알림 내역
+            {t('main.notificationHistory')}
           </Text>
         </TouchableOpacity>
 
@@ -234,7 +247,7 @@ export default function MainScreen() {
               activeTab === 'settings' && styles.activeTabText,
             ]}
           >
-            환경설정
+            {t('main.settings')}
           </Text>
         </TouchableOpacity>
       </View>

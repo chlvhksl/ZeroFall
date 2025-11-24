@@ -5,34 +5,35 @@
 
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
 import {
-  AccessibleSite,
-  clearSelectedSite,
-  clearVerifiedSites,
-  deleteSite,
-  getAccessibleSites,
-  getDefaultSite,
-  getSelectedSite,
-  isSiteVerified,
-  leaveSite,
-  saveSelectedSite,
-  validateSitePassword,
+    AccessibleSite,
+    clearSelectedSite,
+    clearVerifiedSites,
+    deleteSite,
+    getAccessibleSites,
+    getDefaultSite,
+    getSelectedSite,
+    isSiteVerified,
+    leaveSite,
+    saveSelectedSite,
+    validateSitePassword,
 } from '../../lib/siteManagement';
 import { supabase } from '../../lib/supabase';
 
@@ -45,6 +46,7 @@ const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
 export default function SiteSelectScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
@@ -194,27 +196,33 @@ export default function SiteSelectScreen() {
     try {
       const isValid = await validateSitePassword(site.id, password);
       if (!isValid) {
-        Alert.alert('비밀번호 오류', '비밀번호가 일치하지 않습니다.');
+        Alert.alert(t('common.error'), t('siteSelect.passwordIncorrect'));
         return;
       }
       await proceedWithSiteSelection(site);
     } catch (error) {
       console.error('❌ [SiteSelectScreen] 비밀번호 확인 실패:', error);
-      Alert.alert('오류', '비밀번호 확인 중 오류가 발생했습니다.');
+      Alert.alert(t('common.error'), t('siteSelect.passwordError'));
     }
   };
 
   // 현장 선택 진행
   const proceedWithSiteSelection = async (site: AccessibleSite) => {
     try {
+      console.log('✅ [SiteSelectScreen] 현장 선택 시작:', site.name);
       setSelectedSiteId(site.id);
       await saveSelectedSite(site.id, site.name);
       
       // 이전 화면으로 돌아가기 (환경설정에서 왔으면 환경설정으로, 로그인 후면 메인으로)
-      if (router.canGoBack()) {
+      const canGoBack = router.canGoBack();
+      console.log('🔍 [SiteSelectScreen] 라우팅 결정:', { canGoBack, siteName: site.name });
+      
+      if (canGoBack) {
+        console.log('➡️ [SiteSelectScreen] 라우팅: router.back() (이전 화면으로)');
         router.back();
       } else {
-        // 스택이 없으면 메인 화면으로 이동 (로그인 후 첫 현장 선택)
+        // 스택이 없으면 메인 화면으로 직접 이동 (현장을 방금 선택했으므로)
+        console.log('➡️ [SiteSelectScreen] 라우팅: /main (스택 없음, 직접 이동)');
         router.replace('/main');
       }
     } catch (error) {
@@ -243,25 +251,25 @@ export default function SiteSelectScreen() {
   // 개별 현장 삭제
   const handleSingleDelete = async (site: AccessibleSite) => {
     Alert.alert(
-      '현장 삭제',
-      `"${site.name}" 현장을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`,
+      t('siteSelect.deleteSite'),
+      t('siteSelect.deleteConfirm', { name: site.name }),
       [
         {
-          text: '취소',
+          text: t('common.cancel'),
           style: 'cancel',
         },
         {
-          text: '삭제',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await deleteSite(site.id);
-              Alert.alert('삭제 완료', '현장이 삭제되었습니다.');
+              Alert.alert(t('common.success'), t('siteSelect.siteDeleted'));
               // 현장 목록 새로고침
               loadSites();
             } catch (error: any) {
               console.error('❌ [SiteSelectScreen] 현장 삭제 실패:', error);
-              Alert.alert('삭제 실패', error.message || '현장 삭제 중 오류가 발생했습니다.');
+              Alert.alert(t('common.error'), error.message || t('siteSelect.deleteError'));
             }
           },
         },
@@ -272,15 +280,15 @@ export default function SiteSelectScreen() {
   // 현장에서 나가기 (조회자 권한 제거)
   const handleLeaveSite = async (site: AccessibleSite) => {
     Alert.alert(
-      '현장 나가기',
-      `"${site.name}" 현장에서 나가시겠습니까?\n\n나가면 다시 비밀번호를 입력해야 접근할 수 있습니다.`,
+      t('siteSelect.leaveSite'),
+      t('siteSelect.leaveConfirm', { name: site.name }),
       [
         {
-          text: '취소',
+          text: t('common.cancel'),
           style: 'cancel',
         },
         {
-          text: '나가기',
+          text: t('siteSelect.leave'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -292,12 +300,12 @@ export default function SiteSelectScreen() {
                 await clearSelectedSite();
               }
               
-              Alert.alert('나가기 완료', '현장에서 나갔습니다.');
+              Alert.alert(t('common.success'), t('siteSelect.siteLeft'));
               // 현장 목록 새로고침
               loadSites();
             } catch (error: any) {
               console.error('❌ [SiteSelectScreen] 현장 나가기 실패:', error);
-              Alert.alert('나가기 실패', error.message || '현장 나가기 중 오류가 발생했습니다.');
+              Alert.alert(t('common.error'), error.message || t('siteSelect.leaveError'));
             }
           },
         },
@@ -341,7 +349,7 @@ export default function SiteSelectScreen() {
   // 선택한 현장들 한꺼번에 나가기
   const handleBatchLeave = async () => {
     if (selectedSitesForLeave.size === 0) {
-      Alert.alert('선택 오류', '나갈 현장을 선택해주세요.');
+      Alert.alert(t('common.error'), t('siteSelect.selectLeaveError'));
       return;
     }
 
@@ -352,8 +360,8 @@ export default function SiteSelectScreen() {
       .join(', ');
 
     Alert.alert(
-      '현장 나가기',
-      `선택한 ${selectedCount}개의 현장에서 나가시겠습니까?\n\n${siteNames}\n\n나가면 다시 비밀번호를 입력해야 접근할 수 있습니다.`,
+      t('siteSelect.leaveSite'),
+      t('siteSelect.batchLeaveConfirm', { count: selectedCount, names: siteNames }),
       [
         {
           text: '취소',
@@ -377,11 +385,11 @@ export default function SiteSelectScreen() {
 
               if (errors.length > 0) {
                 Alert.alert(
-                  '일부 나가기 실패',
-                  `${selectedCount - errors.length}개는 나갔지만, ${errors.length}개는 나가기에 실패했습니다.`,
+                  t('siteSelect.leavePartialError'),
+                  t('siteSelect.leavePartialMessage', { success: selectedCount - errors.length, failed: errors.length }),
                 );
               } else {
-                Alert.alert('나가기 완료', `${selectedCount}개의 현장에서 나갔습니다.`);
+                Alert.alert(t('common.success'), t('siteSelect.leaveSuccess', { count: selectedCount }));
               }
 
               // 현재 선택한 현장이 나간 현장 중 하나면 선택 해제
@@ -396,7 +404,7 @@ export default function SiteSelectScreen() {
               loadSites();
             } catch (error: any) {
               console.error('❌ [SiteSelectScreen] 일괄 나가기 실패:', error);
-              Alert.alert('나가기 실패', '현장 나가기 중 오류가 발생했습니다.');
+              Alert.alert(t('common.error'), t('siteSelect.leaveError'));
               setLoading(false);
             }
           },
@@ -419,7 +427,7 @@ export default function SiteSelectScreen() {
   // 선택한 현장들 한꺼번에 삭제
   const handleBatchDelete = async () => {
     if (selectedSitesForDelete.size === 0) {
-      Alert.alert('선택 오류', '삭제할 현장을 선택해주세요.');
+      Alert.alert(t('common.error'), t('siteSelect.selectDeleteError'));
       return;
     }
 
@@ -430,15 +438,15 @@ export default function SiteSelectScreen() {
       .join(', ');
 
     Alert.alert(
-      '현장 삭제',
-      `선택한 ${selectedCount}개의 현장을 삭제하시겠습니까?\n\n${siteNames}\n\n이 작업은 되돌릴 수 없습니다.`,
+      t('siteSelect.deleteSite'),
+      t('siteSelect.batchDeleteConfirm', { count: selectedCount, names: siteNames }),
       [
         {
-          text: '취소',
+          text: t('common.cancel'),
           style: 'cancel',
         },
         {
-          text: '삭제',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -459,7 +467,7 @@ export default function SiteSelectScreen() {
                   `${selectedCount - errors.length}개는 삭제되었지만, ${errors.length}개는 삭제에 실패했습니다.`,
                 );
               } else {
-                Alert.alert('삭제 완료', `${selectedCount}개의 현장이 삭제되었습니다.`);
+                Alert.alert(t('common.success'), t('siteSelect.deleteSuccess', { count: selectedCount }));
               }
 
               // 삭제 모드 종료 및 목록 새로고침
@@ -468,7 +476,7 @@ export default function SiteSelectScreen() {
               loadSites();
             } catch (error: any) {
               console.error('❌ [SiteSelectScreen] 일괄 삭제 실패:', error);
-              Alert.alert('삭제 실패', '현장 삭제 중 오류가 발생했습니다.');
+              Alert.alert(t('common.error'), t('siteSelect.deleteError'));
               setLoading(false);
             }
           },
@@ -479,13 +487,13 @@ export default function SiteSelectScreen() {
 
   // 로그아웃 처리
   const handleLogout = () => {
-    Alert.alert('로그아웃', '로그아웃을 하시겠습니까?', [
+    Alert.alert(t('main.logout'), t('main.logoutConfirm'), [
       {
-        text: '취소',
+        text: t('common.cancel'),
         style: 'cancel',
       },
       {
-        text: '네',
+        text: t('common.yes'),
         onPress: async () => {
           try {
             // 인증된 현장 목록 초기화
@@ -493,13 +501,13 @@ export default function SiteSelectScreen() {
             
             const { error } = await supabase.auth.signOut();
             if (error) {
-              Alert.alert('오류', '로그아웃 중 오류가 발생했습니다.');
+              Alert.alert(t('common.error'), t('main.logoutError'));
             } else {
               router.replace('/signin');
             }
           } catch (error) {
             console.error('로그아웃 에러:', error);
-            Alert.alert('오류', '로그아웃 중 오류가 발생했습니다.');
+            Alert.alert(t('common.error'), t('main.logoutError'));
           }
         },
       },
@@ -536,7 +544,7 @@ export default function SiteSelectScreen() {
                 color={deleteMode ? '#FF3B30' : '#000'}
               />
               <Text style={[styles.actionModeButtonText, deleteMode && styles.actionModeButtonTextActive]}>
-                {deleteMode ? '취소' : '현장삭제'}
+                {deleteMode ? t('common.cancel') : t('siteSelect.deleteSite')}
               </Text>
             </TouchableOpacity>
           )}
@@ -551,7 +559,7 @@ export default function SiteSelectScreen() {
                 color={leaveMode ? '#FF9500' : '#000'}
               />
               <Text style={[styles.actionModeButtonText, leaveMode && styles.leaveModeButtonTextActive]}>
-                {leaveMode ? '취소' : '현장나가기'}
+                {leaveMode ? t('common.cancel') : t('siteSelect.leaveSite')}
               </Text>
             </TouchableOpacity>
           )}
@@ -565,17 +573,17 @@ export default function SiteSelectScreen() {
         {/* 헤더 */}
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <Text style={styles.title}>현장 선택</Text>
+            <Text style={styles.title}>{t('siteSelect.title')}</Text>
             <TouchableOpacity
               style={styles.addButtonHeader}
               onPress={() => router.push('/add-site')}
             >
               <Ionicons name="add" size={20} color="#FFF" />
-              <Text style={styles.addButtonHeaderText}>현장 추가</Text>
+              <Text style={styles.addButtonHeaderText}>{t('siteSelect.addSite')}</Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.subtitle}>
-            관리할 현장을 선택해주세요
+            {t('siteSelect.subtitle')}
           </Text>
         </View>
 
@@ -586,7 +594,7 @@ export default function SiteSelectScreen() {
             style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="현장명으로 검색..."
+            placeholder={t('siteSelect.searchPlaceholder')}
             placeholderTextColor="#999"
             autoCapitalize="none"
             autoCorrect={false}
@@ -604,12 +612,12 @@ export default function SiteSelectScreen() {
         {/* 현장이 없을 때 안내 메시지 */}
         {sites.length === 0 && (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyTitle}>현장이 없습니다</Text>
+            <Text style={styles.emptyTitle}>{t('siteSelect.noSites')}</Text>
             <Text style={styles.emptyText}>
-              새로운 현장을 추가하여 시작하세요.
+              {t('siteSelect.addSiteToStart')}
             </Text>
             <Text style={styles.emptySubtext}>
-              현장을 추가하면 자동으로 해당 현장의 관리자 권한을 받게 됩니다.
+              {t('siteSelect.addSiteAdminInfo')}
             </Text>
           </View>
         )}
@@ -693,17 +701,17 @@ export default function SiteSelectScreen() {
                     <Text style={styles.siteName}>{site.name}</Text>
                     {isDefault && (
                       <View style={styles.defaultBadge}>
-                        <Text style={styles.defaultBadgeText}>기본</Text>
+                        <Text style={styles.defaultBadgeText}>{t('siteSelect.default')}</Text>
                       </View>
                     )}
                     {site.role && (
                       <View style={styles.roleBadge}>
                         <Text style={styles.roleBadgeText}>
                           {site.role === 'admin'
-                            ? '관리자'
+                            ? t('siteSelect.admin')
                             : site.role === 'manager'
-                              ? '매니저'
-                              : '조회자'}
+                              ? t('siteSelect.manager')
+                              : t('siteSelect.viewer')}
                         </Text>
                       </View>
                     )}
@@ -726,9 +734,9 @@ export default function SiteSelectScreen() {
             );
           }).length === 0 && (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyTitle}>검색 결과가 없습니다</Text>
+              <Text style={styles.emptyTitle}>{t('siteSelect.noSearchResults')}</Text>
               <Text style={styles.emptyText}>
-                다른 검색어를 입력해보세요.
+                {t('siteSelect.tryDifferentSearch')}
               </Text>
             </View>
           )}
@@ -737,10 +745,10 @@ export default function SiteSelectScreen() {
         {/* 안내 문구 */}
         <View style={styles.infoContainer}>
           <Text style={styles.infoText}>
-            💡 선택한 현장의 장비만 대시보드에 표시됩니다.
+            💡 {t('siteSelect.selectSiteInfo')}
           </Text>
           <Text style={styles.infoText}>
-            환경설정에서 언제든지 현장을 변경할 수 있습니다.
+            {t('siteSelect.changeSiteInfo')}
           </Text>
         </View>
       </ScrollView>
@@ -758,7 +766,7 @@ export default function SiteSelectScreen() {
           >
             <Ionicons name="trash" size={24} color="#FFF" />
             <Text style={styles.deleteSelectedButtonText}>
-              선택한 현장 삭제 ({selectedSitesForDelete.size})
+              {t('siteSelect.deleteSelected', { count: selectedSitesForDelete.size })}
             </Text>
           </TouchableOpacity>
         ) : leaveMode ? (
@@ -772,7 +780,7 @@ export default function SiteSelectScreen() {
           >
             <Ionicons name="exit" size={24} color="#FFF" />
             <Text style={styles.leaveSelectedButtonText}>
-              선택한 현장 나가기 ({selectedSitesForLeave.size})
+              {t('siteSelect.leaveSelected', { count: selectedSitesForLeave.size })}
             </Text>
           </TouchableOpacity>
         ) : null}
@@ -791,15 +799,15 @@ export default function SiteSelectScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>비밀번호 입력</Text>
+            <Text style={styles.modalTitle}>{t('siteSelect.enterPassword')}</Text>
             <Text style={styles.modalSubtitle}>
-              {pendingSite ? `"${pendingSite.name}" 현장의 비밀번호를 입력하세요.` : ''}
+              {pendingSite ? t('siteSelect.enterPasswordForSite', { name: pendingSite.name }) : ''}
             </Text>
             <TextInput
               style={[styles.modalInput, { fontFamily: undefined }]}
               value={passwordInput}
               onChangeText={setPasswordInput}
-              placeholder="비밀번호"
+              placeholder={t('siteSelect.password')}
               placeholderTextColor="#999"
               secureTextEntry
               autoFocus
@@ -813,13 +821,13 @@ export default function SiteSelectScreen() {
                   setPendingSite(null);
                 }}
               >
-                <Text style={styles.modalButtonCancelText}>취소</Text>
+                <Text style={styles.modalButtonCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.modalButtonConfirm]}
                 onPress={handlePasswordModalConfirm}
               >
-                <Text style={styles.modalButtonConfirmText}>확인</Text>
+                <Text style={styles.modalButtonConfirmText}>{t('common.confirm')}</Text>
               </TouchableOpacity>
             </View>
           </View>
