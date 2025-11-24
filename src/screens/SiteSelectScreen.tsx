@@ -975,7 +975,7 @@ const styles = StyleSheet.create({
   siteCardWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
   },
   siteCard: {
     flex: 1,
@@ -987,6 +987,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 8,
   },
   siteCardSelected: {
     borderColor: '#007AFF',

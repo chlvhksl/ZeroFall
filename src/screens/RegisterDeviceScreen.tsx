@@ -285,7 +285,7 @@ export default function RegisterDeviceScreen() {
     const unregistered = !item.worker_name;
     const selected = selectedId === item.device_id;
     return (
-      <View style={[
+      <View key={item.device_id} style={[
         styles.card,
         selected && styles.cardSelected,
         unregistered && styles.cardPending,
@@ -324,7 +324,15 @@ export default function RegisterDeviceScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={true}
       >
-        <Text style={styles.title}>작업자 등록/변경</Text>
+        <View style={styles.headerRow}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.title}>작업자 등록/변경</Text>
+        </View>
 
         {/* 와이파이 안내 메시지 */}
         <View style={styles.infoBox}>
@@ -484,12 +492,22 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 20,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 12,
+  },
+  backButton: {
+    padding: 4,
+    marginLeft: -4,
+  },
   title: {
     fontSize: 24,
     // fontWeight: 'bold', // 폰트 파일 자체에 굵기 포함
     fontFamily: 'NanumSquare-Bold',
     color: '#000',
-    marginBottom: 12,
+    flex: 1,
   },
   row: {
     marginBottom: 10,

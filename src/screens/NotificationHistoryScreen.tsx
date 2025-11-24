@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { addNotificationHistoryListener } from '../../lib/notifications';
+import { getSelectedSite } from '../../lib/siteManagement';
 import { supabase } from '../../lib/supabase';
 import { formatKoreaTime } from '../../lib/utils';
 import { useLocalDevice } from '../context/LocalDeviceContext';
@@ -42,6 +43,20 @@ export default function NotificationHistoryScreen() {
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [rtConnected, setRtConnected] = useState(false);
+  const [currentSiteId, setCurrentSiteId] = useState<string | null>(null);
+
+  // 현재 선택한 현장 감지
+  useEffect(() => {
+    const loadCurrentSite = async () => {
+      const selectedSite = await getSelectedSite();
+      setCurrentSiteId(selectedSite?.id || null);
+    };
+
+    loadCurrentSite();
+    // 현장이 변경될 수 있으므로 주기적으로 갱신
+    const interval = setInterval(loadCurrentSite, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     let channel: any | null = null;
@@ -49,12 +64,29 @@ export default function NotificationHistoryScreen() {
 
     const fetchInitial = async () => {
       try {
-        const { data, error } = await supabase
+        // 현재 선택한 현장 가져오기
+        const selectedSite = await getSelectedSite();
+        
+        // 알림 내역 조회
+        let query = supabase
           .from('notification_history')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(30);
+
+        // 현장이 선택되었으면 site_id로 필터링
+        if (selectedSite) {
+          query = query.eq('site_id', selectedSite.id);
+        } else {
+          // 현장이 선택되지 않았으면 빈 결과
+          setItems([]);
+          setLoading(false);
+          return;
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
+        
         setItems(data || []);
       } catch (e) {
         console.error('알림 내역 조회 오류:', e);
@@ -67,10 +99,18 @@ export default function NotificationHistoryScreen() {
       .channel('notification_history_stream')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notification_history' },
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'notification_history',
+          filter: currentSiteId ? `site_id=eq.${currentSiteId}` : undefined
+        },
         payload => {
           const row = payload.new as NotificationRow;
-          setItems(prev => [row, ...prev].slice(0, 30));
+          // 현재 현장의 알림만 추가 (필터가 이미 적용되어 있지만 이중 체크)
+          if (!currentSiteId || (row as any).site_id === currentSiteId) {
+            setItems(prev => [row, ...prev].slice(0, 30));
+          }
         },
       )
       .subscribe(status => setRtConnected(status === 'SUBSCRIBED'));
@@ -79,26 +119,29 @@ export default function NotificationHistoryScreen() {
 
     // 즉시 반영: 앱 내 수신 이벤트를 상단에 삽입(Realtime 올 때는 필터로 중복 숨김)
     offLocal = addNotificationHistoryListener((row: any) => {
-      setItems(prev =>
-        [
-          {
-            id: Math.floor(Math.random() * 1e9),
-            created_at: row.created_at || new Date().toISOString(),
-            device_id: row.device_id ?? null,
-            title: row.title ?? '알림',
-            body: row.body ?? null,
-            status: row.status ?? null,
-          },
-          ...prev,
-        ].slice(0, 30),
-      );
+      // 현재 현장의 알림만 추가
+      if (!currentSiteId || row.site_id === currentSiteId) {
+        setItems(prev =>
+          [
+            {
+              id: Math.floor(Math.random() * 1e9),
+              created_at: row.created_at || new Date().toISOString(),
+              device_id: row.device_id ?? null,
+              title: row.title ?? '알림',
+              body: row.body ?? null,
+              status: row.status ?? null,
+            },
+            ...prev,
+          ].slice(0, 30),
+        );
+      }
     });
 
     return () => {
       if (channel) supabase.removeChannel(channel);
       if (offLocal) offLocal();
     };
-  }, []);
+  }, [currentSiteId]);
 
   const getStatusColor = (status?: string | null) => {
     if (status === '미체결') return '#ef4444';
