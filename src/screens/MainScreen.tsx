@@ -196,6 +196,8 @@ export default function MainScreen() {
               styles.tabText,
               { fontFamily: activeTab === 'dashboard' ? fonts.bold : fonts.regular },
             ]}
+            numberOfLines={2}
+            adjustsFontSizeToFit={false}
           >
             {t('main.dashboard')}
           </Text>
@@ -218,6 +220,8 @@ export default function MainScreen() {
               styles.tabText,
               { fontFamily: activeTab === 'notification' ? fonts.bold : fonts.regular },
             ]}
+            numberOfLines={2}
+            adjustsFontSizeToFit={false}
           >
             {t('main.notificationHistory')}
           </Text>
@@ -240,6 +244,8 @@ export default function MainScreen() {
               styles.tabText,
               { fontFamily: activeTab === 'settings' ? fonts.bold : fonts.regular },
             ]}
+            numberOfLines={2}
+            adjustsFontSizeToFit={false}
           >
             {t('main.settings')}
           </Text>
@@ -382,10 +388,10 @@ const styles = StyleSheet.create({
   },
   activeTabBackground: {
     position: 'absolute',
-    top: 5,
-    bottom: 5,
-    left: 8,
-    right: 8,
+    top: 0,
+    bottom: 0,
+    left: 4,
+    right: 4,
     backgroundColor: '#FFF',
     borderRadius: 12,
     borderWidth: 1,
@@ -407,6 +413,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#000',
     zIndex: 1,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false, // Android에서 텍스트 정렬 개선
   },
   activeTabText: {
     // fontFamily는 인라인으로 적용

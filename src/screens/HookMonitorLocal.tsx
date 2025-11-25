@@ -911,7 +911,7 @@ export default function HookMonitorLocal() {
                       <View style={styles.sideSensors}>
                         <View style={styles.sensorItemInline}>
                           <Text style={[styles.sensorLabel, { fontFamily: fonts.regular }]}>{t('device.left')}</Text>
-                          <Text style={styles.sensorValue}>
+                          <Text style={[styles.sensorValue, { fontFamily: fonts.bold }]}>
                             {item?.left_sensor ? '✓' : '✗'}
                           </Text>
                         </View>
@@ -1085,18 +1085,23 @@ const styles = StyleSheet.create({
   },
   sensorItemInline: {
     alignItems: 'center',
+    justifyContent: 'center',
     minWidth: 50,
     flexShrink: 0,
+    height: 50, // 고정 높이로 좌우 높이 맞춤
   },
   sensorLabel: {
     fontSize: 14,
     color: '#666',
     marginBottom: 4,
+    textAlign: 'center',
       },
   sensorValue: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000',
+    lineHeight: 28, // 텍스트 높이 고정
+    textAlign: 'center',
       },
   searchContainer: {
     marginBottom: 16,
