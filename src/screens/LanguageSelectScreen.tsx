@@ -19,6 +19,10 @@ import { useFontByLanguage } from '../../lib/fontUtils-safe';
 const FONT_JP_REGULAR = 'NotoSansCJKjp-R';
 const FONT_JP_BOLD = 'NotoSansCJKjp-B';
 const FONT_JP_EXTRABOLD = 'NotoSansCJKjp-EB';
+const FONT_SC_REGULAR = 'NotoSansCJKsc-R';
+const FONT_SC_BOLD = 'NotoSansCJKsc-B';
+const FONT_TC_REGULAR = 'NotoSansCJKtc-R';
+const FONT_TC_BOLD = 'NotoSansCJKtc-B';
 const FONT_KO_EN_REGULAR = 'NanumSquare-Regular';
 const FONT_KO_EN_BOLD = 'NanumSquare-Bold';
 
@@ -26,6 +30,14 @@ const LANGUAGES = [
   { code: 'ko', name: '한국어' },
   { code: 'en', name: 'English' },
   { code: 'jp', name: '日本語' },
+  { code: 'zh-CN', name: '简体中文' },
+  { code: 'zh-TW', name: '繁體中文' },
+  { code: 'es', name: 'Español' },
+  { code: 'fr', name: 'Français' },
+  { code: 'de', name: 'Deutsch' },
+  { code: 'it', name: 'Italiano' },
+  { code: 'pt', name: 'Português' },
+  { code: 'ru', name: 'Русский' },
 ];
 
 export default function LanguageSelectScreen() {
@@ -48,7 +60,7 @@ export default function LanguageSelectScreen() {
     };
   }, [i18n]);
 
-  const handleLanguageSelect = async (languageCode: 'ko' | 'en' | 'jp') => {
+  const handleLanguageSelect = async (languageCode: 'ko' | 'en' | 'jp' | 'zh-CN' | 'zh-TW' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru') => {
     const success = await changeLanguage(languageCode);
     if (success) {
       setCurrentLanguage(languageCode);
@@ -82,6 +94,13 @@ export default function LanguageSelectScreen() {
           let languageFont: string;
           if (language.code === 'jp') {
             languageFont = isSelected ? FONT_JP_BOLD : FONT_JP_REGULAR;
+          } else if (language.code === 'zh-CN') {
+            languageFont = isSelected ? FONT_SC_BOLD : FONT_SC_REGULAR;
+          } else if (language.code === 'zh-TW') {
+            languageFont = isSelected ? FONT_TC_BOLD : FONT_TC_REGULAR;
+          } else if (['es', 'fr', 'de', 'it', 'pt', 'ru'].includes(language.code)) {
+            // 유럽 언어는 NotoSans 사용
+            languageFont = isSelected ? 'NotoSans-Bold' : 'NotoSans-Regular';
           } else {
             languageFont = isSelected ? FONT_KO_EN_BOLD : FONT_KO_EN_REGULAR;
           }
@@ -93,7 +112,7 @@ export default function LanguageSelectScreen() {
                 styles.languageOption,
                 isSelected && styles.languageOptionSelected,
               ]}
-              onPress={() => handleLanguageSelect(language.code as 'ko' | 'en' | 'jp')}
+              onPress={() => handleLanguageSelect(language.code as 'ko' | 'en' | 'jp' | 'zh-CN' | 'zh-TW' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru')}
             >
               <Text
                 style={[

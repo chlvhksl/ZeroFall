@@ -1,23 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { getCurrentLanguage, isI18nReady, initializeI18n } from '../../lib/i18n-safe';
 import { useFontByLanguage } from '../../lib/fontUtils-safe';
+import { getCurrentLanguage, initializeI18n, isI18nReady } from '../../lib/i18n-safe';
 import { PushTokenManager } from '../../lib/push-token-manager';
 import { supabase } from '../../lib/supabase';
 
@@ -181,7 +181,18 @@ export default function SignInScreen() {
           >
             <Ionicons name="language-outline" size={24} color="#78C4B4" />
             <Text style={[styles.languageText, { fontFamily: fonts.bold }]}>
-              {currentLanguage === 'ko' ? '한국어' : currentLanguage === 'en' ? 'English' : '日本語'}
+              {currentLanguage === 'ko' ? '한국어' 
+                : currentLanguage === 'en' ? 'English' 
+                : currentLanguage === 'jp' ? '日本語'
+                : currentLanguage === 'zh-CN' ? '简体中文'
+                : currentLanguage === 'zh-TW' ? '繁體中文'
+                : currentLanguage === 'es' ? 'Español'
+                : currentLanguage === 'fr' ? 'Français'
+                : currentLanguage === 'de' ? 'Deutsch'
+                : currentLanguage === 'it' ? 'Italiano'
+                : currentLanguage === 'pt' ? 'Português'
+                : currentLanguage === 'ru' ? 'Русский'
+                : '한국어'}
             </Text>
           </TouchableOpacity>
         </View>

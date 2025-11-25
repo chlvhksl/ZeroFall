@@ -79,7 +79,7 @@ export default function MainScreen() {
       }
     } catch (error) {
       console.error('관리자 정보 가져오기 에러:', error);
-      Alert.alert('오류', '관리자 정보를 불러올 수 없습니다.');
+      Alert.alert(t('common.error'), t('main.loadAdminInfoError'));
     } finally {
       setLoading(false);
     }

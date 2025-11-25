@@ -12,6 +12,14 @@ import { initReactI18next } from 'react-i18next';
 import ko from '../locales/ko.json';
 import en from '../locales/en.json';
 import jp from '../locales/jp.json';
+import zhCN from '../locales/zh-CN.json';
+import zhTW from '../locales/zh-TW.json';
+import es from '../locales/es.json';
+import fr from '../locales/fr.json';
+import de from '../locales/de.json';
+import it from '../locales/it.json';
+import pt from '../locales/pt.json';
+import ru from '../locales/ru.json';
 
 const resources = {
   ko: {
@@ -22,6 +30,30 @@ const resources = {
   },
   jp: {
     translation: jp,
+  },
+  'zh-CN': {
+    translation: zhCN,
+  },
+  'zh-TW': {
+    translation: zhTW,
+  },
+  es: {
+    translation: es,
+  },
+  fr: {
+    translation: fr,
+  },
+  de: {
+    translation: de,
+  },
+  it: {
+    translation: it,
+  },
+  pt: {
+    translation: pt,
+  },
+  ru: {
+    translation: ru,
   },
 };
 
@@ -59,14 +91,23 @@ export async function initializeI18n(): Promise<void> {
       }
 
       let language = 'ko';
-      if (savedLanguage && ['ko', 'en', 'jp'].includes(savedLanguage)) {
+      const supportedLanguages = ['ko', 'en', 'jp', 'zh-CN', 'zh-TW', 'es', 'fr', 'de', 'it', 'pt', 'ru'];
+      if (savedLanguage && supportedLanguages.includes(savedLanguage)) {
         language = savedLanguage;
       } else {
         // 시스템 언어 감지
         const defaultLanguage = Localization.getLocales()[0]?.languageCode || 'ko';
-        // 'ja'는 일본어 코드
-        const normalizedLang = defaultLanguage === 'ja' ? 'jp' : defaultLanguage;
-        language = ['ko', 'en', 'jp'].includes(normalizedLang) ? normalizedLang : 'ko';
+        // 언어 코드 정규화
+        let normalizedLang = defaultLanguage;
+        if (defaultLanguage === 'ja') {
+          normalizedLang = 'jp';
+        } else if (defaultLanguage === 'zh') {
+          // 중국어는 지역 코드로 구분
+          const regionCode = Localization.getLocales()[0]?.regionCode || '';
+          // 간체: CN, SG 등 / 번체: TW, HK, MO 등
+          normalizedLang = (regionCode === 'CN' || regionCode === 'SG') ? 'zh-CN' : 'zh-TW';
+        }
+        language = supportedLanguages.includes(normalizedLang) ? normalizedLang : 'ko';
       }
 
       // i18n 초기화
@@ -112,7 +153,7 @@ export function isI18nReady(): boolean {
  * 안전하게 언어를 변경합니다.
  * 초기화가 완료된 후에만 작동합니다.
  */
-export async function changeLanguage(language: 'ko' | 'en' | 'jp'): Promise<boolean> {
+export async function changeLanguage(language: 'ko' | 'en' | 'jp' | 'zh-CN' | 'zh-TW' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru'): Promise<boolean> {
   try {
     // 초기화가 완료되지 않았으면 대기
     if (!isInitialized) {
@@ -120,7 +161,8 @@ export async function changeLanguage(language: 'ko' | 'en' | 'jp'): Promise<bool
     }
 
     // 유효한 언어인지 확인
-    if (!['ko', 'en', 'jp'].includes(language)) {
+    const supportedLanguages = ['ko', 'en', 'jp', 'zh-CN', 'zh-TW', 'es', 'fr', 'de', 'it', 'pt', 'ru'];
+    if (!supportedLanguages.includes(language)) {
       console.error('❌ 유효하지 않은 언어:', language);
       return false;
     }

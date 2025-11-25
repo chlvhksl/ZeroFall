@@ -319,7 +319,18 @@ export default function SettingsScreen() {
               <>
                 {renderItem(
                   t('settings.language'),
-                  currentLanguage === 'ko' ? '한국어' : currentLanguage === 'en' ? 'English' : '日本語',
+                  currentLanguage === 'ko' ? '한국어' 
+                    : currentLanguage === 'en' ? 'English' 
+                    : currentLanguage === 'jp' ? '日本語'
+                    : currentLanguage === 'zh-CN' ? '简体中文'
+                    : currentLanguage === 'zh-TW' ? '繁體中文'
+                    : currentLanguage === 'es' ? 'Español'
+                    : currentLanguage === 'fr' ? 'Français'
+                    : currentLanguage === 'de' ? 'Deutsch'
+                    : currentLanguage === 'it' ? 'Italiano'
+                    : currentLanguage === 'pt' ? 'Português'
+                    : currentLanguage === 'ru' ? 'Русский'
+                    : '한국어',
                   () => {
                     console.log('➡️ [SettingsScreen] 라우팅: /language-select (언어 변경)');
                     router.push('/language-select');

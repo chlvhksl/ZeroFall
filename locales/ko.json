@@ -94,7 +94,8 @@
     "admin": "관리자",
     "affiliation": "소속",
     "siteSelect": "현장 선택",
-    "site": "현장"
+    "site": "현장",
+    "loadAdminInfoError": "관리자 정보를 불러올 수 없습니다."
   },
   "dashboard": {
     "title": "대시보드",

@@ -24,6 +24,18 @@ export default function Layout() {
     'NotoSansCJKjp-R': require('../assets/fonts/jp/NotoSansCJKjp-R.otf'),
     'NotoSansCJKjp-B': require('../assets/fonts/jp/NotoSansCJKjp-B.otf'),
     'NotoSansCJKjp-EB': require('../assets/fonts/jp/NotoSansCJKjp-EB.otf'),
+    // 간체 중국어 폰트
+    'NotoSansCJKsc-R': require('../assets/fonts/sc/NotoSansCJKsc-R.otf'),
+    'NotoSansCJKsc-B': require('../assets/fonts/sc/NotoSansCJKsc-B.otf'),
+    'NotoSansCJKsc-EB': require('../assets/fonts/sc/NotoSansCJKsc-EB.otf'),
+    // 번체 중국어 폰트
+    'NotoSansCJKtc-R': require('../assets/fonts/tc/NotoSansCJKtc-R.otf'),
+    'NotoSansCJKtc-B': require('../assets/fonts/tc/NotoSansCJKtc-B.otf'),
+    'NotoSansCJKtc-EB': require('../assets/fonts/tc/NotoSansCJKtc-EB.otf'),
+    // 유럽 언어 폰트 (NotoSans)
+    'NotoSans-Regular': require('../assets/fonts/NotoSans-R.otf'),
+    'NotoSans-Bold': require('../assets/fonts/NotoSans-B.otf'),
+    'NotoSans-ExtraBold': require('../assets/fonts/NotoSans-EB.otf'),
   });
 
   const [isReady, setIsReady] = React.useState(false);

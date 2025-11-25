@@ -15,6 +15,21 @@ const FONT_JP_REGULAR = 'NotoSansCJKjp-R';
 const FONT_JP_BOLD = 'NotoSansCJKjp-B';
 const FONT_JP_EXTRABOLD = 'NotoSansCJKjp-EB';
 
+// 간체 중국어 폰트 상수
+const FONT_SC_REGULAR = 'NotoSansCJKsc-R';
+const FONT_SC_BOLD = 'NotoSansCJKsc-B';
+const FONT_SC_EXTRABOLD = 'NotoSansCJKsc-EB';
+
+// 번체 중국어 폰트 상수
+const FONT_TC_REGULAR = 'NotoSansCJKtc-R';
+const FONT_TC_BOLD = 'NotoSansCJKtc-B';
+const FONT_TC_EXTRABOLD = 'NotoSansCJKtc-EB';
+
+// 유럽 언어 폰트 상수 (NotoSans)
+const FONT_EU_REGULAR = 'NotoSans-Regular';
+const FONT_EU_BOLD = 'NotoSans-Bold';
+const FONT_EU_EXTRABOLD = 'NotoSans-ExtraBold';
+
 export interface Fonts {
   regular: string;
   bold: string;
@@ -44,6 +59,33 @@ export function getFontByLanguage(): Fonts {
         regular: FONT_JP_REGULAR,
         bold: FONT_JP_BOLD,
         extraBold: FONT_JP_EXTRABOLD,
+      };
+    }
+
+    // 간체 중국어는 NotoSansCJKsc 폰트 사용
+    if (language === 'zh-CN' || language === 'sc') {
+      return {
+        regular: FONT_SC_REGULAR,
+        bold: FONT_SC_BOLD,
+        extraBold: FONT_SC_EXTRABOLD,
+      };
+    }
+
+    // 번체 중국어는 NotoSansCJKtc 폰트 사용
+    if (language === 'zh-TW' || language === 'tc') {
+      return {
+        regular: FONT_TC_REGULAR,
+        bold: FONT_TC_BOLD,
+        extraBold: FONT_TC_EXTRABOLD,
+      };
+    }
+
+    // 유럽 언어는 NotoSans 폰트 사용 (스페인어, 프랑스어, 독일어, 이탈리아어, 포르투갈어, 러시아어)
+    if (['es', 'fr', 'de', 'it', 'pt', 'ru'].includes(language)) {
+      return {
+        regular: FONT_EU_REGULAR,
+        bold: FONT_EU_BOLD,
+        extraBold: FONT_EU_EXTRABOLD,
       };
     }
 

@@ -95,7 +95,8 @@
     "admin": "Admin",
     "affiliation": "Affiliation",
     "siteSelect": "Select Site",
-    "site": "Site"
+    "site": "Site",
+    "loadAdminInfoError": "Unable to load administrator information."
   },
   "dashboard": {
     "title": "Dashboard",

@@ -10,7 +10,8 @@
     "error": "エラー",
     "success": "成功",
     "loading": "読み込み中...",
-    "yes": "はい"
+    "yes": "はい",
+    "changing": "変更中..."
   },
   "signin": {
     "title": "ZeroFallにログイン",
@@ -58,7 +59,7 @@
     "signInLink": "ログインする",
     "affiliationPlaceholder": "所属（会社名、学校名など）"
   },
-  "forgotPassword": {
+    "forgotPassword": {
     "title": "パスワードを忘れた場合",
     "subtitle": "登録されたメールアドレスを入力すると、パスワードリセットリンクを送信します。",
     "email": "メールアドレス",
@@ -82,7 +83,8 @@
     "newPasswordPlaceholder": "新しいパスワード（最低6文字）",
     "confirmPasswordPlaceholder": "パスワード確認",
     "changePassword": "パスワード変更",
-    "resendCode": "認証コードを再送信"
+    "resendCode": "認証コードを再送信",
+    "resetPassword": "パスワードリセット"
   },
   "main": {
     "dashboard": "ダッシュボード",
@@ -94,7 +96,8 @@
     "admin": "管理者",
     "affiliation": "所属",
     "siteSelect": "現場選択",
-    "site": "現場"
+    "site": "現場",
+    "loadAdminInfoError": "管理者情報を読み込めませんでした。"
   },
   "dashboard": {
     "title": "ダッシュボード",
@@ -106,15 +109,6 @@
       "singleFastened": "単一締結",
       "doubleFastened": "二重締結",
       "disconnected": "切断"
-    }
-  },
-  "notification": {
-    "title": "通知履歴",
-    "noNotifications": "通知履歴がありません。",
-    "status": {
-      "unfastened": "未締結",
-      "singleFastened": "単一締結",
-      "doubleFastened": "二重締結"
     }
   },
   "settings": {
@@ -203,7 +197,29 @@
     "leaveConfirm": "本当にこの現場から退出しますか？",
     "deleteSelected": "選択した現場を削除 ({{count}})",
     "leaveSelected": "選択した現場から退出 ({{count}})",
-    "loading": "現場リストを読み込み中..."
+    "loading": "現場リストを読み込み中...",
+    "selectError": "現場選択中にエラーが発生しました。",
+    "passwordError": "パスワード確認中にエラーが発生しました。",
+    "deleteError": "現場削除中にエラーが発生しました。",
+    "leaveError": "現場退出中にエラーが発生しました。",
+    "leave": "退出",
+    "selectLeaveError": "退出する現場を選択してください。",
+    "selectDeleteError": "削除する現場を選択してください。",
+    "leaveSuccess": "{{count}}個の現場から退出しました。",
+    "deleteSuccess": "{{count}}個の現場が削除されました。",
+    "leavePartialError": "部分的な退出失敗",
+    "leavePartialMessage": "{{success}}個は正常に退出しましたが、{{failed}}個の退出に失敗しました。",
+    "deletePartialError": "部分的な削除失敗",
+    "deletePartialMessage": "{{success}}個は正常に削除されましたが、{{failed}}個の削除に失敗しました。",
+    "batchLeaveConfirm": "選択した{{count}}個の現場から退出しますか？\n\n{{names}}\n\n再度アクセスするにはパスワードが必要です。",
+    "batchDeleteConfirm": "選択した{{count}}個の現場を削除しますか？\n\n{{names}}\n\nこの操作は元に戻せません。",
+    "addSiteToStart": "新しい現場を追加することから始めてください。",
+    "addSiteAdminInfo": "現場を追加すると、自動的にその現場の管理者権限を受け取ります。",
+    "default": "デフォルト",
+    "enterPassword": "パスワードを入力",
+    "enterPasswordForSite": "\"{{name}}\"現場のパスワードを入力してください。",
+    "noSearchResults": "検索結果がありません",
+    "tryDifferentSearch": "別の検索語を試してください。"
   },
   "device": {
     "search": "機器検索",
@@ -232,8 +248,16 @@
     "allDevices": "全機器",
     "registerInfo": "Arduino登録時: Arduinoと同じWi-Fiに接続されている必要があります。\n登録後: 他のWi-FiからもArduinoの状態を確認できます。",
     "loadError": "リストを読み込めませんでした。",
-    "register": "登録/変更",
+    "registerButton": "登録/変更",
     "unregisterConfirm": "'{{deviceId}}'機器の登録を解除しますか？\n登録待ちリストに移動します。",
+    "currentWiFi": "現在のWiFi:",
+    "filtering": "フィルタリング:",
+    "filteringActive": "アクティブ（完全一致する機器のみ）",
+    "filteringWaiting": "待機中",
+    "wifiInputRequired": "WiFi名を正確に入力してください。",
+    "wifiInputNote": "（大文字小文字の区別なし、完全一致する機器のみ表示されます）",
+    "checkWiFiSettings": "📱 WiFi設定でSSIDを確認",
+    "inputRequired": "（入力必須）",
     "deviceIdWorkerNameRequired": "device_idと作業者名をすべて入力してください。",
     "worker": "作業者",
     "unregistered": "（未登録）",
@@ -276,11 +300,12 @@
     "passwordMismatch": "パスワードが一致しません。",
     "passwordTooShort": "パスワードは最低6文字以上である必要があります。",
     "allFieldsRequired": "すべてのフィールドを入力してください。",
-    "currentNewPasswordSame": "現在のパスワードと新しいパスワードが同じです。",
+    "samePassword": "現在のパスワードと新しいパスワードが同じです。",
     "loginInfoNotFound": "ログイン情報が見つかりませんでした。"
   },
   "notification": {
     "title": "通知履歴",
+    "loading": "通知を読み込み中…",
     "noNotifications": "通知履歴がありません。",
     "unfastenedWarning": "安全フック未締結警告",
     "unfastenedMessage": "作業者'{worker}'フック未締結5秒経過！",

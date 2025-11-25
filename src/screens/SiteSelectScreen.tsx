@@ -165,7 +165,7 @@ export default function SiteSelectScreen() {
                 text: '확인',
                 onPress: async (password?: string) => {
                   if (!password) {
-                    Alert.alert('입력 오류', '비밀번호를 입력해주세요.');
+                    Alert.alert(t('common.error'), t('siteSelect.passwordRequired'));
                     return;
                   }
                   await verifyAndSelectSite(site, password);
@@ -186,7 +186,7 @@ export default function SiteSelectScreen() {
       }
     } catch (error) {
       console.error('❌ [SiteSelectScreen] 현장 선택 실패:', error);
-      Alert.alert('오류', '현장 선택 중 오류가 발생했습니다.');
+      Alert.alert(t('common.error'), t('siteSelect.selectError'));
     }
   };
 
@@ -226,14 +226,14 @@ export default function SiteSelectScreen() {
       }
     } catch (error) {
       console.error('❌ [SiteSelectScreen] 현장 선택 실패:', error);
-      Alert.alert('오류', '현장 선택 중 오류가 발생했습니다.');
+      Alert.alert(t('common.error'), t('siteSelect.selectError'));
     }
   };
 
   // Android 모달에서 비밀번호 확인
   const handlePasswordModalConfirm = async () => {
     if (!passwordInput.trim()) {
-      Alert.alert('입력 오류', '비밀번호를 입력해주세요.');
+      Alert.alert(t('common.error'), t('siteSelect.passwordRequired'));
       return;
     }
 
