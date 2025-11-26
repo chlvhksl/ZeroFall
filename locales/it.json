@@ -116,8 +116,8 @@
     "loading": "Caricamento notifiche…",
     "noNotifications": "Nessuna cronologia notifiche.",
     "unfastenedWarning": "Avviso gancio di sicurezza non fissato",
-    "unfastenedMessage": "Il gancio del lavoratore '{worker}' è rimasto non fissato per 5 secondi!",
-    "alertTitle": "🚨 Avviso gancio di sicurezza non fissato {{name}}!",
+    "unfastenedMessage": "Il gancio del lavoratore ''{worker}'' è rimasto non fissato per 5 secondi!",
+    "alertTitle": "🚨 Avviso gancio di sicurezza non fissato '{{name}}'!",
     "alertBody": "Il gancio di sicurezza del lavoratore è rimasto non fissato per più di 5 secondi.",
     "status": {
       "unfastened": "Non fissato",

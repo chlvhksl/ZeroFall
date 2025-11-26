@@ -116,8 +116,8 @@
     "loading": "Cargando notificaciones…",
     "noNotifications": "No hay historial de notificaciones.",
     "unfastenedWarning": "Advertencia de gancho de seguridad no atado",
-    "unfastenedMessage": "¡El gancho del trabajador '{worker}' ha estado desatado durante 5 segundos!",
-    "alertTitle": "🚨 ¡Alerta de gancho de seguridad no atado {{name}}!",
+    "unfastenedMessage": "¡El gancho del trabajador ''{worker}'' ha estado desatado durante 5 segundos!",
+    "alertTitle": "🚨 ¡Alerta de gancho de seguridad no atado '{{name}}'!",
     "alertBody": "El gancho de seguridad del trabajador ha estado desatado durante más de 5 segundos.",
     "status": {
       "unfastened": "No atado",

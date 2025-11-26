@@ -116,8 +116,8 @@
     "loading": "Carregando notificações…",
     "noNotifications": "Nenhum histórico de notificações.",
     "unfastenedWarning": "Aviso de gancho de segurança não fixado",
-    "unfastenedMessage": "O gancho do trabalhador '{worker}' ficou desfixado por 5 segundos!",
-    "alertTitle": "🚨 Alerta de gancho de segurança não fixado {{name}}!",
+    "unfastenedMessage": "O gancho do trabalhador ''{worker}'' ficou desfixado por 5 segundos!",
+    "alertTitle": "🚨 Alerta de gancho de segurança não fixado '{{name}}'!",
     "alertBody": "O gancho de segurança do trabalhador ficou desfixado por mais de 5 segundos.",
     "status": {
       "unfastened": "Não fixado",

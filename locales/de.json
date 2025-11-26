@@ -116,8 +116,8 @@
     "loading": "Benachrichtigungen werden geladen…",
     "noNotifications": "Kein Benachrichtigungsverlauf.",
     "unfastenedWarning": "Warnung: Sicherheitshaken nicht befestigt",
-    "unfastenedMessage": "Der Haken des Arbeiters '{worker}' war 5 Sekunden lang nicht befestigt!",
-    "alertTitle": "🚨 {{name}} Sicherheitshaken nicht befestigt Warnung!",
+    "unfastenedMessage": "Der Haken des Arbeiters ''{worker}'' war 5 Sekunden lang nicht befestigt!",
+    "alertTitle": "🚨 '{{name}}' Sicherheitshaken nicht befestigt Warnung!",
     "alertBody": "Der Sicherheitshaken des Arbeiters war mehr als 5 Sekunden lang nicht befestigt.",
     "status": {
       "unfastened": "Nicht befestigt",

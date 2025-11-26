@@ -116,8 +116,8 @@
     "loading": "Chargement des notifications…",
     "noNotifications": "Aucun historique de notifications.",
     "unfastenedWarning": "Avertissement de crochet de sécurité non attaché",
-    "unfastenedMessage": "Le crochet du travailleur '{worker}' est resté détaché pendant 5 secondes !",
-    "alertTitle": "🚨 Alerte de crochet de sécurité non attaché {{name}} !",
+    "unfastenedMessage": "Le crochet du travailleur ''{worker}'' est resté détaché pendant 5 secondes !",
+    "alertTitle": "🚨 Alerte de crochet de sécurité non attaché '{{name}}' !",
     "alertBody": "Le crochet de sécurité du travailleur est resté détaché pendant plus de 5 secondes.",
     "status": {
       "unfastened": "Non attaché",

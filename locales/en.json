@@ -305,8 +305,8 @@
     "title": "Notification History",
     "noNotifications": "No notification history.",
     "unfastenedWarning": "Safety Hook Unfastened Warning",
-    "unfastenedMessage": "Worker '{worker}' hook unfastened for 5 seconds!",
-    "alertTitle": "🚨 {{name}} Safety Hook Unfastened Alert!",
+    "unfastenedMessage": "Worker ''{worker}'' hook unfastened for 5 seconds!",
+    "alertTitle": "🚨 '{{name}}' Safety Hook Unfastened Alert!",
     "alertBody": "Worker's safety hook has been unfastened for more than 5 seconds.",
     "status": {
       "unfastened": "Not tied off",
