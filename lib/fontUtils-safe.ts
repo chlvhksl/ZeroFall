@@ -3,6 +3,8 @@
  * i18n과 충돌하지 않도록 설계
  */
 
+import { Platform } from 'react-native';
+import React from 'react';
 import i18n from './i18n-safe';
 
 // 한국어/영어 폰트 상수
@@ -10,20 +12,23 @@ const FONT_REGULAR = 'NanumSquare-Regular';
 const FONT_BOLD = 'NanumSquare-Bold';
 const FONT_EXTRABOLD = 'NanumSquare-ExtraBold';
 
-// 일본어 폰트 상수
-const FONT_JP_REGULAR = 'NotoSansCJKjp-R';
-const FONT_JP_BOLD = 'NotoSansCJKjp-B';
-const FONT_JP_EXTRABOLD = 'NotoSansCJKjp-EB';
-
-// 간체 중국어 폰트 상수
-const FONT_SC_REGULAR = 'NotoSansCJKsc-R';
-const FONT_SC_BOLD = 'NotoSansCJKsc-B';
-const FONT_SC_EXTRABOLD = 'NotoSansCJKsc-EB';
-
-// 번체 중국어 폰트 상수
-const FONT_TC_REGULAR = 'NotoSansCJKtc-R';
-const FONT_TC_BOLD = 'NotoSansCJKtc-B';
-const FONT_TC_EXTRABOLD = 'NotoSansCJKtc-EB';
+// 시스템 폰트 상수 (CJK 언어용)
+// iOS: PingFang 시리즈 사용
+// Android: sans-serif 시리즈 사용
+const getSystemFont = (weight: 'regular' | 'bold' | 'extraBold', variant: 'jp' | 'sc' | 'tc') => {
+  if (Platform.OS === 'ios') {
+    // iOS: PingFang 폰트 사용
+    // PingFang은 ExtraBold를 지원하지 않으므로 Bold로 fallback
+    const pingFangName = variant === 'jp' ? 'PingFang JP' : variant === 'sc' ? 'PingFang SC' : 'PingFang TC';
+    return pingFangName;
+  } else {
+    // Android: sans-serif 시리즈 사용
+    if (weight === 'regular') return 'sans-serif';
+    if (weight === 'bold') return 'sans-serif-medium';
+    if (weight === 'extraBold') return 'sans-serif-black';
+    return 'sans-serif';
+  }
+};
 
 // 유럽 언어 폰트 상수 (NotoSans)
 const FONT_EU_REGULAR = 'NotoSans-Regular';
@@ -53,30 +58,30 @@ export function getFontByLanguage(): Fonts {
 
     const language = i18n.language || 'ko';
 
-    // 일본어는 NotoSansCJKjp 폰트 사용
+    // 일본어는 시스템 폰트 사용 (PingFang JP / sans-serif)
     if (language === 'jp') {
       return {
-        regular: FONT_JP_REGULAR,
-        bold: FONT_JP_BOLD,
-        extraBold: FONT_JP_EXTRABOLD,
+        regular: getSystemFont('regular', 'jp'),
+        bold: getSystemFont('bold', 'jp'),
+        extraBold: getSystemFont('extraBold', 'jp'),
       };
     }
 
-    // 간체 중국어는 NotoSansCJKsc 폰트 사용
+    // 간체 중국어는 시스템 폰트 사용 (PingFang SC / sans-serif)
     if (language === 'zh-CN' || language === 'sc') {
       return {
-        regular: FONT_SC_REGULAR,
-        bold: FONT_SC_BOLD,
-        extraBold: FONT_SC_EXTRABOLD,
+        regular: getSystemFont('regular', 'sc'),
+        bold: getSystemFont('bold', 'sc'),
+        extraBold: getSystemFont('extraBold', 'sc'),
       };
     }
 
-    // 번체 중국어는 NotoSansCJKtc 폰트 사용
+    // 번체 중국어는 시스템 폰트 사용 (PingFang TC / sans-serif)
     if (language === 'zh-TW' || language === 'tc') {
       return {
-        regular: FONT_TC_REGULAR,
-        bold: FONT_TC_BOLD,
-        extraBold: FONT_TC_EXTRABOLD,
+        regular: getSystemFont('regular', 'tc'),
+        bold: getSystemFont('bold', 'tc'),
+        extraBold: getSystemFont('extraBold', 'tc'),
       };
     }
 
@@ -142,6 +147,4 @@ export function useFontByLanguage(): Fonts {
   return fonts;
 }
 
-// React import 추가 필요
-import React from 'react';
 

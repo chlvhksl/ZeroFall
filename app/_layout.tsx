@@ -14,28 +14,18 @@ export default function Layout() {
   const [i18nReady, setI18nReady] = React.useState(false);
 
   // 1단계: 폰트 파일을 읽어서 메모리에 로드합니다.
+  // ⭐️ CJK 폰트(일본어, 간체/번체 중국어)는 시스템 폰트 사용으로 제거
   // ⭐️ [최종 수정] 경로를 '../assets/fonts/'로 변경합니다. (app 폴더에서 한 단계 위로 이동)
   const [fontsLoaded] = useFonts({
     // 한국어/영어 폰트
     'NanumSquare-Regular': require('../assets/fonts/NanumSquareR.otf'), 
     'NanumSquare-Bold': require('../assets/fonts/NanumSquareB.otf'),
     'NanumSquare-ExtraBold': require('../assets/fonts/NanumSquareEB.otf'),
-    // 일본어 폰트
-    'NotoSansCJKjp-R': require('../assets/fonts/jp/NotoSansCJKjp-R.otf'),
-    'NotoSansCJKjp-B': require('../assets/fonts/jp/NotoSansCJKjp-B.otf'),
-    'NotoSansCJKjp-EB': require('../assets/fonts/jp/NotoSansCJKjp-EB.otf'),
-    // 간체 중국어 폰트
-    'NotoSansCJKsc-R': require('../assets/fonts/sc/NotoSansCJKsc-R.otf'),
-    'NotoSansCJKsc-B': require('../assets/fonts/sc/NotoSansCJKsc-B.otf'),
-    'NotoSansCJKsc-EB': require('../assets/fonts/sc/NotoSansCJKsc-EB.otf'),
-    // 번체 중국어 폰트
-    'NotoSansCJKtc-R': require('../assets/fonts/tc/NotoSansCJKtc-R.otf'),
-    'NotoSansCJKtc-B': require('../assets/fonts/tc/NotoSansCJKtc-B.otf'),
-    'NotoSansCJKtc-EB': require('../assets/fonts/tc/NotoSansCJKtc-EB.otf'),
     // 유럽 언어 폰트 (NotoSans)
     'NotoSans-Regular': require('../assets/fonts/NotoSans-R.otf'),
     'NotoSans-Bold': require('../assets/fonts/NotoSans-B.otf'),
     'NotoSans-ExtraBold': require('../assets/fonts/NotoSans-EB.otf'),
+    // CJK 폰트는 시스템 폰트 사용 (iOS: PingFang, Android: sans-serif)
   });
 
   const [isReady, setIsReady] = React.useState(false);
