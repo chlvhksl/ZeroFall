@@ -128,7 +128,6 @@ export default function RegisterDeviceScreen() {
   }, [rows, query]);
 
   const pending = useMemo(() => {
-    const now = Date.now();
     const q = query.trim().toLowerCase();
     
     const filtered = rows
@@ -137,14 +136,7 @@ export default function RegisterDeviceScreen() {
         const unreg = !r.worker_name || r.worker_name === '';
         if (!unreg) return false;
         
-        // 2. 최근 2분 내 업데이트
-        const t = r.updated_at 
-          ? new Date(r.updated_at).getTime() 
-          : (r.created_at ? new Date(r.created_at).getTime() : now);
-        const timeDiff = now - t;
-        if (timeDiff >= PENDING_WINDOW_MS) return false;
-
-        // 3. 같은 와이파이 확인 (Android만)
+        // 2. 같은 와이파이 확인 (Android만) - 2분 조건 제거
         if (Platform.OS === 'android') {
           // 수동 입력이 있으면 수동 입력을 우선 사용
           if (manualSSID.trim()) {

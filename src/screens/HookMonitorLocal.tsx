@@ -105,6 +105,11 @@ export default function HookMonitorLocal() {
   };
 
   const evaluateForAlert = (row: GoriStatus, id: string) => {
+    // 등록되지 않은 기기(worker_name이 없는 기기)는 알림을 보내지 않음
+    if (!row.worker_name || String(row.worker_name).trim().length === 0) {
+      return;
+    }
+
     const left = Boolean(row.left_sensor);
     const right = Boolean(row.right_sensor);
     const unhooked = !left && !right;
@@ -130,7 +135,9 @@ export default function HookMonitorLocal() {
           latest = found || row || sharedLast;
           const ll = Boolean(latest?.left_sensor);
           const rr = Boolean(latest?.right_sensor);
-          if (!ll && !rr && !alertFiredByDevice[id]) {
+          // 등록된 기기인지 다시 확인 (타이머 실행 시점에 최신 상태 확인)
+          const isRegistered = latest?.worker_name && String(latest.worker_name).trim().length > 0;
+          if (!ll && !rr && !alertFiredByDevice[id] && isRegistered) {
             const displayName = String(latest?.worker_name || workerName || id);
             const title = i18n.t('notification.alertTitle', { name: displayName });
             const body = i18n.t('notification.alertBody');

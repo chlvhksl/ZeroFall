@@ -61,14 +61,14 @@ export default function NotificationHistoryScreen() {
           const { data: deviceData, error: deviceError } = await supabase
             .from('gori_status')
             .select('device_id, site_id')
-            .or(`site_id.eq.${selectedSiteId},site_id.is.null`);
+            .eq('site_id', selectedSiteId); // 명확하게 선택한 현장의 장비만 가져오기
           
           if (deviceError) {
             console.error('장비 목록 가져오기 실패:', deviceError);
           } else if (deviceData) {
-            // 현장 필터링: site_id가 NULL이 아니면 선택한 현장과 일치해야 함
+            // 현장 필터링: 선택한 현장의 장비만 허용
             allowedDeviceIds = deviceData
-              .filter(row => !row.site_id || row.site_id === selectedSiteId)
+              .filter(row => row.site_id === selectedSiteId)
               .map(row => row.device_id)
               .filter(Boolean);
           }
@@ -151,8 +151,8 @@ export default function NotificationHistoryScreen() {
                 .single();
               
               if (deviceData) {
-                // site_id가 NULL이 아니면 선택한 현장과 일치해야 함
-                if (deviceData.site_id && deviceData.site_id !== selectedSiteId) {
+                // site_id가 NULL이거나 선택한 현장과 일치하지 않으면 무시
+                if (!deviceData.site_id || deviceData.site_id !== selectedSiteId) {
                   console.log('🚫 [NotificationHistory] 다른 현장의 알림 무시:', deviceData.site_id, 'vs', selectedSiteId);
                   return; // 다른 현장의 알림은 무시
                 }
@@ -191,7 +191,31 @@ export default function NotificationHistoryScreen() {
     fetchInitial();
 
     // 즉시 반영: 앱 내 수신 이벤트를 상단에 삽입(Realtime 올 때는 필터로 중복 숨김)
-    offLocal = addNotificationHistoryListener((row: any) => {
+    offLocal = addNotificationHistoryListener(async (row: any) => {
+      // 현장 필터링: 현재 선택된 현장의 장비 알림만 추가
+      if (row.device_id) {
+        const selectedSite = await getSelectedSite();
+        const selectedSiteId = selectedSite?.id || null;
+        
+        if (selectedSiteId) {
+          const { data: deviceData } = await supabase
+            .from('gori_status')
+            .select('device_id, site_id')
+            .eq('device_id', row.device_id)
+            .single();
+          
+          if (deviceData) {
+            // site_id가 NULL이거나 선택한 현장과 일치하지 않으면 무시
+            if (!deviceData.site_id || deviceData.site_id !== selectedSiteId) {
+              return; // 다른 현장의 알림은 무시
+            }
+          } else {
+            // 장비 정보를 찾을 수 없으면 무시
+            return;
+          }
+        }
+      }
+      
       setItems(prev =>
         [
           {
