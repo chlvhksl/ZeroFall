@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -14,12 +14,11 @@ import {
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
 import { PushTokenManager } from '../../lib/push-token-manager';
 import { supabase } from '../../lib/supabase';
-import { hasSelectedSite, getSelectedSite, validateSiteAccess } from '../../lib/siteManagement';
-import { useFontByLanguage } from '../../lib/fontUtils-safe';
 
 export default function SignInScreen() {
   const router = useRouter();
