@@ -168,8 +168,9 @@ serve(async (req) => {
 
     console.log('✅ [delete-account] Supabase Auth 계정 삭제 완료');
 
-    // 5. 사용자가 만든 현장(sites) 처리
-    // creator_id가 userId인 현장 조회
+    // 5. 사용자가 만든 현장(sites) 삭제
+    // creator_id가 userId인 현장 조회 및 삭제
+    console.log('🗑️ [delete-account] 사용자가 만든 현장 조회 중...');
     const { data: createdSites, error: sitesError } = await supabaseAdmin
       .from('sites')
       .select('id, name')
@@ -178,9 +179,25 @@ serve(async (req) => {
     if (sitesError) {
       console.warn('⚠️ [delete-account] 생성한 현장 조회 실패:', sitesError);
     } else if (createdSites && createdSites.length > 0) {
-      console.log(`⚠️ [delete-account] 사용자가 만든 현장 ${createdSites.length}개 발견`);
-      // 현장은 삭제하지 않음 (다른 사용자가 사용 중일 수 있음)
-      // 필요시 현장의 creator_id를 NULL로 변경하거나 다른 관리자에게 양도할 수 있음
+      console.log(`🗑️ [delete-account] 사용자가 만든 현장 ${createdSites.length}개 발견 - 삭제 시작`);
+      
+      // 각 현장 삭제 (CASCADE로 admin_sites, gori_status 등 관련 데이터도 자동 삭제됨)
+      for (const site of createdSites) {
+        const { error: deleteSiteError } = await supabaseAdmin
+          .from('sites')
+          .delete()
+          .eq('id', site.id);
+        
+        if (deleteSiteError) {
+          console.warn(`⚠️ [delete-account] 현장 삭제 실패 (${site.name}):`, deleteSiteError);
+        } else {
+          console.log(`✅ [delete-account] 현장 삭제 완료: ${site.name}`);
+        }
+      }
+      
+      console.log(`✅ [delete-account] 총 ${createdSites.length}개 현장 삭제 완료`);
+    } else {
+      console.log('ℹ️ [delete-account] 사용자가 만든 현장이 없습니다.');
     }
 
     console.log('✅ [delete-account] 계정 삭제 완료:', userId);

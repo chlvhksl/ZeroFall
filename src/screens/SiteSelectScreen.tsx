@@ -154,8 +154,8 @@ export default function SiteSelectScreen() {
         if (Platform.OS === 'ios') {
           // iOS: Alert.prompt 사용
           Alert.prompt(
-            '비밀번호 입력',
-            `"${site.name}" 현장의 비밀번호를 입력하세요.`,
+            t('siteSelect.enterPassword'),
+            t('siteSelect.enterPasswordForSite', { name: site.name }),
             [
               {
                 text: t('common.cancel'),

@@ -96,34 +96,10 @@ export default function SignInScreen() {
           );
         }
 
-        // 🎉 토큰 관리 완료 - 현장 선택 여부 및 접근 권한 확인 후 적절한 화면으로 이동
-        console.log('🚀 로그인 완료 - 현장 선택 여부 확인 중');
-        const hasSite = await hasSelectedSite();
-        
-        if (!hasSite) {
-          // 현장이 선택되지 않았으면 현장 선택 화면으로 이동
-          console.log('➡️ [SignInScreen] 라우팅: /site-select (현장 없음)');
-          router.replace('/site-select');
-        } else {
-          // 현장이 선택되어 있으면 접근 권한 확인
-          const selectedSite = await getSelectedSite();
-          if (selectedSite) {
-            const hasAccess = await validateSiteAccess(selectedSite.id);
-            if (hasAccess) {
-              // 접근 권한이 있으면 메인 화면으로 이동
-              console.log('➡️ [SignInScreen] 라우팅: /main (현장 있음 + 접근 권한 있음)');
-              router.replace('/main');
-            } else {
-              // 접근 권한이 없으면 현장 선택 화면으로 이동
-              console.log('➡️ [SignInScreen] 라우팅: /site-select (접근 권한 없음)');
-              router.replace('/site-select');
-            }
-          } else {
-            // 선택한 현장 정보가 없으면 현장 선택 화면으로 이동
-            console.log('➡️ [SignInScreen] 라우팅: /site-select (현장 정보 없음)');
-            router.replace('/site-select');
-          }
-        }
+        // 🎉 토큰 관리 완료 - 무조건 현장 선택 화면으로 이동
+        console.log('🚀 로그인 완료 - 현장 선택 화면으로 이동');
+        console.log('➡️ [SignInScreen] 라우팅: /site-select (무조건 현장 선택)');
+        router.replace('/site-select');
       } catch (error) {
         console.error('❌ 로그인 후 처리 실패:', error);
         Alert.alert(
