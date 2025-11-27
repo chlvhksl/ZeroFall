@@ -158,11 +158,11 @@ export default function SiteSelectScreen() {
             `"${site.name}" 현장의 비밀번호를 입력하세요.`,
             [
               {
-                text: '취소',
+                text: t('common.cancel'),
                 style: 'cancel',
               },
               {
-                text: '확인',
+                text: t('common.confirm'),
                 onPress: async (password?: string) => {
                   if (!password) {
                     Alert.alert(t('common.error'), t('siteSelect.passwordRequired'));
@@ -363,11 +363,11 @@ export default function SiteSelectScreen() {
       t('siteSelect.batchLeaveConfirm', { count: selectedCount, names: siteNames }),
       [
         {
-          text: '취소',
+          text: t('common.cancel'),
           style: 'cancel',
         },
         {
-          text: '나가기',
+          text: t('siteSelect.leaveSite'),
           style: 'destructive',
           onPress: async () => {
             try {

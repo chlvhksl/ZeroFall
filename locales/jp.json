@@ -185,6 +185,7 @@
     "manager": "マネージャー",
     "viewer": "閲覧者",
     "password": "パスワード",
+    "selectSite": "現場選択",
     "selectSiteInfo": "選択した現場の機器のみダッシュボードに表示されます。",
     "changeSiteInfo": "設定からいつでも現場を変更できます。",
     "noSites": "アクセス可能な現場がありません。",
@@ -267,7 +268,17 @@
     "checkWifiSettings": "📱 Wi-Fi設定でSSIDを確認",
     "manualWifiPlaceholder": "Wi-Fi名（SSID）を直接入力してください",
     "goToDashboard": "ダッシュボードに移動",
-    "registerFailed": "登録失敗"
+    "registerFailed": "登録失敗",
+    "resetWiFi": "Wi-Fi再設定",
+    "resetWiFiConfirm": "デバイス '{{deviceId}}' のWi-Fiを再設定しますか？\nArduinoがAPモードに切り替わり、新しいWi-Fiを設定できます。",
+    "resetWiFiSuccess": "Wi-Fi再設定信号が送信されました。\nArduinoはすぐにAPモードに切り替わります。",
+    "resetWiFiError": "Wi-Fi再設定信号の送信に失敗しました。",
+    "apModeGuide": "APモードガイド",
+    "apModeInfo": "Arduinoを初めて設定する際は、APモードで接続してください",
+    "openApModeGuide": "APモードガイドを開く",
+    "apModeSteps": "1. Arduinoの電源を入れます\n2. 'ZeroFall-XXXX' Wi-Fiに接続します\n3. ブラウザで192.168.4.1にアクセスします\n4. QRコードをスキャンするか、手動でWi-Fi情報を入力します\n5. 保存後、Arduinoは自動的にWi-Fiに接続されます",
+    "copyAddress": "アドレスをコピー",
+    "addressCopied": "192.168.4.1がクリップボードにコピーされました。\nブラウザのアドレスバーに貼り付けてください。"
   },
   "editProfile": {
     "title": "個人情報編集",

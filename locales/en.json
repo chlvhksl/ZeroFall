@@ -136,6 +136,7 @@
     "clearCacheSuccess": "Cache data has been cleared.",
     "clearCacheError": "Failed to clear cache.",
     "deleteAccountConfirm": "Are you sure you want to delete your account?\n\nThis action cannot be undone and all data will be permanently deleted.",
+    "deleteAccountSuccess": "Account has been successfully deleted.",
     "deleteAccountError": "Failed to delete account.",
     "deleteAccountContact": "Please contact customer service to complete account deletion."
   },
@@ -184,6 +185,7 @@
     "manager": "Manager",
     "viewer": "Viewer",
     "password": "Password",
+    "selectSite": "Select Site",
     "selectSiteInfo": "Only equipment from the selected site is displayed on the dashboard.",
     "changeSiteInfo": "You can change the site at any time in the environment settings.",
     "noSites": "No accessible sites.",
@@ -265,7 +267,17 @@
     "checkWifiSettings": "📱 Check SSID in WiFi Settings",
     "manualWifiPlaceholder": "Enter Wi-Fi Name (SSID) directly",
     "goToDashboard": "Go to Dashboard",
-    "registerFailed": "Registration Failed"
+    "registerFailed": "Registration Failed",
+    "resetWiFi": "Reset WiFi",
+    "resetWiFiConfirm": "Do you want to reset WiFi for device '{{deviceId}}'?\nThe Arduino will switch to AP mode so you can configure a new WiFi.",
+    "resetWiFiSuccess": "WiFi reset signal has been sent.\nThe Arduino will switch to AP mode soon.",
+    "resetWiFiError": "Failed to send WiFi reset signal.",
+    "apModeGuide": "AP Mode Guide",
+    "apModeInfo": "When setting up Arduino for the first time, connect via AP mode",
+    "openApModeGuide": "Open AP Mode Guide",
+    "apModeSteps": "1. Turn on Arduino power\n2. Connect to 'ZeroFall-XXXX' WiFi\n3. Open 192.168.4.1 in browser\n4. Scan QR code or manually enter WiFi info\n5. After saving, Arduino will automatically connect to WiFi",
+    "copyAddress": "Copy Address",
+    "addressCopied": "192.168.4.1 has been copied to clipboard.\nPaste it in your browser address bar."
   },
   "editProfile": {
     "title": "Edit Personal Information",

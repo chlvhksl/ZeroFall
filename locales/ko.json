@@ -135,6 +135,7 @@
     "clearCacheSuccess": "캐시 데이터가 삭제되었습니다.",
     "clearCacheError": "캐시 삭제에 실패했습니다.",
     "deleteAccountConfirm": "정말 계정을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없으며, 모든 데이터가 영구적으로 삭제됩니다.",
+    "deleteAccountSuccess": "계정이 성공적으로 삭제되었습니다.",
     "deleteAccountError": "계정 삭제에 실패했습니다.",
     "deleteAccountContact": "계정 삭제를 완료하려면 고객센터에 문의해주세요."
   },
@@ -183,6 +184,7 @@
     "manager": "매니저",
     "viewer": "조회자",
     "password": "비밀번호",
+    "selectSite": "현장 선택",
     "selectSiteInfo": "선택한 현장의 장비만 대시보드에 표시됩니다.",
     "changeSiteInfo": "환경설정에서 언제든지 현장을 변경할 수 있습니다.",
     "noSites": "접근 가능한 현장이 없습니다.",
@@ -234,7 +236,17 @@
     "checkWifiSettings": "📱 WiFi 설정에서 SSID 확인하기",
     "manualWifiPlaceholder": "WiFi 이름(SSID)을 직접 입력하세요",
     "goToDashboard": "대시보드로 이동",
-    "registerFailed": "등록 실패"
+    "registerFailed": "등록 실패",
+    "resetWiFi": "WiFi 재설정",
+    "resetWiFiConfirm": "'{{deviceId}}' 기기의 WiFi를 재설정하시겠습니까?\n아두이노가 AP 모드로 전환되어 새 WiFi를 설정할 수 있습니다.",
+    "resetWiFiSuccess": "WiFi 재설정 신호가 전송되었습니다.\n아두이노가 곧 AP 모드로 전환됩니다.",
+    "resetWiFiError": "WiFi 재설정 신호 전송에 실패했습니다.",
+    "apModeGuide": "AP 모드 가이드",
+    "apModeInfo": "아두이노를 처음 설정할 때는 AP 모드로 연결하세요",
+    "openApModeGuide": "AP 모드 가이드 열기",
+    "apModeSteps": "1. 아두이노 전원을 켜세요\n2. 'ZeroFall-XXXX' WiFi에 연결하세요\n3. 브라우저에서 192.168.4.1 접속\n4. QR 코드를 스캔하거나 수동으로 WiFi 정보 입력\n5. 저장 후 아두이노가 자동으로 WiFi에 연결됩니다",
+    "copyAddress": "주소 복사",
+    "addressCopied": "192.168.4.1이 클립보드에 복사되었습니다.\n브라우저 주소창에 붙여넣으세요."
   },
   "editProfile": {
     "title": "개인정보 수정",

@@ -8,7 +8,6 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   ScrollView,
@@ -16,14 +15,15 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../lib/i18n-safe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { addNotificationHistoryListener } from '../../lib/notifications';
-import { getSelectedSite } from '../../lib/siteManagement';
 import { supabase } from '../../lib/supabase';
 import { formatKoreaTime } from '../../lib/utils';
 import { useLocalDevice } from '../context/LocalDeviceContext';
-
 import { useFontByLanguage } from '../../lib/fontUtils-safe';
+import { getSelectedSite } from '../../lib/siteManagement';
 
 type NotificationRow = {
   id: number;
@@ -36,27 +36,14 @@ type NotificationRow = {
 
 export default function NotificationHistoryScreen() {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const fonts = useFontByLanguage();
+  const insets = useSafeAreaInsets();
   const { status: localConnStatus } = useLocalDevice();
 
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [rtConnected, setRtConnected] = useState(false);
-  const [currentSiteId, setCurrentSiteId] = useState<string | null>(null);
-
-  // 현재 선택한 현장 감지
-  useEffect(() => {
-    const loadCurrentSite = async () => {
-      const selectedSite = await getSelectedSite();
-      setCurrentSiteId(selectedSite?.id || null);
-    };
-
-    loadCurrentSite();
-    // 현장이 변경될 수 있으므로 주기적으로 갱신
-    const interval = setInterval(loadCurrentSite, 2000);
-    return () => clearInterval(interval);
-  }, []);
+  const [workerNames, setWorkerNames] = useState<{ [deviceId: string]: string }>({});
 
   useEffect(() => {
     let channel: any | null = null;
@@ -64,32 +51,79 @@ export default function NotificationHistoryScreen() {
 
     const fetchInitial = async () => {
       try {
-        // 현재 선택한 현장 가져오기
+        // 현재 선택된 현장 가져오기
         const selectedSite = await getSelectedSite();
+        const selectedSiteId = selectedSite?.id || null;
         
-        // 알림 내역 조회
+        // 현장별 장비 필터링: 현재 현장의 장비 ID 목록 가져오기
+        let allowedDeviceIds: string[] = [];
+        if (selectedSiteId) {
+          const { data: deviceData, error: deviceError } = await supabase
+            .from('gori_status')
+            .select('device_id, site_id')
+            .or(`site_id.eq.${selectedSiteId},site_id.is.null`);
+          
+          if (deviceError) {
+            console.error('장비 목록 가져오기 실패:', deviceError);
+          } else if (deviceData) {
+            // 현장 필터링: site_id가 NULL이 아니면 선택한 현장과 일치해야 함
+            allowedDeviceIds = deviceData
+              .filter(row => !row.site_id || row.site_id === selectedSiteId)
+              .map(row => row.device_id)
+              .filter(Boolean);
+          }
+        }
+        
+        // 알림 가져오기
         let query = supabase
-          .from('notification_history')
+          .from<NotificationRow>('notification_history')
           .select('*')
           .order('created_at', { ascending: false })
-          .limit(30);
-
-        // 현장이 선택되었으면 site_id로 필터링
-        if (selectedSite) {
-          query = query.eq('site_id', selectedSite.id);
-        } else {
-          // 현장이 선택되지 않았으면 빈 결과
-          setItems([]);
-          setLoading(false);
-          return;
-        }
-
+          .limit(50); // 필터링 전에 더 많이 가져오기
+        
         const { data, error } = await query;
         if (error) throw error;
         
-        setItems(data || []);
+        // 현장 필터링 적용
+        let filteredData = data || [];
+        if (selectedSiteId && allowedDeviceIds.length > 0) {
+          filteredData = filteredData.filter(item => 
+            !item.device_id || allowedDeviceIds.includes(item.device_id)
+          );
+        } else if (selectedSiteId) {
+          // 현장이 선택되었지만 해당 현장의 장비가 없으면 빈 배열
+          filteredData = [];
+        }
+        
+        // 최대 30개로 제한
+        filteredData = filteredData.slice(0, 30);
+        setItems(filteredData);
+        
+        // 작업자 이름 가져오기
+        const deviceIds = [...new Set(filteredData.map(item => item.device_id).filter(Boolean))];
+        if (deviceIds.length > 0) {
+          const { data: workerData, error: workerError } = await supabase
+            .from('gori_status')
+            .select('device_id, worker_name')
+            .in('device_id', deviceIds);
+          
+          if (workerError) {
+            console.error('작업자 이름 가져오기 실패:', workerError);
+          }
+          
+          if (workerData) {
+            const workerMap: { [deviceId: string]: string } = {};
+            workerData.forEach(item => {
+              if (item.device_id && item.worker_name) {
+                workerMap[item.device_id] = item.worker_name;
+              }
+            });
+            console.log('작업자 이름 로드 완료:', workerMap);
+            setWorkerNames(workerMap);
+          }
+        }
       } catch (e) {
-        console.error('알림 내역 조회 오류:', e);
+        console.error('Notification history fetch error:', e);
       } finally {
         setLoading(false);
       }
@@ -99,17 +133,56 @@ export default function NotificationHistoryScreen() {
       .channel('notification_history_stream')
       .on(
         'postgres_changes',
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'notification_history',
-          filter: currentSiteId ? `site_id=eq.${currentSiteId}` : undefined
-        },
-        payload => {
+        { event: 'INSERT', schema: 'public', table: 'notification_history' },
+        async payload => {
           const row = payload.new as NotificationRow;
-          // 현재 현장의 알림만 추가 (필터가 이미 적용되어 있지만 이중 체크)
-          if (!currentSiteId || (row as any).site_id === currentSiteId) {
-            setItems(prev => [row, ...prev].slice(0, 30));
+          
+          // 현장 필터링: 현재 선택된 현장의 장비 알림만 추가
+          const selectedSite = await getSelectedSite();
+          const selectedSiteId = selectedSite?.id || null;
+          
+          if (row.device_id) {
+            // 장비가 있는 알림만 현장 필터링 적용
+            if (selectedSiteId) {
+              const { data: deviceData } = await supabase
+                .from('gori_status')
+                .select('device_id, site_id')
+                .eq('device_id', row.device_id)
+                .single();
+              
+              if (deviceData) {
+                // site_id가 NULL이 아니면 선택한 현장과 일치해야 함
+                if (deviceData.site_id && deviceData.site_id !== selectedSiteId) {
+                  console.log('🚫 [NotificationHistory] 다른 현장의 알림 무시:', deviceData.site_id, 'vs', selectedSiteId);
+                  return; // 다른 현장의 알림은 무시
+                }
+              } else {
+                // 장비 정보를 찾을 수 없으면 무시
+                return;
+              }
+            }
+          }
+          
+          setItems(prev => [row, ...prev].slice(0, 30));
+          
+          // 새 알림의 작업자 이름 가져오기
+          if (row.device_id && !workerNames[row.device_id]) {
+            try {
+              const { data } = await supabase
+                .from('gori_status')
+                .select('device_id, worker_name')
+                .eq('device_id', row.device_id)
+                .single();
+              
+              if (data && data.worker_name) {
+                setWorkerNames(prev => ({
+                  ...prev,
+                  [row.device_id!]: data.worker_name,
+                }));
+              }
+            } catch (error) {
+              console.error('작업자 이름 가져오기 실패:', error);
+            }
           }
         },
       )
@@ -119,217 +192,238 @@ export default function NotificationHistoryScreen() {
 
     // 즉시 반영: 앱 내 수신 이벤트를 상단에 삽입(Realtime 올 때는 필터로 중복 숨김)
     offLocal = addNotificationHistoryListener((row: any) => {
-      // 현재 현장의 알림만 추가
-      if (!currentSiteId || row.site_id === currentSiteId) {
-        setItems(prev =>
-          [
-            {
-              id: Math.floor(Math.random() * 1e9),
-              created_at: row.created_at || new Date().toISOString(),
-              device_id: row.device_id ?? null,
-              title: row.title ?? '알림',
-              body: row.body ?? null,
-              status: row.status ?? null,
-            },
-            ...prev,
-          ].slice(0, 30),
-        );
-      }
+      setItems(prev =>
+        [
+          {
+            id: Math.floor(Math.random() * 1e9),
+            created_at: row.created_at || new Date().toISOString(),
+            device_id: row.device_id ?? null,
+            title: row.title ?? t('notification.title'),
+            body: row.body ?? null,
+            status: row.status ?? null,
+          },
+          ...prev,
+        ].slice(0, 30),
+      );
     });
 
     return () => {
       if (channel) supabase.removeChannel(channel);
       if (offLocal) offLocal();
     };
-  }, [currentSiteId]);
+  }, [t]);
 
-  // 알림 타입을 식별하고 번역 키로 매핑하는 함수
-  const getNotificationDisplayText = (notification: NotificationRow) => {
-    const title = notification.title || '';
-    const body = notification.body || '';
+  // 알림 제목과 본문을 현재 언어로 번역
+  const getNotificationDisplayText = (title: string | null, body: string | null, deviceId: string | null) => {
+    if (!title && !body) {
+      return { title: t('notification.title'), body: '' };
+    }
+
+    const titleStr = title || '';
+    let bodyStr = body || '';
+
+    // 작업자 이름 가져오기 (우선순위: workerNames > 본문에서 추출)
+    let workerName = '';
     
-    // 알림 타입 식별: 안전고리 미체결 경고 알림인지 확인
-    // Title 패턴: "🚨", "안전고리", "Safety Hook", "安全フック", "安全钩" 등이 포함되어 있으면
-    const isUnfastenedAlert = 
-      title.includes('🚨') ||
-      title.includes('안전고리') ||
-      title.includes('Safety Hook') ||
-      title.includes('安全フック') ||
-      title.includes('安全钩') ||
-      title.includes('安全鉤') ||
-      title.includes('gancho de seguridad') ||
-      title.includes('crochet de sécurité') ||
-      title.includes('Sicherheitshaken') ||
-      title.includes('gancio di sicurezza') ||
-      title.includes('gancho de segurança') ||
-      title.includes('крюк безопасности');
+    // 1. workerNames에서 가져오기 (가장 확실한 방법)
+    if (deviceId && workerNames[deviceId]) {
+      workerName = workerNames[deviceId];
+    }
     
-    if (isUnfastenedAlert) {
-      // 작업자 이름 추출
-      // body 패턴: "작업자 '이름' 고리..." 또는 "Worker '이름' hook..." 등
-      let workerName = '';
-      
-      // body에서 작업자 이름 추출 시도 (더 정확함)
-      // 패턴 1: "작업자 '이름' 고리..." 또는 "Worker '이름' hook..."
-      const bodyPattern1 = /(?:작업자|Worker|作業者|作业人员|作業人員|trabajador|travailleur|Arbeiter|lavoratore|trabalhador|рабочий)\s*['"']([^'"']+)['"']/;
-      const match1 = body.match(bodyPattern1);
-      if (match1 && match1[1]) {
-        workerName = match1[1].trim();
-      }
-      
-      // 패턴 2: "'이름' 고리..." 또는 "'이름' hook..."
-      if (!workerName) {
-        const bodyPattern2 = /['"']([^'"']+?)['"']\s*(?:고리|hook|フック|钩|鉤|gancho|crochet|Haken|gancio|крюк)/;
-        const match2 = body.match(bodyPattern2);
-        if (match2 && match2[1]) {
-          workerName = match2[1].trim();
-        }
-      }
-      
-      // body에서 찾지 못하면 title에서 시도
-      if (!workerName) {
-        // title 패턴: "🚨 이름 안전고리..." 또는 "🚨 이름 Safety Hook..."
-        // 🚨 다음에 오는 첫 번째 단어를 작업자 이름으로 추정
-        const titleMatch = title.match(/🚨\s*([^\s🚨]+?)(?:\s|안전|Safety|安全|gancho|crochet|Haken|gancio|крюк)/);
-        if (titleMatch && titleMatch[1]) {
-          const candidate = titleMatch[1].trim();
-          // 안전고리 관련 키워드가 아닌 경우에만 작업자 이름으로 간주
-          const keywords = ['안전고리', 'Safety', '安全', 'gancho', 'crochet', 'Haken', 'gancio', 'крюк', 'Alerta', 'Alerte', 'Warnung', 'Avviso', 'Alerta', 'Предупреждение'];
-          if (!keywords.some(keyword => candidate.toLowerCase().includes(keyword.toLowerCase()))) {
-            workerName = candidate;
+    // 2. 본문에서 작업자 이름 추출 시도 (다양한 언어 패턴 지원)
+    if (!workerName) {
+      const workerPatterns = [
+        /작업자\s*['"]?([^'"{]+)['"]?\s*고리/,  // 한국어: 작업자 '이름' 고리
+        /Worker\s*['"]?([^'"{]+)['"]?\s*hook/i,  // 영어: Worker 'name' hook
+        /作業者\s*['"]?([^'"{]+)['"]?\s*フック/,  // 일본어
+        /工人\s*['"]?([^'"{]+)['"]?\s*钩/,       // 중국어 간체
+        /工人\s*['"]?([^'"{]+)['"]?\s*鉤/,       // 중국어 번체
+        /Trabajador\s*['"]?([^'"{]+)['"]?\s*gancho/i,  // 스페인어
+        /Travailleur\s*['"]?([^'"{]+)['"]?\s*accroche/i,  // 프랑스어
+        /Arbeiter\s*['"]?([^'"{]+)['"]?\s*Haken/i,  // 독일어
+        /Lavoratore\s*['"]?([^'"{]+)['"]?\s*gancio/i,  // 이탈리아어
+        /Trabalhador\s*['"]?([^'"{]+)['"]?\s*gancho/i,  // 포르투갈어
+        /Рабочий\s*['"]?([^'"{]+)['"]?\s*крюк/i,   // 러시아어
+      ];
+
+      for (const pattern of workerPatterns) {
+        const match = (titleStr + ' ' + bodyStr).match(pattern);
+        if (match && match[1]) {
+          const extracted = match[1].trim();
+          // {worker} 플레이스홀더가 아닌 실제 이름인지 확인
+          if (extracted && extracted !== '{worker}' && extracted !== '{{worker}}' && !extracted.includes('{')) {
+            workerName = extracted;
+            break;
           }
         }
       }
-      
-      // 번역된 제목과 본문 반환
-      const translatedTitle = workerName 
-        ? t('notification.alertTitle', { name: workerName })
-        : t('notification.unfastenedWarning');
-      const translatedBody = t('notification.alertBody');
-      
-      return {
-        title: translatedTitle,
-        body: translatedBody,
-      };
     }
-    
-    // 알림 타입을 식별할 수 없으면 원본 텍스트 반환 (fallback)
-    return {
-      title: title || t('notification.title'),
-      body: body || '',
-    };
+
+    // 장비 이름 추출 (제목에서)
+    let deviceName = '';
+    const devicePatterns = [
+      /['"]([^'"]+)['"]\s*안전고리/,  // 한국어: '이름' 안전고리
+      /['"]([^'"]+)['"]\s*safety\s*hook/i,  // 영어
+      /['"]([^'"]+)['"]\s*安全フック/,  // 일본어
+      /['"]([^'"]+)['"]\s*安全钩/,     // 중국어 간체
+      /['"]([^'"]+)['"]\s*安全鉤/,     // 중국어 번체
+    ];
+    for (const pattern of devicePatterns) {
+      const match = titleStr.match(pattern);
+      if (match && match[1]) {
+        deviceName = match[1].trim();
+        break;
+      }
+    }
+
+    // 알림 타입 판별 및 번역
+    let translatedTitle = titleStr;
+    let translatedBody = bodyStr;
+
+    // 미체결 경고 알림인지 확인
+    const isUnfastenedAlert = titleStr.includes('미체결') || titleStr.includes('Unfastened') || 
+        titleStr.includes('未締結') || titleStr.includes('未系') ||
+        titleStr.includes('Desenganchado') || titleStr.includes('Déconnecté') ||
+        titleStr.includes('Losgelöst') || titleStr.includes('Scollegato') ||
+        titleStr.includes('Desconectado') || titleStr.includes('Отключено');
+
+    if (isUnfastenedAlert) {
+      // 미체결 경고 알림
+      // 제목: 작업자 이름이 있으면 alertTitle 사용, 없으면 unfastenedWarning 사용
+      if (workerName) {
+        translatedTitle = i18n.t('notification.alertTitle', { name: workerName });
+      } else {
+        translatedTitle = t('notification.unfastenedWarning');
+      }
+      
+      // 본문: 항상 alertBody 사용 (작업자 이름 포함하지 않음)
+      translatedBody = t('notification.alertBody');
+    } else {
+      // 다른 알림 타입: 본문의 {worker} 플레이스홀더 직접 치환
+      if (workerName) {
+        // 모든 {worker} 패턴 치환
+        translatedBody = bodyStr
+          .replace(/\{worker\}/g, workerName)
+          .replace(/\{\{worker\}\}/g, workerName)
+          .replace(/"\{worker\}"/g, `"${workerName}"`)
+          .replace(/'\{worker\}'/g, `'${workerName}'`);
+      } else if (bodyStr.includes('{worker}') || bodyStr.includes('{{worker}}')) {
+        // 작업자 이름이 없고 플레이스홀더가 있으면 그대로 표시 (또는 기본 메시지)
+        translatedBody = bodyStr;
+      }
+    }
+
+    return { title: translatedTitle, body: translatedBody };
   };
 
-  // Status를 번역 키로 매핑
-  const getTranslatedStatus = (status?: string | null) => {
-    if (!status) return null;
+  // 상태 문자열을 현재 언어로 번역
+  const getTranslatedStatus = (status: string | null | undefined): string => {
+    if (!status) return '';
+
+    const statusLower = status.toLowerCase();
     
-    // 각 언어의 status 텍스트를 번역 키로 매핑
-    const statusMap: Record<string, string> = {
+    // 상태 매핑 (다양한 언어 지원)
+    const statusMap: { [key: string]: string } = {
       // 한국어
-      '미체결': 'notification.status.unfastened',
-      '단일체결': 'notification.status.singleFastened',
-      '이중체결': 'notification.status.doubleFastened',
+      '미체결': t('notification.status.unfastened'),
+      '단일체결': t('notification.status.singleFastened'),
+      '이중체결': t('notification.status.doubleFastened'),
       // 영어
-      'Not tied off': 'notification.status.unfastened',
-      'Single': 'notification.status.singleFastened',
-      'Double': 'notification.status.doubleFastened',
+      'unfastened': t('notification.status.unfastened'),
+      'single': t('notification.status.singleFastened'),
+      'double': t('notification.status.doubleFastened'),
+      'unhooked': t('notification.status.unfastened'),
+      'single fastened': t('notification.status.singleFastened'),
+      'double fastened': t('notification.status.doubleFastened'),
       // 일본어
-      '未締結': 'notification.status.unfastened',
-      '単一締結': 'notification.status.singleFastened',
-      '二重締結': 'notification.status.doubleFastened',
-      // 간체 중국어
-      '未系挂': 'notification.status.unfastened',
-      '单侧系挂': 'notification.status.singleFastened',
-      '双侧系挂': 'notification.status.doubleFastened',
-      // 번체 중국어
-      '未繫掛': 'notification.status.unfastened',
-      '單側繫掛': 'notification.status.singleFastened',
-      '雙側繫掛': 'notification.status.doubleFastened',
+      '未締結': t('notification.status.unfastened'),
+      '単一締結': t('notification.status.singleFastened'),
+      '二重締結': t('notification.status.doubleFastened'),
+      // 중국어 간체
+      '未系': t('notification.status.unfastened'),
+      '单系': t('notification.status.singleFastened'),
+      '双系': t('notification.status.doubleFastened'),
+      // 중국어 번체
+      '未繫': t('notification.status.unfastened'),
+      '單繫': t('notification.status.singleFastened'),
+      '雙繫': t('notification.status.doubleFastened'),
       // 스페인어
-      'No atado': 'notification.status.unfastened',
-      'Sencillo': 'notification.status.singleFastened',
-      'Doble': 'notification.status.doubleFastened',
+      'desenganchado': t('notification.status.unfastened'),
+      'enganchado simple': t('notification.status.singleFastened'),
+      'enganchado doble': t('notification.status.doubleFastened'),
       // 프랑스어
-      'Non attaché': 'notification.status.unfastened',
-      'Simple': 'notification.status.singleFastened',
-      // 'Double'은 영어와 동일하므로 영어 항목 사용
+      'déconnecté': t('notification.status.unfastened'),
+      'accroché simple': t('notification.status.singleFastened'),
+      'accroché double': t('notification.status.doubleFastened'),
       // 독일어
-      'Nicht befestigt': 'notification.status.unfastened',
-      'Einfach': 'notification.status.singleFastened',
-      'Doppelt': 'notification.status.doubleFastened',
+      'losgelöst': t('notification.status.unfastened'),
+      'einfach befestigt': t('notification.status.singleFastened'),
+      'doppelt befestigt': t('notification.status.doubleFastened'),
       // 이탈리아어
-      'Non fissato': 'notification.status.unfastened',
-      'Singolo': 'notification.status.singleFastened',
-      'Doppio': 'notification.status.doubleFastened',
+      'scollegato': t('notification.status.unfastened'),
+      'collegato singolo': t('notification.status.singleFastened'),
+      'collegato doppio': t('notification.status.doubleFastened'),
       // 포르투갈어
-      'Não fixado': 'notification.status.unfastened',
-      'Simples': 'notification.status.singleFastened',
-      'Duplo': 'notification.status.doubleFastened',
+      'desconectado': t('notification.status.unfastened'),
+      'conectado simples': t('notification.status.singleFastened'),
+      'conectado duplo': t('notification.status.doubleFastened'),
       // 러시아어
-      'Не закреплен': 'notification.status.unfastened',
-      'Одинарный': 'notification.status.singleFastened',
-      'Двойной': 'notification.status.doubleFastened',
+      'отключено': t('notification.status.unfastened'),
+      'одинарное': t('notification.status.singleFastened'),
+      'двойное': t('notification.status.doubleFastened'),
     };
-    
-    const translationKey = statusMap[status];
-    return translationKey ? t(translationKey) : status;
+
+    // 정확한 매칭 시도
+    if (statusMap[statusLower]) {
+      return statusMap[statusLower];
+    }
+
+    // 부분 매칭 시도
+    for (const [key, value] of Object.entries(statusMap)) {
+      if (statusLower.includes(key) || key.includes(statusLower)) {
+        return value;
+      }
+    }
+
+    // 매칭 실패 시 원본 반환
+    return status;
   };
 
   const getStatusColor = (status?: string | null) => {
     if (!status) return '#666';
-    
-    // Status를 번역 키로 매핑하여 비교
-    const statusMap: Record<string, string> = {
-      // 한국어
-      '미체결': 'unfastened',
-      '단일체결': 'singleFastened',
-      '이중체결': 'doubleFastened',
-      // 영어
-      'Not tied off': 'unfastened',
-      'Single': 'singleFastened',
-      'Double': 'doubleFastened',
-      // 일본어
-      '未締結': 'unfastened',
-      '単一締結': 'singleFastened',
-      '二重締結': 'doubleFastened',
-      // 간체 중국어
-      '未系挂': 'unfastened',
-      '单侧系挂': 'singleFastened',
-      '双侧系挂': 'doubleFastened',
-      // 번체 중국어
-      '未繫掛': 'unfastened',
-      '單側繫掛': 'singleFastened',
-      '雙側繫掛': 'doubleFastened',
-      // 스페인어
-      'No atado': 'unfastened',
-      'Sencillo': 'singleFastened',
-      'Doble': 'doubleFastened',
-      // 프랑스어
-      'Non attaché': 'unfastened',
-      'Simple': 'singleFastened',
-      // 'Double'은 영어와 동일하므로 영어 항목 사용
-      // 독일어
-      'Nicht befestigt': 'unfastened',
-      'Einfach': 'singleFastened',
-      'Doppelt': 'doubleFastened',
-      // 이탈리아어
-      'Non fissato': 'unfastened',
-      'Singolo': 'singleFastened',
-      'Doppio': 'doubleFastened',
-      // 포르투갈어
-      'Não fixado': 'unfastened',
-      'Simples': 'singleFastened',
-      'Duplo': 'doubleFastened',
-      // 러시아어
-      'Не закреплен': 'unfastened',
-      'Одинарный': 'singleFastened',
-      'Двойной': 'doubleFastened',
-    };
-    
-    const statusType = statusMap[status];
-    if (statusType === 'unfastened') return '#ef4444';
-    if (statusType === 'singleFastened') return '#f59e0b';
+    const statusLower = status.toLowerCase();
+    // 다양한 언어의 상태 문자열 확인
+    if (
+      statusLower.includes('미체결') ||
+      statusLower.includes('unfastened') ||
+      statusLower.includes('unhooked') ||
+      statusLower.includes('danger') ||
+      statusLower.includes('未締結') ||
+      statusLower.includes('未系') ||
+      statusLower.includes('desenganchado') ||
+      statusLower.includes('déconnecté') ||
+      statusLower.includes('losgelöst') ||
+      statusLower.includes('scollegato') ||
+      statusLower.includes('desconectado') ||
+      statusLower.includes('отключено')
+    ) {
+      return '#ef4444';
+    }
+    if (
+      statusLower.includes('단일체결') ||
+      statusLower.includes('single') ||
+      statusLower.includes('partial') ||
+      statusLower.includes('単一締結') ||
+      statusLower.includes('单系') ||
+      statusLower.includes('enganchado simple') ||
+      statusLower.includes('accroché simple') ||
+      statusLower.includes('einfach befestigt') ||
+      statusLower.includes('collegato singolo') ||
+      statusLower.includes('conectado simples') ||
+      statusLower.includes('одинарное')
+    ) {
+      return '#f59e0b';
+    }
     return '#666';
   };
 
@@ -367,22 +461,24 @@ export default function NotificationHistoryScreen() {
             return !(sameTime && sameTitle);
           })
           .map(n => {
-            const displayText = getNotificationDisplayText(n);
+            const displayText = getNotificationDisplayText(n.title, n.body, n.device_id);
+            const statusColor = getStatusColor(n.status);
             return (
               <View key={n.id} style={styles.statusItem}>
-                <Text style={styles.deviceName}>{formatKoreaTime(n.created_at)}</Text>
+                <Text style={[styles.timeText, { fontFamily: fonts.regular }]}>
+                  {formatKoreaTime(n.created_at)}
+                </Text>
                 <View style={styles.statusItemHeader}>
                   <View
                     style={[
                       styles.statusDot,
-                      { backgroundColor: getStatusColor(n.status) },
+                      { backgroundColor: statusColor },
                     ]}
                   />
-                  <Text style={[styles.statusItemText, { fontFamily: fonts.bold }]}>{displayText.title}</Text>
+                  <Text style={[styles.statusItemText, { fontFamily: fonts.bold }]}>
+                    {displayText.title}
+                  </Text>
                 </View>
-                {!!displayText.body && (
-                  <Text style={[styles.statusItemDetail, { fontFamily: fonts.regular }]}>{displayText.body}</Text>
-                )}
               </View>
             );
           })
@@ -411,7 +507,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: '#000',
-        marginBottom: 12,
+    marginBottom: 12,
   },
   connectionBadge: {
     flexDirection: 'row',
@@ -432,7 +528,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
-      },
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -443,45 +539,49 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#666',
-      },
+  },
   statusItem: {
     backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: '#000',
-    marginBottom: 8,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  deviceName: {
-    fontSize: 14,
+  timeText: {
+    fontSize: 12,
     color: '#999',
-        marginBottom: 4,
+    marginBottom: 8,
   },
   statusItemHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 10,
   },
   statusItemText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
-        flex: 1,
+    flex: 1,
+    lineHeight: 22,
   },
-  statusItemTime: {
-    fontSize: 12,
-    color: '#666',
-      },
-  statusItemDetail: {
+  statusItemBody: {
     fontSize: 14,
-    color: '#666',
-        marginLeft: 16,
+    color: '#333',
+    marginLeft: 20,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   emptyContainer: {
     backgroundColor: '#fff',
@@ -494,6 +594,6 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: '#999',
-        textAlign: 'center',
+    textAlign: 'center',
   },
 });

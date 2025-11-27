@@ -29,6 +29,8 @@ export default function Index() {
       return;
     }
 
+    setIsNavigating(true);
+
     try {
       console.log('🔍 [Index] 인증 확인 시작');
       
@@ -54,7 +56,6 @@ export default function Index() {
         // 버전 정보 저장
         await AsyncStorage.setItem(APP_VERSION_KEY, CURRENT_APP_VERSION);
         console.log('➡️ [Index] 라우팅: /signin (버전 변경)');
-        setIsNavigating(true);
         router.replace('/signin');
         return;
       }
@@ -71,7 +72,6 @@ export default function Index() {
           await supabase.auth.signOut();
         }
         console.log('➡️ [Index] 라우팅: /signin (로그인 유지 해제)');
-        setIsNavigating(true);
         router.replace('/signin');
         return;
       }
@@ -94,7 +94,6 @@ export default function Index() {
           console.log('❌ [Index] 세션이 유효하지 않음 - 로그아웃 처리');
           await supabase.auth.signOut();
           console.log('➡️ [Index] 라우팅: /signin (세션 무효)');
-          setIsNavigating(true);
           router.replace('/signin');
           return;
         }
@@ -105,7 +104,6 @@ export default function Index() {
           console.log('⏰ [Index] 세션 만료 - 로그아웃 처리');
           await supabase.auth.signOut();
           console.log('➡️ [Index] 라우팅: /signin (세션 만료)');
-          setIsNavigating(true);
           router.replace('/signin');
           return;
         }
@@ -117,7 +115,6 @@ export default function Index() {
           // 현장이 선택되지 않았으면 현장 선택 화면으로 이동
           console.log('⚠️ [Index] 현장이 선택되지 않음 - 현장 선택 화면으로 이동');
           console.log('➡️ [Index] 라우팅: /site-select (현장 없음)');
-          setIsNavigating(true);
           router.replace('/site-select');
         } else {
           // 선택한 현장이 있으면 접근 권한 확인
@@ -130,27 +127,23 @@ export default function Index() {
               // 접근 권한이 있으면 메인으로 이동
               console.log('✅ [Index] 세션 유효 + 현장 선택됨 + 접근 권한 있음');
               console.log('➡️ [Index] 라우팅: /main');
-              setIsNavigating(true);
               router.replace('/main');
             } else {
               // 접근 권한이 없으면 현장 선택 화면으로 이동
               console.log('⚠️ [Index] 현장 접근 권한 없음 - 현장 선택 화면으로 이동');
               console.log('➡️ [Index] 라우팅: /site-select (접근 권한 없음)');
-              setIsNavigating(true);
               router.replace('/site-select');
             }
           } else {
             // 선택한 현장 정보가 없으면 현장 선택 화면으로 이동
             console.log('⚠️ [Index] 선택한 현장 정보 없음 - 현장 선택 화면으로 이동');
             console.log('➡️ [Index] 라우팅: /site-select (현장 정보 없음)');
-            setIsNavigating(true);
             router.replace('/site-select');
           }
         }
       } else {
         console.log('❌ [Index] 세션 없음 - 로그인 화면으로 이동');
         console.log('➡️ [Index] 라우팅: /signin (세션 없음)');
-        setIsNavigating(true);
         router.replace('/signin');
       }
     } catch (error) {
@@ -162,10 +155,12 @@ export default function Index() {
         console.error('❌ [Index] 로그아웃 에러:', signOutError);
       }
       console.log('➡️ [Index] 라우팅: /signin (에러 발생)');
-      setIsNavigating(true);
       router.replace('/signin');
+    } finally {
+      // 라우팅 완료 후 플래그 리셋은 하지 않음
+      // 컴포넌트가 언마운트되면 자동으로 리셋됨
     }
-  }, [router, isNavigating]);
+  }, [router]);
 
   useEffect(() => {
     checkAuth();

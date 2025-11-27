@@ -196,29 +196,58 @@ export default function SettingsScreen() {
                 data: { user },
               } = await supabase.auth.getUser();
 
-              if (user) {
-                // zerofall_admin 테이블에서 삭제
-                await supabase
-                  .from('zerofall_admin')
-                  .delete()
-                  .eq('admin_id', user.id);
-
-                // 일반 사용자는 admin API를 사용할 수 없으므로
-                // 로그아웃만 처리하고 실제 삭제는 관리자에게 요청
-                const { error: signOutError } = await supabase.auth.signOut();
-                if (signOutError) {
-                  Alert.alert(
-                    t('common.error'),
-                    t('settings.deleteAccountError'),
-                  );
-                } else {
-                  Alert.alert(
-                    t('common.success'),
-                    t('settings.deleteAccountContact'),
-                  );
-                  router.replace('/signin');
-                }
+              if (!user) {
+                Alert.alert(t('common.error'), t('settings.deleteAccountError'));
+                return;
               }
+
+              // Edge Function 호출하여 계정 삭제
+              console.log('🔄 [SettingsScreen] 계정 삭제 Edge Function 호출 중...');
+              
+              const { data: result, error: functionError } = await supabase.functions.invoke(
+                'delete-account',
+                {
+                  method: 'POST',
+                  body: {},
+                }
+              );
+
+              if (functionError) {
+                console.error('❌ [SettingsScreen] 계정 삭제 실패:', functionError);
+                Alert.alert(
+                  t('common.error'),
+                  functionError.message || t('settings.deleteAccountError')
+                );
+                return;
+              }
+
+              if (!result || !result.success) {
+                console.error('❌ [SettingsScreen] 계정 삭제 실패:', result);
+                Alert.alert(
+                  t('common.error'),
+                  result?.message || t('settings.deleteAccountError')
+                );
+                return;
+              }
+
+              console.log('✅ [SettingsScreen] 계정 삭제 성공:', result);
+
+              // 계정 삭제 성공 - 로그아웃 처리
+              await supabase.auth.signOut();
+
+              Alert.alert(
+                t('common.success'),
+                t('settings.deleteAccountSuccess'),
+                [
+                  {
+                    text: t('common.confirm'),
+                    onPress: () => {
+                      console.log('➡️ [SettingsScreen] 라우팅: /signin (계정 삭제 완료)');
+                      router.replace('/signin');
+                    },
+                  },
+                ]
+              );
             } catch (error) {
               console.error('계정 삭제 실패:', error);
               Alert.alert(t('common.error'), t('settings.deleteAccountError'));

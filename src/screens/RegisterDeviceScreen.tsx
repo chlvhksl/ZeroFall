@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import i18n from '../../lib/i18n-safe';
-import { useFontByLanguage } from '../../lib/fontUtils-safe';
+import * as Clipboard from 'expo-clipboard';
+import { Alert, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
+import i18n from '../../lib/i18n-safe';
 import { getSelectedSite } from '../../lib/siteManagement';
 import { supabase } from '../../lib/supabase';
 // @ts-ignore
@@ -20,6 +21,7 @@ type Row = {
   created_at?: string | null;
   wifi_ssid?: string | null;
   site_id?: string | null;
+  reset_wifi_flag?: boolean | null;
 };
 
 const STALE_MS = 45000;
@@ -51,7 +53,7 @@ export default function RegisterDeviceScreen() {
 
       const { data, error } = await supabase
         .from('gori_status')
-        .select('device_id, worker_name, status, left_sensor, right_sensor, updated_at, created_at, wifi_ssid, site_id')
+        .select('device_id, worker_name, status, left_sensor, right_sensor, updated_at, created_at, wifi_ssid, site_id, reset_wifi_flag')
         .order('updated_at', { ascending: false })
         .limit(100);
       if (error) throw error;
@@ -280,6 +282,35 @@ export default function RegisterDeviceScreen() {
     );
   };
 
+  const handleResetWiFi = async (deviceId: string) => {
+    Alert.alert(
+      t('device.resetWiFi'),
+      t('device.resetWiFiConfirm', { deviceId }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('device.resetWiFi'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('gori_status')
+                .update({ reset_wifi_flag: true })
+                .eq('device_id', deviceId);
+              
+              if (error) throw error;
+              
+              Alert.alert(t('common.success'), t('device.resetWiFiSuccess'));
+              await load();
+            } catch (e: any) {
+              Alert.alert(t('common.error'), e?.message || t('device.resetWiFiError'));
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const isOnline = (r: Row) => {
     const t = new Date(r.updated_at || r.created_at || 0).getTime();
     return Date.now() - t < STALE_MS;
@@ -342,13 +373,22 @@ export default function RegisterDeviceScreen() {
           </Text>
         </TouchableOpacity>
         {!unregistered && (
-          <TouchableOpacity
-            onPress={() => handleUnregister(item.device_id)}
-            style={styles.unregisterButton}
-          >
-            <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-            <Text style={styles.unregisterButtonText}>{t('device.unregister')}</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              onPress={() => handleResetWiFi(item.device_id)}
+              style={styles.resetWiFiButton}
+            >
+              <Ionicons name="wifi-outline" size={18} color="#007AFF" />
+              <Text style={styles.resetWiFiButtonText}>{t('device.resetWiFi')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleUnregister(item.device_id)}
+              style={styles.unregisterButton}
+            >
+              <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+              <Text style={styles.unregisterButtonText}>{t('device.unregister')}</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
     );
@@ -404,6 +444,37 @@ export default function RegisterDeviceScreen() {
           </Text>
         </View>
       </View>
+
+      {/* AP 모드 가이드 버튼 */}
+      <TouchableOpacity
+        style={styles.apModeButton}
+        onPress={() => {
+          Alert.alert(
+            t('device.apModeGuide'),
+            t('device.apModeSteps'),
+            [
+              {
+                text: t('device.copyAddress'),
+                onPress: async () => {
+                  await Clipboard.setStringAsync('192.168.4.1');
+                  Alert.alert(t('common.success'), t('device.addressCopied'));
+                },
+                style: 'default',
+              },
+              {
+                text: t('common.confirm'),
+                style: 'cancel',
+              },
+            ],
+            { cancelable: true }
+          );
+        }}
+      >
+        <Ionicons name="wifi-outline" size={20} color="#007AFF" />
+        <Text style={[styles.apModeButtonText, { fontFamily: fonts.regular }]}>
+          {t('device.openApModeGuide')}
+        </Text>
+      </TouchableOpacity>
 
       {/* 수동 SSID 입력 (Android만, 기본으로 표시) */}
       {Platform.OS === 'android' && (
@@ -642,6 +713,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  apModeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E3F2FD',
+    borderWidth: 2,
+    borderColor: '#2196F3',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    gap: 8,
+  },
+  apModeButtonText: {
+    color: '#007AFF',
+    fontSize: 14,
+  },
   clearButton: {
     position: 'absolute',
     right: 10,
@@ -662,6 +749,28 @@ const styles = StyleSheet.create({
     color: '#333',
     fontSize: 12,
       },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  resetWiFiButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    flex: 1,
+  },
+  resetWiFiButtonText: {
+    color: '#007AFF',
+    fontSize: 14,
+    marginLeft: 4,
+  },
   unregisterButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -672,7 +781,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#FF3B30',
-    marginTop: 8,
+    flex: 1,
   },
   unregisterButtonText: {
     color: '#FF3B30',

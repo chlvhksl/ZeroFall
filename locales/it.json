@@ -199,6 +199,7 @@
     "manager": "Manager",
     "viewer": "Visualizzatore",
     "password": "Password",
+    "selectSite": "Seleziona Sito",
     "selectSiteInfo": "Solo le attrezzature del sito selezionato sono visualizzate nella dashboard.",
     "changeSiteInfo": "Puoi cambiare il sito in qualsiasi momento nelle impostazioni dell'ambiente.",
     "noSites": "Nessun sito accessibile.",
@@ -281,7 +282,17 @@
     "checkWifiSettings": "📱 Verifica SSID nelle Impostazioni WiFi",
     "manualWifiPlaceholder": "Inserisci il nome Wi-Fi (SSID) direttamente",
     "goToDashboard": "Vai alla dashboard",
-    "registerFailed": "Registrazione fallita"
+    "registerFailed": "Registrazione fallita",
+    "resetWiFi": "Reimposta Wi-Fi",
+    "resetWiFiConfirm": "Vuoi reimpostare il Wi-Fi del dispositivo '{{deviceId}}'?\nL'Arduino passerà alla modalità AP in modo da poter configurare un nuovo Wi-Fi.",
+    "resetWiFiSuccess": "Il segnale di reimpostazione Wi-Fi è stato inviato.\nL'Arduino passerà alla modalità AP a breve.",
+    "resetWiFiError": "Impossibile inviare il segnale di reimpostazione Wi-Fi.",
+    "apModeGuide": "Guida modalità AP",
+    "apModeInfo": "Quando si configura Arduino per la prima volta, connettersi tramite modalità AP",
+    "openApModeGuide": "Apri guida modalità AP",
+    "apModeSteps": "1. Accendi Arduino\n2. Connettiti al Wi-Fi 'ZeroFall-XXXX'\n3. Apri 192.168.4.1 nel browser\n4. Scansiona il codice QR o inserisci manualmente le informazioni Wi-Fi\n5. Dopo il salvataggio, Arduino si collegherà automaticamente al Wi-Fi",
+    "copyAddress": "Copia Indirizzo",
+    "addressCopied": "192.168.4.1 è stato copiato negli appunti.\nIncollalo nella barra degli indirizzi del browser."
   },
   "editProfile": {
     "title": "Modifica informazioni personali",

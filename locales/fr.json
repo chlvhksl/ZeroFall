@@ -199,6 +199,7 @@
     "manager": "Gestionnaire",
     "viewer": "Visualiseur",
     "password": "Mot de passe",
+    "selectSite": "Sélectionner le Site",
     "selectSiteInfo": "Seul l'équipement du site sélectionné est affiché sur le tableau de bord.",
     "changeSiteInfo": "Vous pouvez changer de site à tout moment dans les paramètres de l'environnement.",
     "noSites": "Aucun site accessible.",
@@ -281,7 +282,17 @@
     "checkWifiSettings": "📱 Vérifier le SSID dans les paramètres WiFi",
     "manualWifiPlaceholder": "Entrer le nom Wi-Fi (SSID) directement",
     "goToDashboard": "Aller au tableau de bord",
-    "registerFailed": "Échec de l'enregistrement"
+    "registerFailed": "Échec de l'enregistrement",
+    "resetWiFi": "Réinitialiser le Wi-Fi",
+    "resetWiFiConfirm": "Voulez-vous réinitialiser le Wi-Fi de l'appareil '{{deviceId}}' ?\nL'Arduino passera en mode AP pour que vous puissiez configurer un nouveau Wi-Fi.",
+    "resetWiFiSuccess": "Le signal de réinitialisation Wi-Fi a été envoyé.\nL'Arduino passera en mode AP sous peu.",
+    "resetWiFiError": "Échec de l'envoi du signal de réinitialisation Wi-Fi.",
+    "apModeGuide": "Guide du mode AP",
+    "apModeInfo": "Lors de la configuration initiale d'Arduino, connectez-vous via le mode AP",
+    "openApModeGuide": "Ouvrir le guide du mode AP",
+    "apModeSteps": "1. Allumez l'Arduino\n2. Connectez-vous au Wi-Fi 'ZeroFall-XXXX'\n3. Ouvrez 192.168.4.1 dans le navigateur\n4. Scannez le code QR ou saisissez manuellement les informations Wi-Fi\n5. Après l'enregistrement, l'Arduino se connectera automatiquement au Wi-Fi",
+    "copyAddress": "Copier l'Adresse",
+    "addressCopied": "192.168.4.1 a été copié dans le presse-papiers.\nCollez-le dans la barre d'adresse du navigateur."
   },
   "editProfile": {
     "title": "Modifier les informations personnelles",

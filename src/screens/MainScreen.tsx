@@ -70,10 +70,10 @@ export default function MainScreen() {
 
         // 이름 조합: "성이름" 형태로
         const fullName =
-          `${last_name || ''}${first_name || ''}`.trim() || '관리자';
+          `${last_name || ''}${first_name || ''}`.trim() || t('main.admin');
 
         setAdminInfo({
-          affiliation: affiliation || '소속',
+          affiliation: affiliation || t('main.affiliation'),
           name: fullName,
         });
       }
@@ -148,18 +148,18 @@ export default function MainScreen() {
       <View style={styles.titleContainer}>
         <Text style={[styles.title, { fontFamily: fonts.extraBold }]}>ZeroFall</Text>
         <View style={styles.infoContainer}>
-          {currentSite && (
-            <TouchableOpacity
-              style={styles.siteBadge}
-              onPress={() => {
-                console.log('➡️ [MainScreen] 라우팅: /site-select (현장 선택 버튼)');
-                router.push('/site-select');
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.siteBadgeText, { fontFamily: fonts.bold }]}>{t('main.site')}: {currentSite}</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.siteBadge}
+            onPress={() => {
+              console.log('➡️ [MainScreen] 라우팅: /site-select (현장 선택 버튼)');
+              router.push('/site-select');
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.siteBadgeText, { fontFamily: fonts.bold }]}>
+              {currentSite ? `${t('main.site')}: ${currentSite}` : t('main.selectSite')}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
       <View style={styles.divider} />

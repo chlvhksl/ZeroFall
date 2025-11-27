@@ -121,11 +121,11 @@ export default function ForgotPasswordScreen() {
     }
 
     Alert.alert(
-      '변경 완료',
-      '비밀번호가 성공적으로 변경되었습니다.\n새 비밀번호로 로그인해주세요.',
+      t('common.success'),
+      t('forgotPassword.changeSuccess'),
       [
         {
-          text: '확인',
+          text: t('common.confirm'),
           onPress: () => {
             console.log('➡️ [ForgotPasswordScreen] 라우팅: /signin (비밀번호 변경 완료)');
             router.replace('/signin');
