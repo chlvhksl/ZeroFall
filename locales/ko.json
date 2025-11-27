@@ -201,7 +201,9 @@
     "leaveConfirm": "정말 이 현장에서 나가시겠습니까?",
     "deleteSelected": "선택한 현장 삭제 ({{count}})",
     "leaveSelected": "선택한 현장 나가기 ({{count}})",
-    "loading": "현장 목록을 불러오는 중..."
+    "loading": "현장 목록을 불러오는 중...",
+    "batchDeleteConfirm": "정말 {{count}}개의 현장을 삭제하시겠습니까?\n\n삭제할 현장: {{names}}\n\n이 작업은 되돌릴 수 없으며, 해당 현장의 모든 데이터가 삭제됩니다.",
+    "deleteSuccess": "{{count}}개의 현장이 성공적으로 삭제되었습니다."
   },
   "device": {
     "search": "장비 검색",
@@ -317,7 +319,7 @@
     "passwordMinLength": "비밀번호는 최소 4자 이상이어야 합니다.",
     "passwordMismatch": "비밀번호가 일치하지 않습니다.",
     "createSuccess": "현장 추가 완료",
-    "createSuccessMessage": "\"{name}\" 현장이 추가되었습니다.\n이제 이 현장의 관리자 권한을 갖게 됩니다.",
+    "createSuccessMessage": "\"{{name}}\" 현장이 추가되었습니다.\n이제 이 현장의 관리자 권한을 갖게 됩니다.",
     "createError": "현장 추가 중 오류가 발생했습니다."
   },
   "hookMonitor": {

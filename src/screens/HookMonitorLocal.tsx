@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../../lib/i18n-safe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { sendRemotePush } from '../../lib/notifications';
-import { getCurrentSiteRole, getSelectedSite } from '../../lib/siteManagement';
+import { clearSelectedSite, getCurrentSiteRole, getSelectedSite } from '../../lib/siteManagement';
 import { useFontByLanguage } from '../../lib/fontUtils-safe';
 import { supabase } from '../../lib/supabase';
 import { formatKoreaTime } from '../../lib/utils';
@@ -408,7 +408,7 @@ export default function HookMonitorLocal() {
               .select('device_id,worker_name,site_id')
               .not('worker_name', 'is', null)
               .neq('worker_name', '')
-              .or(`site_id.eq.${site.id},site_id.is.null`)
+              .eq('site_id', site.id)
               .limit(1)
               .maybeSingle();
             setAnyRegistered(!!data?.device_id);
@@ -471,23 +471,51 @@ export default function HookMonitorLocal() {
   // 전체 기기의 최신 상태를 불러와 디바이스별 최신 1건으로 정리
   const loadAllDevicesLatest = async () => {
     try {
+      // 최신 현장 정보 가져오기 (삭제된 현장 체크)
+      const currentSite = await getSelectedSite();
+      const actualSiteId = currentSite?.id || null;
+      
       // 선택한 현장이 없으면 조회하지 않음
-      if (!selectedSiteId) {
+      if (!actualSiteId) {
         console.log('⚠️ [HookMonitorLocal] 현장이 선택되지 않음');
+        setAllDevices([]);
+        sharedAllDevices = [];
+        setSelectedSiteId(null);
         return;
       }
 
-      console.log('🔍 [HookMonitorLocal] 기기 목록 로드 시작, 현장 ID:', selectedSiteId);
+      // 선택한 현장이 실제로 존재하는지 확인 (삭제된 현장의 장비는 제외)
+      const { data: siteExists } = await supabase
+        .from('sites')
+        .select('id')
+        .eq('id', actualSiteId)
+        .maybeSingle();
+
+      if (!siteExists) {
+        console.log('⚠️ [HookMonitorLocal] 선택한 현장이 존재하지 않음 (삭제됨):', actualSiteId);
+        setAllDevices([]);
+        sharedAllDevices = [];
+        setSelectedSiteId(null);
+        await clearSelectedSite();
+        return;
+      }
+      
+      // selectedSiteId가 actualSiteId와 다르면 업데이트 (동기화)
+      if (selectedSiteId !== actualSiteId) {
+        setSelectedSiteId(actualSiteId);
+      }
+
+      console.log('🔍 [HookMonitorLocal] 기기 목록 로드 시작, 현장 ID:', actualSiteId);
 
       // 1단계: 등록된 기기(worker_name이 있는 기기) 목록 먼저 조회
       // 이렇게 하면 최근 데이터가 없어도 등록된 기기는 항상 표시됨
-      // DISTINCT ON을 사용하거나 모든 데이터를 가져온 후 중복 제거
+      // 현장이 선택되어 있으면 해당 현장의 장비만 조회 (site_id가 NULL인 장비는 제외)
       const registeredQuery = supabase
         .from('gori_status')
         .select('device_id, worker_name, site_id, updated_at')
         .not('worker_name', 'is', null)
         .neq('worker_name', '')
-        .or(`site_id.eq.${selectedSiteId},site_id.is.null`)
+        .eq('site_id', actualSiteId) // 현장이 선택되어 있으면 해당 현장의 장비만
         .order('updated_at', { ascending: false })
         .limit(1000);
 
@@ -502,8 +530,8 @@ export default function HookMonitorLocal() {
       // 등록된 기기 목록 추출 (중복 제거 - device_id 기준으로 가장 최신 것만)
       const registeredDeviceMap = new Map<string, { device_id: string; worker_name: string; site_id: any }>();
       (registeredData || []).forEach((row: any) => {
-        // 현장 필터링: site_id가 NULL이 아니면 선택한 현장과 일치해야 함
-        if (row.site_id && row.site_id !== selectedSiteId) {
+        // 현장 필터링: 선택한 현장과 일치하는 장비만 (이미 쿼리에서 필터링되었지만 이중 체크)
+        if (row.site_id !== actualSiteId) {
           return;
         }
         if (row.device_id && row.worker_name && String(row.worker_name).trim().length > 0) {
@@ -532,8 +560,8 @@ export default function HookMonitorLocal() {
         .limit(1000);
 
       // 현장별 필터링: 선택한 현장의 장비만 조회
-      // site_id가 NULL인 기존 데이터는 하위 호환성을 위해 모두 조회 가능
-      query = query.or(`site_id.eq.${selectedSiteId},site_id.is.null`);
+      // 현장이 선택되어 있으면 해당 현장의 장비만 조회 (site_id가 NULL인 장비는 제외)
+      query = query.eq('site_id', actualSiteId);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -545,8 +573,8 @@ export default function HookMonitorLocal() {
         // 등록된 작업자만 표시
         if (!row.worker_name || String(row.worker_name).trim().length === 0)
           return;
-        // 현장 필터링: site_id가 NULL이 아니면 선택한 현장과 일치해야 함
-        if (row.site_id && row.site_id !== selectedSiteId) {
+        // 현장 필터링: 선택한 현장과 일치하는 장비만 (site_id가 NULL이면 제외)
+        if (!row.site_id || row.site_id !== actualSiteId) {
           return;
         }
         const key = row.device_id;
@@ -610,19 +638,57 @@ export default function HookMonitorLocal() {
 
   // 전체 기기 실시간 구독
   useEffect(() => {
-    if (!selectedSiteId) {
+    // selectedSiteId를 최신 값으로 가져오기 위해 ref 사용
+    const currentSiteId = selectedSiteId;
+    
+    if (!currentSiteId) {
       // 현장이 선택되지 않았으면 구독하지 않음
       console.log('⚠️ [HookMonitorLocal] 현장이 선택되지 않아 기기 목록을 로드하지 않음');
+      setAllDevices([]);
+      sharedAllDevices = [];
       return;
     }
 
-    console.log('🔄 [HookMonitorLocal] 기기 목록 로드 시작 (useEffect), 현장:', selectedSiteId);
-    loadAllDevicesLatest();
+    // 선택한 현장이 실제로 존재하는지 확인 (삭제된 현장의 장비는 제외)
+    const checkSiteAndLoad = async () => {
+      // 최신 selectedSiteId 확인 (삭제된 현장이면 null일 수 있음)
+      const currentSite = await getSelectedSite();
+      const actualSiteId = currentSite?.id || null;
+      
+      if (!actualSiteId || actualSiteId !== currentSiteId) {
+        console.log('⚠️ [HookMonitorLocal] 선택한 현장이 존재하지 않음 (삭제됨):', currentSiteId);
+        setAllDevices([]);
+        sharedAllDevices = [];
+        setSelectedSiteId(null);
+        return;
+      }
+
+      const { data: siteExists } = await supabase
+        .from('sites')
+        .select('id')
+        .eq('id', actualSiteId)
+        .maybeSingle();
+
+      if (!siteExists) {
+        console.log('⚠️ [HookMonitorLocal] 선택한 현장이 존재하지 않음 (삭제됨):', actualSiteId);
+        setAllDevices([]);
+        sharedAllDevices = [];
+        setSelectedSiteId(null);
+        await clearSelectedSite();
+        return;
+      }
+
+      console.log('🔄 [HookMonitorLocal] 기기 목록 로드 시작 (useEffect), 현장:', actualSiteId);
+      // loadAllDevicesLatest는 selectedSiteId를 직접 참조하므로, 여기서는 actualSiteId를 사용
+      loadAllDevicesLatest();
+    };
+
+    checkSiteAndLoad();
     
     // 주기적으로 다시 로드 (30초마다) - 등록된 기기가 누락되는 경우 대비
     const interval = setInterval(() => {
       console.log('🔄 [HookMonitorLocal] 주기적 기기 목록 갱신');
-      loadAllDevicesLatest();
+      checkSiteAndLoad();
     }, 30000);
     
     // 실시간 구독 설정
@@ -631,8 +697,34 @@ export default function HookMonitorLocal() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'gori_status' },
-        payload => {
+        async (payload) => {
           console.log('📡 [HookMonitorLocal] 실시간 이벤트 수신:', payload.eventType, payload.new?.device_id);
+          
+          // 최신 selectedSiteId 확인 (클로저 문제 해결)
+          const currentSite = await getSelectedSite();
+          const actualSiteId = currentSite?.id || null;
+          
+          // 현장이 없으면 모든 이벤트 무시
+          if (!actualSiteId) {
+            console.log('🚫 [HookMonitorLocal] 현장이 선택되지 않음 - 이벤트 무시');
+            return;
+          }
+          
+          // 현장이 실제로 존재하는지 확인
+          const { data: siteExists } = await supabase
+            .from('sites')
+            .select('id')
+            .eq('id', actualSiteId)
+            .maybeSingle();
+          
+          if (!siteExists) {
+            console.log('🚫 [HookMonitorLocal] 선택한 현장이 존재하지 않음 (삭제됨) - 이벤트 무시');
+            setAllDevices([]);
+            sharedAllDevices = [];
+            setSelectedSiteId(null);
+            await clearSelectedSite();
+            return;
+          }
           
           const row = (payload as any).new as GoriStatus;
           
@@ -661,11 +753,11 @@ export default function HookMonitorLocal() {
             row.worker_name && String(row.worker_name).trim().length > 0
           );
           
-          // 현장 필터링: 선택한 현장의 장비만 처리
+          // 현장 필터링: 선택한 현장의 장비만 처리 (site_id가 NULL인 장비는 제외)
           const rowSiteId = (row as any).site_id;
-          if (rowSiteId && rowSiteId !== selectedSiteId) {
-            // 다른 현장의 장비는 무시
-            console.log('🚫 [HookMonitorLocal] 다른 현장의 장비 무시:', rowSiteId, 'vs', selectedSiteId);
+          if (!rowSiteId || rowSiteId !== actualSiteId) {
+            // site_id가 NULL이거나 다른 현장의 장비는 무시
+            console.log('🚫 [HookMonitorLocal] 다른 현장의 장비 또는 site_id가 NULL인 장비 무시:', rowSiteId, 'vs', actualSiteId);
             return;
           }
           
@@ -688,8 +780,17 @@ export default function HookMonitorLocal() {
             
             if (hasWorker && row.device_id) {
               // 작업자가 등록된 기기는 항상 업데이트 (타임스탬프 비교 없이 즉시 업데이트)
-              console.log('✅ [HookMonitorLocal] 기기 상태 즉시 업데이트:', row.device_id, row.left_sensor, row.right_sensor);
-              map[row.device_id] = row;
+              console.log('✅ [HookMonitorLocal] 기기 상태 즉시 업데이트:', row.device_id, row.worker_name, row.left_sensor, row.right_sensor);
+              map[row.device_id] = { ...row, __ts: ts };
+              
+              // 새로 등록된 기기인 경우 (기존 목록에 없었던 경우) 전체 목록 다시 로드
+              if (!prev.find((r: any) => r.device_id === row.device_id)) {
+                console.log('🆕 [HookMonitorLocal] 새로 등록된 기기 감지 - 전체 목록 다시 로드:', row.device_id);
+                // 비동기로 전체 목록 다시 로드 (다음 렌더링 사이클에서)
+                setTimeout(() => {
+                  loadAllDevicesLatest();
+                }, 100);
+              }
             }
             // 작업자가 없는 기기는 제거하지 않음 (등록된 기기는 유지)
             // 단, worker_name이 null로 변경된 경우에만 제거

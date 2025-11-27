@@ -202,9 +202,10 @@
     "leaveError": "An error occurred while leaving the site.",
     "leave": "Leave",
     "selectLeaveError": "Please select sites to leave.",
+    "batchDeleteConfirm": "Are you sure you want to delete {{count}} site(s)?\n\nSites to delete: {{names}}\n\nThis action cannot be undone and all data for these sites will be deleted.",
+    "deleteSuccess": "{{count}} site(s) have been successfully deleted.",
     "selectDeleteError": "Please select sites to delete.",
     "leaveSuccess": "Left {{count}} sites.",
-    "deleteSuccess": "{{count}} sites have been deleted.",
     "leavePartialError": "Partial Leave Failed",
     "leavePartialMessage": "{{success}} left successfully, but {{failed}} failed to leave.",
     "deletePartialError": "Partial Delete Failed",
@@ -353,7 +354,7 @@
     "passwordMinLength": "Password must be at least 4 characters.",
     "passwordMismatch": "Passwords do not match.",
     "createSuccess": "Site Added",
-    "createSuccessMessage": "\"{name}\" site has been added.\nYou now have administrator privileges for this site.",
+    "createSuccessMessage": "\"{{name}}\" site has been added.\nYou now have administrator privileges for this site.",
     "createError": "An error occurred while adding the site."
   },
   "hookMonitor": {

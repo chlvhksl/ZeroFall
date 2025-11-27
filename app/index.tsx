@@ -127,7 +127,7 @@ export default function Index() {
               // 접근 권한이 있으면 메인으로 이동
               console.log('✅ [Index] 세션 유효 + 현장 선택됨 + 접근 권한 있음');
               console.log('➡️ [Index] 라우팅: /main');
-              router.replace('/main');
+        router.replace('/main');
             } else {
               // 접근 권한이 없으면 현장 선택 화면으로 이동
               console.log('⚠️ [Index] 현장 접근 권한 없음 - 현장 선택 화면으로 이동');

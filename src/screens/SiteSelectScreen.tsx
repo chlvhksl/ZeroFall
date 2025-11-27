@@ -212,18 +212,9 @@ export default function SiteSelectScreen() {
       setSelectedSiteId(site.id);
       await saveSelectedSite(site.id, site.name);
       
-      // 이전 화면으로 돌아가기 (환경설정에서 왔으면 환경설정으로, 로그인 후면 메인으로)
-      const canGoBack = router.canGoBack();
-      console.log('🔍 [SiteSelectScreen] 라우팅 결정:', { canGoBack, siteName: site.name });
-      
-      if (canGoBack) {
-        console.log('➡️ [SiteSelectScreen] 라우팅: router.back() (이전 화면으로)');
-        router.back();
-      } else {
-        // 스택이 없으면 메인 화면으로 직접 이동 (현장을 방금 선택했으므로)
-        console.log('➡️ [SiteSelectScreen] 라우팅: /main (스택 없음, 직접 이동)');
-        router.replace('/main');
-      }
+      // 현장 선택 후 무조건 메인 화면으로 이동 (이전 화면으로 돌아가지 않음)
+      console.log('➡️ [SiteSelectScreen] 라우팅: /main (현장 선택 완료)');
+      router.replace('/main');
     } catch (error) {
       console.error('❌ [SiteSelectScreen] 현장 선택 실패:', error);
       Alert.alert(t('common.error'), t('siteSelect.selectError'));

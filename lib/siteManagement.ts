@@ -257,11 +257,24 @@ export async function getSelectedSite(): Promise<{ id: string; name: string } | 
       AsyncStorage.getItem(STORAGE_KEY_SELECTED_SITE_NAME),
     ]);
 
-    if (siteId && siteName) {
-      return { id: siteId, name: siteName };
+    if (!siteId || !siteName) {
+      return null;
     }
 
-    return null;
+    // 현장이 실제로 존재하는지 확인 (삭제된 현장이면 null 반환)
+    const { data: siteExists } = await supabase
+      .from('sites')
+      .select('id')
+      .eq('id', siteId)
+      .maybeSingle();
+
+    if (!siteExists) {
+      console.log('⚠️ [siteManagement] 선택된 현장이 존재하지 않음 (삭제됨) - 선택 해제');
+      await clearSelectedSite();
+      return null;
+    }
+
+    return { id: siteId, name: siteName };
   } catch (error) {
     console.error('❌ [siteManagement] 선택한 현장 조회 실패:', error);
     return null;
@@ -721,6 +734,36 @@ export async function deleteSite(siteId: string): Promise<void> {
       throw new Error('본인이 만든 현장만 삭제할 수 있습니다.');
     }
 
+    // 현장 삭제 전: 해당 현장에 연결된 모든 아두이노의 reset_wifi_flag를 true로 설정
+    console.log('🔄 [siteManagement] 현장 삭제 전 - 연결된 장비의 WiFi 재설정 플래그 설정 중...');
+    const { data: devices, error: devicesError } = await supabase
+      .from('gori_status')
+      .select('device_id')
+      .eq('site_id', siteId);
+
+    if (devicesError) {
+      console.warn('⚠️ [siteManagement] 장비 조회 실패 (계속 진행):', devicesError);
+    } else if (devices && devices.length > 0) {
+      console.log(`📱 [siteManagement] ${devices.length}개 장비 발견 - reset_wifi_flag 설정 중...`);
+      
+      // 모든 장비의 reset_wifi_flag를 true로 설정
+      const deviceIds = devices.map(d => d.device_id).filter(Boolean);
+      if (deviceIds.length > 0) {
+        const { error: resetError } = await supabase
+          .from('gori_status')
+          .update({ reset_wifi_flag: true })
+          .in('device_id', deviceIds);
+
+        if (resetError) {
+          console.warn('⚠️ [siteManagement] reset_wifi_flag 설정 실패 (계속 진행):', resetError);
+        } else {
+          console.log(`✅ [siteManagement] ${deviceIds.length}개 장비의 reset_wifi_flag 설정 완료`);
+        }
+      }
+    } else {
+      console.log('ℹ️ [siteManagement] 연결된 장비가 없습니다.');
+    }
+
     // 현장 삭제 (CASCADE로 admin_sites도 자동 삭제됨)
     const { error: deleteError } = await supabase
       .from('sites')
@@ -729,6 +772,13 @@ export async function deleteSite(siteId: string): Promise<void> {
 
     if (deleteError) {
       throw deleteError;
+    }
+
+    // 삭제된 현장이 현재 선택된 현장이면 선택 해제
+    const currentSite = await getSelectedSite();
+    if (currentSite && currentSite.id === siteId) {
+      console.log('🔄 [siteManagement] 삭제된 현장이 선택된 현장이므로 선택 해제');
+      await clearSelectedSite();
     }
 
     console.log('✅ [siteManagement] 현장 삭제 완료:', site.name);

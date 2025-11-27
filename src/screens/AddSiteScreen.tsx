@@ -82,9 +82,14 @@ export default function AddSiteScreen() {
         description.trim() || undefined,
       );
       
+      // 현장 이름 확인 (디버깅용)
+      console.log('✅ [AddSiteScreen] 현장 생성 완료:', newSite);
+      const siteDisplayName = newSite?.name || `${companyName.trim()}-${siteName.trim()}`;
+      console.log('📝 [AddSiteScreen] 표시할 현장 이름:', siteDisplayName);
+      
       Alert.alert(
         t('addSite.createSuccess'),
-        t('addSite.createSuccessMessage', { name: newSite.name }),
+        t('addSite.createSuccessMessage', { name: siteDisplayName }),
         [
           {
             text: t('common.confirm'),
