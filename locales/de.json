@@ -104,6 +104,7 @@
     "loading": "Daten werden geladen...",
     "noDevices": "Keine registrierten Geräte.",
     "registerDevice": "Gerät registrieren",
+    "noSearchResults": "Keine Suchergebnisse.",
     "status": {
       "unfastened": "Nicht befestigt",
       "singleFastened": "Einfach",
@@ -261,7 +262,7 @@
     "noWaitingDevices": "Derzeit warten keine Geräte auf Registrierung.",
     "waitingDevicesInfo": "Bitte stellen Sie sicher, dass der Arduino mit demselben Wi-Fi-Netzwerk verbunden ist und in den letzten 2 Minuten Daten übertragen hat.",
     "allDevices": "Alle Geräte",
-    "registerInfo": "Bei der Registrierung des Arduino: Ihr Gerät muss mit demselben Wi-Fi-Netzwerk wie der Arduino verbunden sein, um Geräte zu erkennen, die auf die Registrierung warten.\nNach der Registrierung: Sie können den Arduino-Status von jedem Wi-Fi-Netzwerk aus überprüfen.",
+    "registerInfo": "Geben Sie den Wi-Fi-Namen (SSID) ein, um Geräte zu finden, die auf die Registrierung warten und mit diesem Wi-Fi verbunden sind.\nNach der Registrierung: Sie können den Arduino-Status von jedem Wi-Fi-Netzwerk aus überprüfen.",
     "loadError": "Laden der Liste fehlgeschlagen.",
     "registerButton": "Registrieren/Ändern",
     "unregisterConfirm": "Sind Sie sicher, dass Sie '{{deviceId}}' abmelden möchten?\nEs wird zur Liste der ausstehenden Registrierungen verschoben.",

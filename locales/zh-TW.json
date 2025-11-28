@@ -104,6 +104,7 @@
     "loading": "載入資料中...",
     "noDevices": "沒有已註冊的裝置。",
     "registerDevice": "註冊裝置",
+    "noSearchResults": "沒有搜尋結果。",
     "status": {
       "unfastened": "未繫掛",
       "singleFastened": "單側繫掛",
@@ -261,7 +262,7 @@
     "noWaitingDevices": "目前沒有等待註冊的裝置。",
     "waitingDevicesInfo": "請確保 Arduino 連接到同一 Wi-Fi 網路，並在最近2分鐘內傳輸了資料。",
     "allDevices": "全部裝置",
-    "registerInfo": "註冊 Arduino 時：您的裝置必須連接到與 Arduino 相同的 Wi-Fi 網路才能偵測等待註冊的裝置。\n註冊後：您可以從任何 Wi-Fi 網路查看 Arduino 狀態。",
+    "registerInfo": "輸入WiFi名稱(SSID)即可查找連接到該WiFi的等待註冊的裝置。\n註冊後：您可以從任何 Wi-Fi 網路查看 Arduino 狀態。",
     "loadError": "載入列表失敗。",
     "registerButton": "註冊/變更",
     "unregisterConfirm": "確定要取消註冊 '{{deviceId}}' 嗎？\n它將移動到等待註冊列表。",

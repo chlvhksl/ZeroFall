@@ -6,13 +6,116 @@ import { Alert, Platform } from 'react-native';
 
 // 알림 표시 방식 설정
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
+  handleNotification: async (notification) => {
+    try {
+      const data = notification.request.content.data as any;
+      const deviceId = data?.device_id || data?.deviceId || data?.device;
+      
+      // device_id가 없으면 표시 (테스트 알림 등)
+      if (!deviceId) {
+        return {
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        };
+      }
+      
+      // 등록 해제된 기기의 알림 차단 (worker_name이 null)
+      const workerName = data?.worker_name;
+      if (!workerName || workerName === null || String(workerName).trim().length === 0) {
+        console.log('🚫 [handleNotification] 등록 해제된 기기 알림 차단:', deviceId);
+        return {
+          shouldShowAlert: false,
+          shouldPlaySound: false,
+          shouldSetBadge: false,
+          shouldShowBanner: false,
+          shouldShowList: false,
+        };
+      }
+      
+      // Supabase에서 최신 데이터 확인 (site_id 체크)
+      try {
+        const { supabase } = await import('./supabase');
+        const { data: deviceData, error } = await supabase
+          .from('gori_status')
+          .select('device_id, worker_name, site_id')
+          .eq('device_id', deviceId)
+          .maybeSingle();
+        
+        if (error || !deviceData) {
+          console.log('🚫 [handleNotification] 기기 정보 조회 실패 또는 없음 - 알림 차단:', deviceId);
+          return {
+            shouldShowAlert: false,
+            shouldPlaySound: false,
+            shouldSetBadge: false,
+            shouldShowBanner: false,
+            shouldShowList: false,
+          };
+        }
+        
+        // site_id가 null이면 등록 해제된 기기
+        const siteId = (deviceData as any)?.site_id;
+        if (!siteId) {
+          console.log('🚫 [handleNotification] site_id가 NULL인 기기 알림 차단:', deviceId);
+          return {
+            shouldShowAlert: false,
+            shouldPlaySound: false,
+            shouldSetBadge: false,
+            shouldShowBanner: false,
+            shouldShowList: false,
+          };
+        }
+        
+        // 현재 선택된 현장 확인
+        const { getSelectedSite } = await import('./siteManagement');
+        const selectedSite = await getSelectedSite();
+        const currentSiteId = selectedSite?.id || null;
+        
+        // site_id가 현재 선택된 현장과 일치하지 않으면 알림 차단
+        if (currentSiteId && siteId !== currentSiteId) {
+          console.log('🚫 [handleNotification] 다른 현장의 기기 알림 차단:', siteId, 'vs', currentSiteId);
+          return {
+            shouldShowAlert: false,
+            shouldPlaySound: false,
+            shouldSetBadge: false,
+            shouldShowBanner: false,
+            shouldShowList: false,
+          };
+        }
+      } catch (checkError) {
+        console.error('🚫 [handleNotification] 등록 상태 확인 실패:', checkError);
+        // 확인 실패 시 안전하게 알림 차단
+        return {
+          shouldShowAlert: false,
+          shouldPlaySound: false,
+          shouldSetBadge: false,
+          shouldShowBanner: false,
+          shouldShowList: false,
+        };
+      }
+      
+      // 모든 체크 통과 - 알림 표시
+      return {
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      };
+    } catch (error) {
+      console.error('🚫 [handleNotification] 알림 처리 중 오류:', error);
+      // 오류 발생 시 안전하게 알림 차단
+      return {
+        shouldShowAlert: false,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+        shouldShowBanner: false,
+        shouldShowList: false,
+      };
+    }
+  },
 });
 
 // 푸시 토큰 가져오기 (성공/실패 정보 포함)
@@ -383,7 +486,7 @@ export function setupNotificationListeners() {
   listenersRegistered = true;
   // 알림 수신 시 실행될 함수
   const notificationListener = Notifications.addNotificationReceivedListener(
-    notification => {
+    async notification => {
       console.log('알림 수신:', notification);
       try {
         const content = notification.request?.content as any;
@@ -394,6 +497,55 @@ export function setupNotificationListeners() {
           data.device_id || data.deviceId || data.device || undefined;
         // device_id 없는 알림은 무시(테스트/기타 알림 차단)
         if (!deviceId) return;
+        
+        // 등록 해제된 기기의 알림 차단 (worker_name이 null이거나 site_id가 null)
+        const workerName = data.worker_name;
+        if (!workerName || workerName === null || String(workerName).trim().length === 0) {
+          console.log('🚫 [알림 수신] 등록 해제된 기기 알림 차단:', deviceId, 'worker_name:', workerName);
+          return; // 알림 무시
+        }
+        
+        // Supabase에서 최신 데이터 확인 (site_id 체크)
+        try {
+          const { supabase } = await import('./supabase');
+          const { data: deviceData, error } = await supabase
+            .from('gori_status')
+            .select('device_id, worker_name, site_id')
+            .eq('device_id', deviceId)
+            .maybeSingle();
+          
+          if (error) {
+            console.error('🚫 [알림 수신] 기기 정보 조회 실패:', error);
+            return; // 조회 실패 시 알림 차단
+          }
+          
+          if (!deviceData) {
+            console.log('🚫 [알림 수신] 기기 정보 없음 - 알림 차단:', deviceId);
+            return;
+          }
+          
+          // site_id가 null이면 등록 해제된 기기
+          const siteId = (deviceData as any)?.site_id;
+          if (!siteId) {
+            console.log('🚫 [알림 수신] site_id가 NULL인 기기 알림 차단:', deviceId);
+            return; // 알림 무시
+          }
+          
+          // 현재 선택된 현장 확인
+          const { getSelectedSite } = await import('./siteManagement');
+          const selectedSite = await getSelectedSite();
+          const currentSiteId = selectedSite?.id || null;
+          
+          // site_id가 현재 선택된 현장과 일치하지 않으면 알림 차단
+          if (currentSiteId && siteId !== currentSiteId) {
+            console.log('🚫 [알림 수신] 다른 현장의 기기 알림 차단:', siteId, 'vs', currentSiteId);
+            return; // 알림 무시
+          }
+        } catch (checkError) {
+          console.error('🚫 [알림 수신] 등록 상태 확인 실패:', checkError);
+          return; // 확인 실패 시 알림 차단
+        }
+        
         const now = Date.now();
         const lastAt = lastDeliveredAtByDevice[deviceId] || 0;
         if (now - lastAt < 10000) return; // 10초 내 중복 무시

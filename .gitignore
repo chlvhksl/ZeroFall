@@ -138,3 +138,6 @@ android/
 arduino/
 build-android.sh
 supabase/functions/notify-unsecured/index.ts
+ANDROID_QUICK_TEST.md
+VIDEO_SCRIPT.md
+build-1764328543981.apk

@@ -538,7 +538,7 @@ export default function SiteSelectScreen() {
               </Text>
             </TouchableOpacity>
           )}
-          {sites.some(site => !site.isCreator && site.roles?.includes('viewer')) && (
+          {sites.length > 0 && sites.some(site => !site.isCreator && site.roles?.includes('viewer')) && (
             <TouchableOpacity
               onPress={toggleLeaveMode}
               style={[styles.actionModeButton, leaveMode && styles.leaveModeButtonActive]}

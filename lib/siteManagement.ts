@@ -481,8 +481,9 @@ export async function clearVerifiedSites(): Promise<void> {
 }
 
 /**
- * 현장에서 나가기 (조회자 권한 제거)
- * admin_sites에서 viewer 권한을 제거하고, 인증된 현장 목록에서도 제거
+ * 현장에서 나가기 (모든 권한 제거)
+ * admin_sites에서 해당 현장의 모든 권한을 제거하고, 인증된 현장 목록에서도 제거
+ * 단, 본인이 만든 현장(creator)인 경우는 admin 권한을 유지 (현장나가기 불가)
  */
 export async function leaveSite(siteId: string): Promise<void> {
   try {
@@ -494,16 +495,130 @@ export async function leaveSite(siteId: string): Promise<void> {
       throw new Error('로그인이 필요합니다.');
     }
 
-    // admin_sites에서 viewer 권한 제거
-    const { error: deleteError } = await supabase
+    // 본인이 만든 현장인지 확인
+    const { data: site, error: siteError } = await supabase
+      .from('sites')
+      .select('creator_id')
+      .eq('id', siteId)
+      .maybeSingle();
+
+    if (siteError) {
+      throw siteError;
+    }
+
+    if (site && site.creator_id === user.id) {
+      throw new Error('본인이 만든 현장에서는 나갈 수 없습니다. 현장을 삭제하세요.');
+    }
+
+    // admin_sites에서 해당 현장의 모든 권한 제거 (admin_id와 site_id가 일치하는 모든 행 삭제)
+    // 삭제 전 확인
+    const { data: beforeDelete, error: checkError } = await supabase
+      .from('admin_sites')
+      .select('*')
+      .eq('admin_id', user.id)
+      .eq('site_id', siteId);
+    
+    if (checkError) {
+      console.warn('⚠️ [siteManagement] 삭제 전 확인 실패:', checkError);
+    } else {
+      console.log(`🔍 [siteManagement] 삭제할 행 수: ${beforeDelete?.length || 0}`, JSON.stringify(beforeDelete, null, 2));
+    }
+
+    if (!beforeDelete || beforeDelete.length === 0) {
+      console.log('ℹ️ [siteManagement] 삭제할 행이 없습니다. 이미 나간 현장일 수 있습니다.');
+      // 인증된 현장 목록에서만 제거하고 종료
+      const userKey = `${STORAGE_KEY_VERIFIED_SITES}_${user.id}`;
+      const verifiedSitesJson = await AsyncStorage.getItem(userKey);
+      const verifiedSites: string[] = verifiedSitesJson ? JSON.parse(verifiedSitesJson) : [];
+      const updatedSites = verifiedSites.filter(id => id !== siteId);
+      await AsyncStorage.setItem(userKey, JSON.stringify(updatedSites));
+      console.log('✅ [siteManagement] 현장에서 나가기 완료 (이미 권한이 없었음)');
+      return;
+    }
+
+    // admin_sites에서 해당 admin_id와 site_id 조합의 모든 행 삭제
+    // .select()를 사용하여 삭제된 행을 반환받음
+    const { error: deleteError, data: deleteResult } = await supabase
       .from('admin_sites')
       .delete()
       .eq('admin_id', user.id)
       .eq('site_id', siteId)
-      .eq('role', 'viewer'); // viewer 권한만 제거 (admin 권한은 유지)
+      .select();
 
     if (deleteError) {
+      console.error('❌ [siteManagement] admin_sites 삭제 실패:', deleteError);
+      console.error('❌ [siteManagement] 삭제 실패 상세:', JSON.stringify(deleteError, null, 2));
       throw deleteError;
+    }
+
+    console.log(`✅ [siteManagement] admin_sites에서 ${deleteResult?.length || 0}개 행 삭제 완료:`, JSON.stringify(deleteResult, null, 2));
+    
+    // 삭제 결과 확인: 삭제할 행이 있었는데 삭제된 행이 0개면 RLS 정책 문제
+    if (beforeDelete && beforeDelete.length > 0 && (!deleteResult || deleteResult.length === 0)) {
+      console.error('❌ [siteManagement] RLS 정책 문제 감지: 삭제할 행이 있었지만 삭제된 행이 0개입니다.');
+      console.error('❌ [siteManagement] admin_sites 테이블의 RLS 정책을 확인하세요.');
+      console.error('❌ [siteManagement] DELETE 권한이 현재 사용자에게 있는지 확인하세요.');
+      throw new Error('RLS 정책으로 인해 삭제가 차단되었습니다. Supabase 대시보드에서 admin_sites 테이블의 RLS 정책을 확인하세요.');
+    }
+
+    // 삭제 후 확인 (혹시 남아있는 행이 있는지 확인)
+    // 약간의 지연 후 확인 (Supabase의 eventual consistency 고려)
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const { data: afterDelete, error: verifyError } = await supabase
+      .from('admin_sites')
+      .select('*')
+      .eq('admin_id', user.id)
+      .eq('site_id', siteId);
+    
+    if (verifyError) {
+      console.warn('⚠️ [siteManagement] 삭제 후 확인 실패:', verifyError);
+    } else if (afterDelete && afterDelete.length > 0) {
+      console.error(`❌ [siteManagement] 삭제 후에도 ${afterDelete.length}개 행이 남아있음:`, JSON.stringify(afterDelete, null, 2));
+      console.error(`❌ [siteManagement] 남아있는 행 상세:`, {
+        admin_id: user.id,
+        site_id: siteId,
+        rows: afterDelete.map((row: any) => ({
+          id: row.id,
+          admin_id: row.admin_id,
+          site_id: row.site_id,
+          role: row.role,
+        })),
+      });
+      
+      // 남아있는 행이 있으면 다시 한 번 삭제 시도
+      console.log('🔄 [siteManagement] 남아있는 행 재삭제 시도...');
+      const { error: retryDeleteError, data: retryDeleteResult } = await supabase
+        .from('admin_sites')
+        .delete()
+        .eq('admin_id', user.id)
+        .eq('site_id', siteId)
+        .select();
+      
+      if (retryDeleteError) {
+        console.error('❌ [siteManagement] 재삭제 실패:', retryDeleteError);
+        // 재삭제 실패해도 계속 진행 (RLS 정책 문제일 수 있음)
+      } else {
+        console.log(`✅ [siteManagement] 재삭제 완료: ${retryDeleteResult?.length || 0}개 행 삭제`);
+      }
+      
+      // 최종 확인
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const { data: finalCheck } = await supabase
+        .from('admin_sites')
+        .select('*')
+        .eq('admin_id', user.id)
+        .eq('site_id', siteId);
+      
+      if (finalCheck && finalCheck.length > 0) {
+        console.error(`❌ [siteManagement] 최종 확인: 여전히 ${finalCheck.length}개 행이 남아있음`);
+        // RLS 정책이나 다른 이유로 삭제가 안 될 수 있으므로 에러를 던지지 않고 경고만
+        console.warn('⚠️ [siteManagement] 일부 행이 남아있지만 계속 진행합니다. (RLS 정책 확인 필요)');
+      } else {
+        console.log('✅ [siteManagement] 재삭제 후 확인 완료 - 모든 행이 삭제되었습니다.');
+      }
+    } else {
+      console.log('✅ [siteManagement] 삭제 확인 완료 - 모든 행이 삭제되었습니다.');
     }
 
     // 인증된 현장 목록에서도 제거
@@ -513,7 +628,7 @@ export async function leaveSite(siteId: string): Promise<void> {
     const updatedSites = verifiedSites.filter(id => id !== siteId);
     await AsyncStorage.setItem(userKey, JSON.stringify(updatedSites));
 
-    console.log('✅ [siteManagement] 현장에서 나가기 완료:', siteId);
+    console.log('✅ [siteManagement] 현장에서 나가기 완료 (모든 권한 제거):', siteId);
   } catch (error: any) {
     console.error('❌ [siteManagement] 현장에서 나가기 실패:', error);
     throw error;

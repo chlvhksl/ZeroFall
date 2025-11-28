@@ -258,7 +258,11 @@ export default function RegisterDeviceScreen() {
             try {
               const { error } = await supabase
                 .from('gori_status')
-                .update({ worker_name: null, site_id: null })
+                .update({ 
+                  worker_name: null, 
+                  site_id: null,
+                  reset_wifi_flag: true  // 등록 해제 시 WiFi 재설정
+                })
                 .eq('device_id', deviceId);
               
               if (error) throw error;
@@ -404,17 +408,12 @@ export default function RegisterDeviceScreen() {
         </View>
 
         {/* 와이파이 안내 메시지 */}
-        <View style={styles.infoBox}>
-        <View style={styles.infoRow}>
-          <Ionicons name="information-circle-outline" size={20} color="#007AFF" />
-          <Text style={[styles.infoText, { fontFamily: fonts.regular }]}>
-            {t('device.registerInfo')}
-            {Platform.OS === 'android' && (
-              <>
-                {'\n'}
-                <Text style={[styles.infoBold, { fontFamily: fonts.bold }]}>{t('device.currentWiFi')}</Text> {manualSSID || t('device.inputRequired')}
-                {'\n'}
-                <Text style={[styles.infoBold, { fontFamily: fonts.bold }]}>{t('device.filtering')}</Text> {manualSSID ? t('device.filteringActive') : t('device.filteringWaiting')}
+        {Platform.OS === 'android' && (
+          <View style={styles.infoBox}>
+            <View style={styles.infoRow}>
+              <Ionicons name="information-circle-outline" size={20} color="#007AFF" />
+              <Text style={[styles.infoText, { fontFamily: fonts.regular }]}>
+                {t('device.registerInfo')}
                 {!manualSSID && (
                   <>
                     {'\n'}
@@ -431,11 +430,10 @@ export default function RegisterDeviceScreen() {
                     </Text>
                   </>
                 )}
-              </>
-            )}
-          </Text>
-        </View>
-      </View>
+              </Text>
+            </View>
+          </View>
+        )}
 
       {/* AP 모드 가이드 버튼 */}
       <TouchableOpacity

@@ -85,12 +85,23 @@ export default function GuideScreen() {
       <View style={[styles.header, { paddingTop: insets.top || 0 }]}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => {
+            // 최초 로그인에서 온 경우 현장 선택 화면으로 이동, 아니면 뒤로가기
+            router.replace('/site-select');
+          }}
           activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.title}>{t('guide.title')}</Text>
-        <View style={styles.backButton} />
+        <TouchableOpacity
+          style={styles.nextButton}
+          onPress={() => {
+            // 다음 버튼: 현장 선택 화면으로 이동
+            router.replace('/site-select');
+          }}
+          activeOpacity={0.7}>
+          <Text style={styles.nextButtonText}>{t('common.next')}</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -199,6 +210,19 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  nextButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#78C4B4',
+    borderWidth: 2,
+    borderColor: '#000',
+  },
+  nextButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFF',
   },
   title: {
     fontSize: 32,

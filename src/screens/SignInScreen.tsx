@@ -20,6 +20,26 @@ import { useFontByLanguage } from '../../lib/fontUtils-safe';
 import { PushTokenManager } from '../../lib/push-token-manager';
 import { supabase } from '../../lib/supabase';
 
+// 최초 로그인 여부 확인
+async function checkIsFirstLogin(userId: string): Promise<boolean> {
+  try {
+    const key = `@first_login_${userId}`;
+    const hasSeenGuide = await AsyncStorage.getItem(key);
+    
+    if (hasSeenGuide === 'true') {
+      return false; // 이미 가이드를 본 경우
+    }
+    
+    // 최초 로그인으로 표시
+    await AsyncStorage.setItem(key, 'true');
+    return true; // 최초 로그인
+  } catch (error) {
+    console.error('❌ 최초 로그인 확인 실패:', error);
+    // 에러 발생 시 안전하게 false 반환 (가이드 표시 안 함)
+    return false;
+  }
+}
+
 export default function SignInScreen() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -95,10 +115,20 @@ export default function SignInScreen() {
           );
         }
 
-        // 🎉 토큰 관리 완료 - 무조건 현장 선택 화면으로 이동
-        console.log('🚀 로그인 완료 - 현장 선택 화면으로 이동');
-        console.log('➡️ [SignInScreen] 라우팅: /site-select (무조건 현장 선택)');
-        router.replace('/site-select');
+        // 🎉 토큰 관리 완료 - 최초 로그인 여부 확인
+        const isFirstLogin = await checkIsFirstLogin(data.user.id);
+        
+        if (isFirstLogin) {
+          // 최초 로그인이면 가이드 화면으로 이동
+          console.log('🚀 최초 로그인 - 가이드 화면으로 이동');
+          console.log('➡️ [SignInScreen] 라우팅: /guide (최초 로그인)');
+          router.replace('/guide');
+        } else {
+          // 최초 로그인이 아니면 현장 선택 화면으로 이동
+          console.log('🚀 로그인 완료 - 현장 선택 화면으로 이동');
+          console.log('➡️ [SignInScreen] 라우팅: /site-select (무조건 현장 선택)');
+          router.replace('/site-select');
+        }
       } catch (error) {
         console.error('❌ 로그인 후 처리 실패:', error);
         Alert.alert(

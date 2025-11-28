@@ -104,6 +104,7 @@
     "loading": "Chargement des données...",
     "noDevices": "Aucun appareil enregistré.",
     "registerDevice": "Enregistrer l'appareil",
+    "noSearchResults": "Aucun résultat de recherche.",
     "status": {
       "unfastened": "Non attaché",
       "singleFastened": "Simple",
@@ -261,7 +262,7 @@
     "noWaitingDevices": "Il n'y a actuellement aucun appareil en attente d'enregistrement.",
     "waitingDevicesInfo": "Veuillez vous assurer que l'Arduino est connecté au même réseau Wi-Fi et a transmis des données dans les 2 dernières minutes.",
     "allDevices": "Tous les appareils",
-    "registerInfo": "Lors de l'enregistrement de l'Arduino : Votre appareil doit être connecté au même réseau Wi-Fi que l'Arduino pour détecter les appareils en attente d'enregistrement.\nAprès l'enregistrement : Vous pouvez vérifier l'état de l'Arduino depuis n'importe quel réseau Wi-Fi.",
+    "registerInfo": "Entrez le nom Wi-Fi (SSID) pour trouver les appareils en attente d'enregistrement connectés à ce Wi-Fi.\nAprès l'enregistrement : Vous pouvez vérifier l'état de l'Arduino depuis n'importe quel réseau Wi-Fi.",
     "loadError": "Échec du chargement de la liste.",
     "registerButton": "Enregistrer/Changer",
     "unregisterConfirm": "Êtes-vous sûr de vouloir désenregistrer '{{deviceId}}' ?\nIl sera déplacé vers la liste d'enregistrement en attente.",

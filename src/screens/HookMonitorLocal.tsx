@@ -13,11 +13,11 @@ import {
 // @ts-ignore
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import i18n from '../../lib/i18n-safe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFontByLanguage } from '../../lib/fontUtils-safe';
+import i18n from '../../lib/i18n-safe';
 import { sendRemotePush } from '../../lib/notifications';
 import { clearSelectedSite, getCurrentSiteRole, getSelectedSite } from '../../lib/siteManagement';
-import { useFontByLanguage } from '../../lib/fontUtils-safe';
 import { supabase } from '../../lib/supabase';
 import { formatKoreaTime } from '../../lib/utils';
 
@@ -97,6 +97,7 @@ export default function HookMonitorLocal() {
     if (t) {
       clearTimeout(t);
       timersRef.current[id] = null;
+      console.log('⏹️ [clearTimerFor] 타이머 취소:', id);
     }
   };
 
@@ -104,9 +105,31 @@ export default function HookMonitorLocal() {
     Object.keys(timersRef.current).forEach(k => clearTimerFor(k));
   };
 
-  const evaluateForAlert = (row: GoriStatus, id: string) => {
-    // 등록되지 않은 기기(worker_name이 없는 기기)는 알림을 보내지 않음
-    if (!row.worker_name || String(row.worker_name).trim().length === 0) {
+  const evaluateForAlert = async (row: GoriStatus, id: string) => {
+    // 먼저 등록 상태 확인 (가장 빠른 체크)
+    const rowSiteId = (row as any)?.site_id;
+    const hasWorker = row?.worker_name && String(row.worker_name).trim().length > 0;
+    
+    // 등록 해제된 기기는 즉시 타이머 취소하고 알림 평가 안 함
+    if (!hasWorker || !rowSiteId) {
+      console.log('🚫 [evaluateForAlert] 등록 해제된 기기 - 타이머 취소 및 알림 차단:', id, 'worker:', hasWorker, 'site_id:', rowSiteId);
+      clearTimerFor(id);
+      saveAlertFiredFlag(id, false);
+      lastUnhookedByDevice[id] = false; // 상태도 초기화
+      return;
+    }
+    
+    // 현재 선택된 현장 확인
+    const selectedSite = await getSelectedSite();
+    const currentSiteId = selectedSite?.id || null;
+    
+    // site_id가 현재 선택된 현장과 일치하지 않으면 알림을 보내지 않음
+    if (currentSiteId && rowSiteId !== currentSiteId) {
+      console.log('🚫 [evaluateForAlert] 다른 현장의 장비 알림 차단:', rowSiteId, 'vs', currentSiteId);
+      // 다른 현장의 경우 타이머도 즉시 취소
+      clearTimerFor(id);
+      saveAlertFiredFlag(id, false);
+      lastUnhookedByDevice[id] = false; // 상태도 초기화
       return;
     }
 
@@ -125,29 +148,69 @@ export default function HookMonitorLocal() {
 
       // 새롭게 미체결로 전이됐거나(또는 초기) 아직 알림 안 보냈다면 기기별 타이머 시작
       if (!timersRef.current[id]) {
-        timersRef.current[id] = setTimeout(async () => {
+        const timerId = setTimeout(async () => {
+          // 타이머가 취소되었는지 확인 (등록 해제 시 타이머가 취소될 수 있음)
+          if (timersRef.current[id] !== timerId) {
+            console.log('🚫 [타이머] 타이머가 이미 취소됨:', id);
+            return;
+          }
           timersRef.current[id] = null;
-          const l = Boolean(row?.left_sensor);
-          const r = Boolean(row?.right_sensor);
-          // 타임아웃 시점에 최신 상태를 한 번 더 점검하기 위해 allDevices 캐시에서 확인
-          let latest: GoriStatus | null = null;
-          const found = sharedAllDevices.find(d => d.device_id === id);
-          latest = found || row || sharedLast;
-          const ll = Boolean(latest?.left_sensor);
-          const rr = Boolean(latest?.right_sensor);
-          // 등록된 기기인지 다시 확인 (타이머 실행 시점에 최신 상태 확인)
-          const isRegistered = latest?.worker_name && String(latest.worker_name).trim().length > 0;
-          if (!ll && !rr && !alertFiredByDevice[id] && isRegistered) {
-            const displayName = String(latest?.worker_name || workerName || id);
-            const title = i18n.t('notification.alertTitle', { name: displayName });
-            const body = i18n.t('notification.alertBody');
-            await sendRemotePush(title, body, {
-              device_id: id,
-              status: i18n.t('notification.status.unfastened'),
-            });
+          
+          try {
+            // 타이머 실행 시점에 Supabase에서 최신 데이터 직접 조회 (등록 해제 여부 확인)
+            const { data: latestData, error } = await supabase
+              .from('gori_status')
+              .select('device_id, worker_name, left_sensor, right_sensor, site_id')
+              .eq('device_id', id)
+              .maybeSingle();
+            
+            // 조회 실패 시 알림 발송 안 함
+            if (error) {
+              console.error('🚫 [타이머] Supabase 조회 실패 - 알림 차단:', id, error);
+              return;
+            }
+            
+            // 등록 해제되었는지 확인 (worker_name이 없거나 site_id가 null)
+            if (!latestData || !latestData.worker_name || String(latestData.worker_name).trim().length === 0) {
+              console.log('🚫 [타이머] 등록 해제된 기기 - 알림 차단:', id);
+              return;
+            }
+            
+            const latestSiteId = (latestData as any)?.site_id;
+            if (!latestSiteId) {
+              console.log('🚫 [타이머] site_id가 NULL인 기기 - 알림 차단:', id);
+              return;
+            }
+            
+            // 현재 선택된 현장 확인
+            const selectedSite = await getSelectedSite();
+            const currentSiteId = selectedSite?.id || null;
+            if (currentSiteId && latestSiteId !== currentSiteId) {
+              console.log('🚫 [타이머] 다른 현장의 기기 - 알림 차단:', latestSiteId, 'vs', currentSiteId);
+              return;
+            }
+            
+            const ll = Boolean(latestData?.left_sensor);
+            const rr = Boolean(latestData?.right_sensor);
+            
+            // 미체결 상태이고 알림을 아직 보내지 않았으면 알림 발송
+            if (!ll && !rr && !alertFiredByDevice[id]) {
+              const displayName = String(latestData?.worker_name || workerName || id);
+              const title = i18n.t('notification.alertTitle', { name: displayName });
+              const body = i18n.t('notification.alertBody');
+              await sendRemotePush(title, body, {
+                device_id: id,
+                status: i18n.t('notification.status.unfastened'),
+              });
             await saveAlertFiredFlag(id, true); // 같은 연속 구간에서는 한 번만
           }
-        }, 5000);
+        } catch (err) {
+          // 모든 에러 시 알림 발송 안 함
+          console.error('🚫 [타이머] 예외 발생 - 알림 차단:', id, err);
+          return;
+        }
+      }, 5000);
+      timersRef.current[id] = timerId;
       }
     } else {
       // 안전 상태로 전환: 타이머/플래그 초기화
@@ -225,10 +288,22 @@ export default function HookMonitorLocal() {
         },
         payload => {
           const row = (payload as any).new as GoriStatus;
+          
+          // 등록 해제된 기기(site_id가 null 또는 worker_name이 없음)면 타이머 취소하고 알림 평가 안 함
+          const rowSiteId = (row as any)?.site_id;
+          const hasWorker = row?.worker_name && String(row.worker_name).trim().length > 0;
+          
+          if (!hasWorker || !rowSiteId) {
+            console.log('🚫 [startSubscribe] 등록 해제된 기기 - 타이머 취소 및 알림 차단:', id);
+            clearTimerFor(id);
+            saveAlertFiredFlag(id, false);
+            return;
+          }
+          
           setLast(row);
           sharedLast = row;
           setLastEventAt(Date.now());
-          evaluateForAlert(row, id);
+          void evaluateForAlert(row, id);
         },
       )
       .subscribe(status => {
@@ -288,6 +363,17 @@ export default function HookMonitorLocal() {
         .limit(1)
         .maybeSingle();
       if (!error && data) {
+        // 등록 해제된 기기(site_id가 null 또는 worker_name이 없음)면 타이머 취소하고 알림 평가 안 함
+        const dataSiteId = (data as any)?.site_id;
+        const hasWorker = data?.worker_name && String(data.worker_name).trim().length > 0;
+        
+        if (!hasWorker || !dataSiteId) {
+          console.log('🚫 [fetchLatest] 등록 해제된 기기 - 타이머 취소 및 알림 차단:', id);
+          clearTimerFor(id);
+          saveAlertFiredFlag(id, false);
+          return null;
+        }
+        
         setLast(data);
         sharedLast = data;
         // 최근 이벤트 시각 업데이트(행의 시간 또는 지금)
@@ -296,7 +382,7 @@ export default function HookMonitorLocal() {
           data.created_at;
         const ts = t ? new Date(String(t)).getTime() : Date.now();
         setLastEventAt(ts);
-        evaluateForAlert(data, id);
+        void evaluateForAlert(data, id);
         return data;
       }
     }
@@ -612,7 +698,7 @@ export default function HookMonitorLocal() {
               worker_name: registeredInfo?.worker_name || deviceId,
               left_sensor: false,
               right_sensor: false,
-              status: null,
+              status: undefined,
               __ts: 0,
             } as GoriStatus & { __ts?: number };
             console.log('🆕 [HookMonitorLocal] 새 등록 기기 추가:', deviceId, registeredInfo?.worker_name);
@@ -637,7 +723,7 @@ export default function HookMonitorLocal() {
       // 등록된 기기 존재 여부 업데이트
       setAnyRegistered(sharedAllDevices.length > 0);
       // 초기 로드 시점에도 각 기기에 대해 미체결 알림 로직 연결
-      sharedAllDevices.forEach(r => evaluateForAlert(r, r.device_id));
+      sharedAllDevices.forEach(r => void evaluateForAlert(r, r.device_id));
     } catch (error) {
       console.error('❌ [HookMonitorLocal] 기기 목록 로드 실패:', error);
     }
@@ -705,7 +791,8 @@ export default function HookMonitorLocal() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'gori_status' },
         async (payload) => {
-          console.log('📡 [HookMonitorLocal] 실시간 이벤트 수신:', payload.eventType, payload.new?.device_id);
+          const row = (payload as any).new as GoriStatus | null;
+          console.log('📡 [HookMonitorLocal] 실시간 이벤트 수신:', payload.eventType, row?.device_id);
           
           // 최신 selectedSiteId 확인 (클로저 문제 해결)
           const currentSite = await getSelectedSite();
@@ -732,8 +819,6 @@ export default function HookMonitorLocal() {
             await clearSelectedSite();
             return;
           }
-          
-          const row = (payload as any).new as GoriStatus;
           
           // DELETE 이벤트 처리
           if (payload.eventType === 'DELETE') {
@@ -765,12 +850,21 @@ export default function HookMonitorLocal() {
           if (!rowSiteId || rowSiteId !== actualSiteId) {
             // site_id가 NULL이거나 다른 현장의 장비는 무시
             console.log('🚫 [HookMonitorLocal] 다른 현장의 장비 또는 site_id가 NULL인 장비 무시:', rowSiteId, 'vs', actualSiteId);
+            // 등록 해제된 경우 타이머도 즉시 취소
+            if (row.device_id) {
+              clearTimerFor(row.device_id);
+              saveAlertFiredFlag(row.device_id, false);
+            }
             return;
           }
           
           if (hasWorker && row.device_id) {
             // 어떤 기기든 상태 이벤트 들어올 때마다 즉시 알림 평가
-            evaluateForAlert(row, row.device_id);
+            void evaluateForAlert(row, row.device_id);
+          } else if (row.device_id) {
+            // 등록 해제된 경우 타이머 취소
+            clearTimerFor(row.device_id);
+            saveAlertFiredFlag(row.device_id, false);
           }
           
           // 즉시 상태 업데이트

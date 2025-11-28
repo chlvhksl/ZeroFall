@@ -104,6 +104,7 @@
     "loading": "データを読み込み中...",
     "noDevices": "登録された機器がありません。",
     "registerDevice": "機器登録",
+    "noSearchResults": "検索結果がありません。",
     "status": {
       "unfastened": "未締結",
       "singleFastened": "単一締結",
@@ -247,7 +248,7 @@
     "noWaitingDevices": "現在登録待ちの機器がありません。",
     "waitingDevicesInfo": "Arduinoが同じWi-Fiに接続されており、最近2分以内にデータを送信したか確認してください。",
     "allDevices": "全機器",
-    "registerInfo": "Arduino登録時: Arduinoと同じWi-Fiに接続されている必要があります。\n登録後: 他のWi-FiからもArduinoの状態を確認できます。",
+    "registerInfo": "WiFi名(SSID)を入力すると、そのWiFiに接続されている登録待機中のデバイスを確認できます。\n登録後: 他のWi-FiからもArduinoの状態を確認できます。",
     "loadError": "リストを読み込めませんでした。",
     "registerButton": "登録/変更",
     "unregisterConfirm": "'{{deviceId}}'機器の登録を解除しますか？\n登録待ちリストに移動します。",
